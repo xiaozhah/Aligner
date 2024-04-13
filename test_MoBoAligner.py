@@ -1,28 +1,29 @@
 from MoBoAligner import MoBoAligner
 import torch
 
-# 设置随机种子以确保结果可复现
+# Set a random seed to ensure reproducibility of the results
 torch.manual_seed(1234)
 
-# 初始化文本和mel嵌入向量
-text_embeddings = torch.randn(2, 5, 10, requires_grad=True)  # 批量大小为2，文本令牌数为5，嵌入维度为10
-mel_embeddings = torch.randn(2, 800, 10, requires_grad=True)  # 批量大小为2，mel帧数为800，嵌入维度为10
-temperature_ratio = 0.5  # Gumbel噪声的温度比率
+# Initialize the text and mel embedding tensors
+text_embeddings = torch.randn(2, 5, 10, requires_grad=True)  # Batch size: 2, Text tokens: 5, Embedding dimension: 10
+mel_embeddings = torch.randn(2, 800, 10, requires_grad=True)  # Batch size: 2, Mel frames: 800, Embedding dimension: 10
 
-# 初始化MoBoAligner模型
+temperature_ratio = 0.5  # Temperature ratio for Gumbel noise
+
+# Initialize the MoBoAligner model
 aligner = MoBoAligner()
 
-# 前向传播
 gamma, expanded_text_embeddings = aligner(text_embeddings, mel_embeddings, temperature_ratio)
 
-# 打印软对齐（gamma）的形状和扩展的文本嵌入向量
+# Print the shape of the soft alignment (gamma) and the expanded text embeddings
 print("Soft alignment (gamma):")
 print(gamma.shape)
 print("Expanded text embeddings:")
 print(expanded_text_embeddings)
 
-# 反向传播测试
+# Backward pass test
 gamma.sum().backward()
+
 print("Gradient for text_embeddings:")
 print(text_embeddings.grad)
 print("Gradient for mel_embeddings:")
