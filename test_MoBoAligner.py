@@ -8,9 +8,9 @@ mel_embeddings = torch.randn(2, 800, 10)   # Batch size 2, 8 mel frames, embeddi
 temperature_ratio = 0.5                  # Temperature ratio for Gumbel noise
 
 aligner = MoBoAligner()
-gamma_log, expanded_text_embeddings = aligner(text_embeddings, mel_embeddings, temperature_ratio)
+gamma, expanded_text_embeddings = aligner(text_embeddings, mel_embeddings, temperature_ratio)
 
-print("Soft alignment (gamma_log):")
-print(gamma_log.shape)
+print("Soft alignment (gamma):")
+print(gamma.shape)
 print("Expanded text embeddings:")
 print(expanded_text_embeddings)
