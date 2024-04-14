@@ -73,9 +73,8 @@ class MoBoAligner(nn.Module):
         # Compute gamma (soft alignment)
         gamma = alpha[:, 1:, 1:] + beta
         gamma = gamma - torch.logsumexp(gamma, dim=1, keepdim=True)
-        gamma = torch.exp(gamma)
 
         # Compute the expanded text embeddings
-        expanded_text_embeddings = torch.bmm(gamma.transpose(1, 2), text_embeddings)
+        expanded_text_embeddings = torch.bmm(torch.exp(gamma).transpose(1, 2), text_embeddings)
 
-        return gamma, expanded_text_embeddings
+        return gamma, expanded_text_embeddings # gamma still in the log domain

@@ -14,6 +14,7 @@ temperature_ratio = 0.5  # Temperature ratio for Gumbel noise
 aligner = MoBoAligner()
 
 gamma, expanded_text_embeddings = aligner(text_embeddings, mel_embeddings, temperature_ratio)
+# gamma still in the log domain
 
 # Print the shape of the soft alignment (gamma) and the expanded text embeddings
 print("Soft alignment (gamma):")
