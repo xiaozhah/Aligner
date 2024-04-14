@@ -32,3 +32,7 @@ print("Gradient for text_embeddings:")
 print(text_embeddings.grad)
 print("Gradient for mel_embeddings:")
 print(mel_embeddings.grad)
+
+import numpy as np
+np.save('gamma.npy', gamma.detach().numpy())
+
