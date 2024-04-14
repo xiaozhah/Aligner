@@ -9,7 +9,7 @@ class MoBoAligner(nn.Module):
         self.temperature_min = temperature_min
         self.temperature_max = temperature_max
 
-    def log_energy_4D(self, energy, text_mask, mel_mask, direction='alpha'):
+    def energy_4D(self, energy, text_mask, mel_mask, direction='alpha'):
         """
         Compute the log conditional probability of the alignment in the forward or backward direction.
         """
@@ -33,17 +33,14 @@ class MoBoAligner(nn.Module):
         if direction == 'beta': # because K is max_mel_length-1
             mask = mask[:, :, :, :-1]
         triu = triu * mask
+        triu = torch.log(triu)
 
-        # Replace 0 elements in triu with a small positive value to fix nan bug (-inf)
-        triu[triu == 0] = 1e-7
 
-        energy_4D = energy_4D * triu
-        energy_4D = energy_4D.log() - energy_4D.sum(2, keepdim=True).log()
+        energy_4D = energy_4D + triu
+        energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
         energy_4D = energy_4D * mask
-        
-        if direction == 'beta':
-            energy_4D = torch.flip(energy_4D.transpose(2, 3), dims=(2, 3))
-
+        print(energy_4D)
+        exit()        
         return energy_4D
 
     def forward(self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio):
@@ -59,25 +56,25 @@ class MoBoAligner(nn.Module):
         # Apply Gumbel noise and temperature
         temperature = self.temperature_min + (self.temperature_max - self.temperature_min) * temperature_ratio
         noise = -torch.log(-torch.log(torch.rand_like(energy)))
-        energy = torch.exp((energy + noise) / temperature)
+        energy = (energy + noise) / temperature
 
         # Compute the log conditional probability P(B_i=j | B_{i-1}=k) for alpha
-        log_cond_prob_alpha = self.log_energy_4D(energy, text_mask, mel_mask, direction='alpha')  # (B, I, J, K)
+        cond_prob_alpha = self.energy_4D(energy, text_mask, mel_mask, direction='alpha')  # (B, I, J, K)
 
         # Compute the log conditional probability P(B_i=j | B_{i+1}=k) for beta
-        log_cond_prob_beta = self.log_energy_4D(energy, text_mask, mel_mask, direction='beta')  # (B, I, J, K)
+        cond_prob_beta = self.energy_4D(energy, text_mask, mel_mask, direction='beta')  # (B, I, J, K)
 
         # Compute alpha recursively, in the log domain
         alpha = torch.full((batch_size, max_text_length+1, max_mel_length+1), -float('inf'), device=energy.device)
         alpha[:, 0, 0] = 0  # Initialize alpha[0, 0] = 0
         for i in range(1, max_text_length+1):
-            alpha[:, i, 1:] = torch.logsumexp(alpha[:, i-1, :-1].unsqueeze(1) + log_cond_prob_alpha[:, i-1, :], dim=2)
+            alpha[:, i, 1:] = torch.logsumexp(alpha[:, i-1, :-1].unsqueeze(1) + cond_prob_alpha[:, i-1, :], dim=2)
 
         # Compute beta recursively
         beta = torch.full((batch_size, max_text_length, max_mel_length), -float('inf'), device=energy.device)
         beta[:, -1, -1] = 0  # Initialize beta_{I,J} = 1
         for i in range(max_text_length-2, -1, -1):
-            beta[:, i, :-1] = torch.logsumexp(beta[:, i+1, :].unsqueeze(1) + log_cond_prob_beta[:, i, :], dim=2)
+            beta[:, i, :-1] = torch.logsumexp(beta[:, i+1, :].unsqueeze(1) + cond_prob_beta[:, i, :], dim=2)
 
         # Compute gamma (soft alignment)
         gamma = alpha[:, 1:, 1:] + beta
