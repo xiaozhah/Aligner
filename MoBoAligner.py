@@ -26,7 +26,7 @@ class MoBoAligner(nn.Module):
         triu = triu.repeat(batch_size, 1, 1, max_text_length)  # (B, K, J, I)
         triu = triu.transpose(1, 3)  # (B, I, J, K)
 
-        # Replace 0 elements in triu with a small positive value to fix nan bug
+        # Replace 0 elements in triu with a small positive value to fix nan bug (-inf)
         triu[triu == 0] = 1e-7
 
         energy_4D = energy_4D * triu
