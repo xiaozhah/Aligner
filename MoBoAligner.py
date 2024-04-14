@@ -33,7 +33,7 @@ class MoBoAligner(nn.Module):
         if direction == 'beta': # because K is max_mel_length-1
             mask = mask[:, :, :, :-1]
         triu = triu * mask
-        triu = torch.log(triu)
+        triu = torch.log(triu) # torch.log(triu + 1e-7) can fix -inf
 
         energy_4D = energy_4D + triu
         energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
@@ -71,7 +71,7 @@ class MoBoAligner(nn.Module):
         beta = torch.full((batch_size, max_text_length, max_mel_length), -float('inf'), device=energy.device)
         beta[:, -1, -1] = 0  # Initialize beta_{I,J} = 1
         for i in range(max_text_length-2, -1, -1):
-            beta[:, i, :-1] = torch.logsumexp(beta[:, i+1, :].unsqueeze(1) + cond_prob_beta[:, i, :], dim=2)
+            beta[:, i, :] = torch.logsumexp(beta[:, i+1, 1:].unsqueeze(1) + cond_prob_beta[:, i, :], dim=2)
 
         # Compute gamma (soft alignment)
         gamma = alpha[:, 1:, 1:] + beta
