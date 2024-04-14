@@ -35,12 +35,9 @@ class MoBoAligner(nn.Module):
         triu = triu * mask
         triu = torch.log(triu)
 
-
         energy_4D = energy_4D + triu
         energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
-        energy_4D = energy_4D * mask
-        print(energy_4D)
-        exit()        
+        energy_4D = energy_4D * mask      
         return energy_4D
 
     def forward(self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio):
