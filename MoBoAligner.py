@@ -9,10 +9,13 @@ class MoBoAligner(nn.Module):
         self.temperature_min = temperature_min
         self.temperature_max = temperature_max
 
-    def log_energy_4D(self, energy, batch_size, max_text_length, max_mel_length, direction='alpha'):
+    def log_energy_4D(self, energy, text_mask, mel_mask, direction='alpha'):
         """
         Compute the log conditional probability of the alignment in the forward or backward direction.
         """
+        batch_size, max_text_length = text_mask.shape
+        batch_size, max_mel_length = mel_mask.shape
+
         if direction == 'alpha':
             energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, max_mel_length)  # (B, I, J, K)
             triu = torch.triu(torch.ones((max_mel_length, max_mel_length)), diagonal=0).to(energy.device)  # (K, J)
@@ -26,18 +29,24 @@ class MoBoAligner(nn.Module):
         triu = triu.repeat(batch_size, 1, 1, max_text_length)  # (B, K, J, I)
         triu = triu.transpose(1, 3)  # (B, I, J, K)
 
+        mask = text_mask.unsqueeze(2).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(1)
+        if direction == 'beta': # because K is max_mel_length-1
+            mask = mask[:, :, :, :-1]
+        triu = triu * mask
+
         # Replace 0 elements in triu with a small positive value to fix nan bug (-inf)
         triu[triu == 0] = 1e-7
 
         energy_4D = energy_4D * triu
         energy_4D = energy_4D.log() - energy_4D.sum(2, keepdim=True).log()
-
+        energy_4D = energy_4D * mask
+        
         if direction == 'beta':
             energy_4D = torch.flip(energy_4D.transpose(2, 3), dims=(2, 3))
 
         return energy_4D
 
-    def forward(self, text_embeddings, mel_embeddings, temperature_ratio):
+    def forward(self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio):
         """
         Compute the soft alignment (gamma) and the expanded text embeddings.
         """
@@ -53,10 +62,10 @@ class MoBoAligner(nn.Module):
         energy = torch.exp((energy + noise) / temperature)
 
         # Compute the log conditional probability P(B_i=j | B_{i-1}=k) for alpha
-        log_cond_prob_alpha = self.log_energy_4D(energy, batch_size, max_text_length, max_mel_length, direction='alpha')  # (B, I, J, K)
+        log_cond_prob_alpha = self.log_energy_4D(energy, text_mask, mel_mask, direction='alpha')  # (B, I, J, K)
 
         # Compute the log conditional probability P(B_i=j | B_{i+1}=k) for beta
-        log_cond_prob_beta = self.log_energy_4D(energy, batch_size, max_text_length, max_mel_length, direction='beta')  # (B, I, J, K)
+        log_cond_prob_beta = self.log_energy_4D(energy, text_mask, mel_mask, direction='beta')  # (B, I, J, K)
 
         # Compute alpha recursively, in the log domain
         alpha = torch.full((batch_size, max_text_length+1, max_mel_length+1), -float('inf'), device=energy.device)
