@@ -13,24 +13,24 @@ class MoBoAligner(nn.Module):
         """
         Compute the log conditional probability of the alignment in the forward or backward direction.
         """
-        batch_size, max_text_length = text_mask.shape
-        batch_size, max_mel_length = mel_mask.shape
+        B, I = text_mask.shape
+        B, J = mel_mask.shape
 
         if direction == 'alpha':
-            energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, max_mel_length)  # (B, I, J, K)
-            triu = torch.triu(torch.ones((max_mel_length, max_mel_length)), diagonal=0).to(energy.device)  # (K, J)
+            energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J)  # (B, I, J, K)
+            triu = torch.triu(torch.ones((J, J)), diagonal=0).to(energy.device)  # (K, J)
         elif direction == 'beta':
-            energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, max_mel_length-1)  # (B, I, J, K)
-            triu = torch.tril(torch.ones((max_mel_length-1, max_mel_length)), diagonal=0).to(energy.device)  # (K, J), K == J-1
+            energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J-1)  # (B, I, J, K)
+            triu = torch.tril(torch.ones((J-1, J)), diagonal=0).to(energy.device)  # (K, J), K == J-1
         else:
             raise ValueError("direction must be 'alpha' or 'beta'")
 
         triu = triu.unsqueeze(-1).unsqueeze(0)  # (1, K, J, 1)
-        triu = triu.repeat(batch_size, 1, 1, max_text_length)  # (B, K, J, I)
+        triu = triu.repeat(B, 1, 1, I)  # (B, K, J, I)
         triu = triu.transpose(1, 3)  # (B, I, J, K)
 
         mask = text_mask.unsqueeze(2).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(1)
-        if direction == 'beta': # because K is max_mel_length-1
+        if direction == 'beta': # because K is J-1
             mask = mask[:, :, :, :-1]
         mask = triu * mask
 
@@ -43,8 +43,8 @@ class MoBoAligner(nn.Module):
         """
         Compute the soft alignment (gamma) and the expanded text embeddings.
         """
-        batch_size, max_text_length, text_channels = text_embeddings.size()
-        _, max_mel_length, mel_channels = mel_embeddings.size()
+        B, I, text_channels = text_embeddings.size()
+        _, J, mel_channels = mel_embeddings.size()
 
         # Compute the energy matrix
         energy = torch.bmm(text_embeddings, mel_embeddings.transpose(1, 2)) / math.sqrt(text_channels * mel_channels)
@@ -61,16 +61,16 @@ class MoBoAligner(nn.Module):
         cond_prob_beta = self.energy_4D(energy, text_mask, mel_mask, direction='beta')  # (B, I, J, K)
 
         # Compute alpha recursively, in the log domain
-        alpha = torch.full((batch_size, max_text_length+1, max_mel_length+1), -float('inf'), device=energy.device)
+        alpha = torch.full((B, I+1, J+1), -float('inf'), device=energy.device)
         alpha[:, 0, 0] = 0  # Initialize alpha[0, 0] = 0
-        for i in range(1, max_text_length+1):
+        for i in range(1, I+1):
             alpha[:, i, i:] = torch.logsumexp(alpha[:, i-1, :-1].unsqueeze(1) + cond_prob_alpha[:, i-1, (i-1):], dim=2)
 
         # Compute beta recursively
-        beta = torch.full((batch_size, max_text_length, max_mel_length), -float('inf'), device=energy.device)
+        beta = torch.full((B, I, J), -float('inf'), device=energy.device)
         beta[:, -1, -1] = 0  # Initialize beta_{I,J} = 1
-        for i in range(max_text_length-2, -1, -1):
-            beta[:, i, :(max_mel_length+i-4)] = torch.logsumexp(beta[:, i+1, 1:].unsqueeze(1) + cond_prob_beta[:, i, :(max_mel_length+i-4)], dim=2)
+        for i in range(I-2, -1, -1):
+            beta[:, i, :(J+i-4)] = torch.logsumexp(beta[:, i+1, 1:].unsqueeze(1) + cond_prob_beta[:, i, :(J+i-4)], dim=2)
 
         # Compute gamma (soft alignment)
         gamma = alpha[:, 1:, 1:] + beta
