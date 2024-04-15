@@ -36,7 +36,7 @@ class MoBoAligner(nn.Module):
 
         energy_4D.masked_fill_(mask == 0, -float("Inf"))
         energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
-        energy_4D.masked_fill_(mask == 0, -float("Inf"))
+        energy_4D.masked_fill_(mask == 0, -10)
         return energy_4D
 
     def forward(self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio):
