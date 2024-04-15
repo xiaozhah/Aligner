@@ -33,7 +33,7 @@ class MoBoAligner(nn.Module):
         if direction == 'beta': # because K is max_mel_length-1
             mask = mask[:, :, :, :-1]
         triu = triu * mask
-        triu = torch.log(triu) # torch.log(triu + 1e-7) can fix -inf
+        triu = torch.log(triu + 1e-9)
 
         energy_4D = energy_4D + triu
         energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
