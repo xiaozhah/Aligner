@@ -74,9 +74,10 @@ class MoBoAligner(nn.Module):
 
         # Compute gamma (soft alignment)
         gamma = alpha[:, 1:, 1:] + beta
-        gamma = gamma - torch.logsumexp(gamma, dim=1, keepdim=True)
 
         gamma_mask = text_mask.unsqueeze(2) * mel_mask.unsqueeze(1)
+        gamma.masked_fill_(gamma_mask == 0, -float("Inf"))
+        gamma = gamma - torch.logsumexp(gamma, dim=1, keepdim=True) 
         gamma.masked_fill_(gamma_mask == 0, -float("Inf"))
 
         # Compute the expanded text embeddings
