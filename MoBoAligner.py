@@ -36,7 +36,7 @@ class MoBoAligner(nn.Module):
 
         energy_4D.masked_fill_(mask == 0, -float("Inf"))
         energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
-        energy_4D.masked_fill_(mask == 0, -10)
+        energy_4D.masked_fill_(mask == 0, -float("Inf"))
         return energy_4D
 
     def forward(self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio):
@@ -64,13 +64,13 @@ class MoBoAligner(nn.Module):
         alpha = torch.full((batch_size, max_text_length+1, max_mel_length+1), -float('inf'), device=energy.device)
         alpha[:, 0, 0] = 0  # Initialize alpha[0, 0] = 0
         for i in range(1, max_text_length+1):
-            alpha[:, i, 1:] = torch.logsumexp(alpha[:, i-1, :-1].unsqueeze(1) + cond_prob_alpha[:, i-1, :], dim=2)
+            alpha[:, i, i:] = torch.logsumexp(alpha[:, i-1, :-1].unsqueeze(1) + cond_prob_alpha[:, i-1, (i-1):], dim=2)
 
         # Compute beta recursively
         beta = torch.full((batch_size, max_text_length, max_mel_length), -float('inf'), device=energy.device)
         beta[:, -1, -1] = 0  # Initialize beta_{I,J} = 1
         for i in range(max_text_length-2, -1, -1):
-            beta[:, i, :] = torch.logsumexp(beta[:, i+1, 1:].unsqueeze(1) + cond_prob_beta[:, i, :], dim=2)
+            beta[:, i, :(max_mel_length+i-4)] = torch.logsumexp(beta[:, i+1, 1:].unsqueeze(1) + cond_prob_beta[:, i, :(max_mel_length+i-4)], dim=2)
 
         # Compute gamma (soft alignment)
         gamma = alpha[:, 1:, 1:] + beta
