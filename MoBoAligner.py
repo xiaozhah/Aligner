@@ -32,12 +32,11 @@ class MoBoAligner(nn.Module):
         mask = text_mask.unsqueeze(2).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(1)
         if direction == 'beta': # because K is max_mel_length-1
             mask = mask[:, :, :, :-1]
-        triu = triu * mask
-        triu = torch.log(triu + 1e-9)
+        mask = triu * mask
 
-        energy_4D = energy_4D + triu
+        energy_4D.masked_fill_(mask == 0, -float("Inf"))
         energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
-        energy_4D = energy_4D * mask      
+        energy_4D.masked_fill_(mask == 0, -float("Inf"))
         return energy_4D
 
     def forward(self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio):
@@ -77,7 +76,11 @@ class MoBoAligner(nn.Module):
         gamma = alpha[:, 1:, 1:] + beta
         gamma = gamma - torch.logsumexp(gamma, dim=1, keepdim=True)
 
+        gamma_mask = text_mask.unsqueeze(2) * mel_mask.unsqueeze(1)
+        gamma.masked_fill_(gamma_mask == 0, -float("Inf"))
+
         # Compute the expanded text embeddings
         expanded_text_embeddings = torch.bmm(torch.exp(gamma).transpose(1, 2), text_embeddings)
+        expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
         return gamma, expanded_text_embeddings # gamma still in the log domain
