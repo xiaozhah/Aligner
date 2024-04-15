@@ -1,5 +1,6 @@
 from MoBoAligner import MoBoAligner
 import torch
+torch.autograd.set_detect_anomaly(True)
 
 # Set a random seed to ensure reproducibility of the results
 torch.manual_seed(1234)
@@ -26,13 +27,12 @@ print("Expanded text embeddings:")
 print(expanded_text_embeddings)
 
 # Backward pass test
-gamma.sum().backward()
+
+with torch.autograd.detect_anomaly():
+    print(expanded_text_embeddings.mean())
+    expanded_text_embeddings.mean().backward()
 
 print("Gradient for text_embeddings:")
 print(text_embeddings.grad)
 print("Gradient for mel_embeddings:")
 print(mel_embeddings.grad)
-
-import numpy as np
-np.save('gamma.npy', gamma.detach().numpy())
-
