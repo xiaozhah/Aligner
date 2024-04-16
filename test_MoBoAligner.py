@@ -15,10 +15,10 @@ mel_embeddings = torch.randn(
 )  # Batch size: 2, Mel frames: 800, Embedding dimension: 10
 # Initialize the text and mel masks
 text_mask = torch.tensor(
-    [[1, 1, 1, 1, 1], [1, 1, 1, 1, 1]], dtype=torch.bool
+    [[1, 1, 1, 1, 1], [1, 1, 1, 0, 0]], dtype=torch.bool
 )  # Batch size: 2, Text tokens: 5
 mel_mask = torch.tensor(
-    [[1] * 800, [1] * 600 + [1] * 200], dtype=torch.bool
+    [[1] * 800, [1] * 600 + [0] * 200], dtype=torch.bool
 )  # Batch size: 2, Mel frames: 800
 
 temperature_ratio = 0.5  # Temperature ratio for Gumbel noise
