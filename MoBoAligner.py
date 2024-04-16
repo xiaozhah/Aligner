@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import numpy as np
 import math
 
 
@@ -41,14 +41,18 @@ class MoBoAligner(nn.Module):
         )
         if direction == "beta":  # because K is J-1
             mask = mask[:, :, :, :-1]
-        mask = triu * mask
+        triu = triu * mask
 
-        mask_invalid = (text_mask.unsqueeze(2).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(1)).repeat(1, 1, J, 1)
+        mask_invalid = (
+            text_mask.unsqueeze(2).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(1)
+        ).repeat(1, 1, J, 1)
         if direction == "beta":  # because K is J-1
             mask_invalid = mask_invalid[:, :, :, :-1]
 
-        energy_4D.masked_fill_((mask == 0) & (mask_invalid == 1), -float("Inf"))
-        energy_4D.masked_fill_(mask_invalid == 0, -10) # don't care about this value, just make logsumexp don't output -inf
+        energy_4D.masked_fill_((triu == 0) & (mask_invalid == 1), -float("Inf"))
+        energy_4D.masked_fill_(
+            mask_invalid == 0, -10
+        )  # don't care about this value, just make logsumexp don't output -inf
         energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
         energy_4D.masked_fill_(mask_invalid == 0, -float("Inf"))
         return energy_4D
