@@ -233,7 +233,7 @@ class MoBoAligner(nn.Module):
         gamma = gamma - torch.logsumexp(gamma, dim=1, keepdim=True)
         gamma.masked_fill_(gamma_mask == 0, -float("Inf"))
 
-        return gamma
+        return gamma, gamma_mask
 
     def compute_expanded_text_embeddings(self, gamma, text_embeddings, mel_mask):
         """
@@ -305,11 +305,11 @@ class MoBoAligner(nn.Module):
         )
 
         # Compute gamma (soft alignment) in the log domain
-        gamma = self.compute_gamma(alpha, beta, text_mask, mel_mask)
+        gamma, gamma_mask = self.compute_gamma(alpha, beta, text_mask, mel_mask)
 
         # Compute the expanded text embeddings
         expanded_text_embeddings = self.compute_expanded_text_embeddings(
             gamma, text_embeddings, mel_mask
         )
 
-        return gamma, expanded_text_embeddings  # gamma is still in the log domain
+        return gamma, gamma_mask, expanded_text_embeddings  # gamma is still in the log domain

@@ -1,5 +1,7 @@
 from MoBoAligner import MoBoAligner
 import torch
+import monotonic_align
+import numpy as np
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -26,7 +28,7 @@ temperature_ratio = 0.5  # Temperature ratio for Gumbel noise
 # Initialize the MoBoAligner model
 aligner = MoBoAligner()
 
-gamma, expanded_text_embeddings = aligner(
+gamma, gamma_mask, expanded_text_embeddings = aligner(
     text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio
 )
 # gamma still in the log domain
@@ -47,3 +49,12 @@ print("Gradient for text_embeddings:")
 print(text_embeddings.grad)
 print("Gradient for mel_embeddings:")
 print(mel_embeddings.grad)
+
+# Test the hard alignment (Viterbi decoding) function
+
+with torch.no_grad():
+    attn = monotonic_align.maximum_path(gamma, gamma_mask)
+    print(attn.requires_grad)
+
+print("Hard alignment (Viterbi decoding):")
+print(attn.shape)
