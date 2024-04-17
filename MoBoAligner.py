@@ -4,6 +4,7 @@ import numpy as np
 import math
 from roll import roll_tensor
 
+
 class MoBoAligner(nn.Module):
     def __init__(self, temperature_min=0.1, temperature_max=1.0):
         super(MoBoAligner, self).__init__()
@@ -54,32 +55,30 @@ class MoBoAligner(nn.Module):
 
         energy_4D.masked_fill_((triu == 0) & (mask_invalid == 1), -float("Inf"))
         # don't care about -10 value, just make logsumexp don't output -inf
-        energy_4D.masked_fill_(
-            mask_invalid == 0, -10
-        )
+        energy_4D.masked_fill_(mask_invalid == 0, -10)
         energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
         energy_4D.masked_fill_(mask_invalid == 0, -float("Inf"))
         energy_4D.masked_fill_(right_mask == 0, -10)
         energy_4D.masked_fill_(text_invalid == 0, -10)
         return energy_4D
-    
+
     def right_shift(self, x, shifts_text_dim, shifts_mel_dim):
-        x = roll_tensor(x, shifts = shifts_text_dim, dim = 1)
-        x = roll_tensor(x, shifts = shifts_mel_dim, dim = 2)
+        x = roll_tensor(x, shifts=shifts_text_dim, dim=1)
+        x = roll_tensor(x, shifts=shifts_mel_dim, dim=2)
         shifts_mel_dim[1:] = shifts_mel_dim[1:] - 1
-        x = roll_tensor(x, shifts = shifts_mel_dim, dim = 3)
+        x = roll_tensor(x, shifts=shifts_mel_dim, dim=3)
         return x
 
     def left_shift(self, x, shifts_text_dim, shifts_mel_dim):
         x = x.unsqueeze(-1)
-        x = roll_tensor(x, shifts = -shifts_text_dim, dim = 1)
-        x = roll_tensor(x, shifts = -shifts_mel_dim, dim = 2)
+        x = roll_tensor(x, shifts=-shifts_text_dim, dim=1)
+        x = roll_tensor(x, shifts=-shifts_mel_dim, dim=2)
         x = x.squeeze(-1)
         return x
 
     def diff_from_max(self, mask):
         l = mask.sum(1)
-        return l.max() - l # result >= 0
+        return l.max() - l  # result >= 0
 
     def forward(
         self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio
@@ -112,7 +111,11 @@ class MoBoAligner(nn.Module):
         cond_prob_beta = self.energy_4D(
             energy, text_mask, mel_mask, direction="beta"
         )  # (B, I, J, K)
-        cond_prob_beta = self.right_shift(cond_prob_beta, shifts_text_dim = self.diff_from_max(text_mask), shifts_mel_dim = self.diff_from_max(mel_mask))
+        cond_prob_beta = self.right_shift(
+            cond_prob_beta,
+            shifts_text_dim=self.diff_from_max(text_mask),
+            shifts_mel_dim=self.diff_from_max(mel_mask),
+        )
 
         # Compute alpha recursively, in the log domain
         alpha = torch.full((B, I + 1, J + 1), -float("inf"), device=energy.device)
@@ -129,11 +132,16 @@ class MoBoAligner(nn.Module):
         beta[:, -1, -1] = 0  # Initialize beta_{I,J} = 1
         for i in range(I - 2, -1, -1):
             beta[:, i, : (J + i - I + 1)] = torch.logsumexp(
-                beta[:, i + 1, 1:].unsqueeze(1) + cond_prob_beta[:, i, : (J + i - I + 1)],
+                beta[:, i + 1, 1:].unsqueeze(1)
+                + cond_prob_beta[:, i, : (J + i - I + 1)],
                 dim=2,
             )
 
-        beta = self.left_shift(beta, shifts_text_dim = self.diff_from_max(text_mask), shifts_mel_dim = self.diff_from_max(mel_mask))
+        beta = self.left_shift(
+            beta,
+            shifts_text_dim=self.diff_from_max(text_mask),
+            shifts_mel_dim=self.diff_from_max(mel_mask),
+        )
 
         # Compute gamma (soft alignment)
         gamma = alpha[:, 1:, 1:] + beta
