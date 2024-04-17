@@ -62,14 +62,22 @@ class MoBoAligner(nn.Module):
         energy_4D.masked_fill_(text_invalid == 0, -10)
         return energy_4D
     
-    def shift_right_down(self, x, shifts):
+    def shift(self, x, shifts):
         x = roll_tensor(x, shifts = shifts, dim = 2)
         shifts[1:] = shifts[1:] - 1
         x = roll_tensor(x, shifts = shifts, dim = 3)
         return x
 
-    def diff_from_max(self, x):
-        return x.max() - x
+    def reshift(self, x, shift_1dim, shift_2dim):
+        x = x.unsqueeze(-1)
+        x = roll_tensor(x, shifts = shift_1dim, dim = 1)
+        x = roll_tensor(x, shifts = shift_2dim, dim = 2)
+        x = x.squeeze(-1)
+        return x
+
+    def diff_from_max(self, mask):
+        l = mask.sum(1)
+        return l.max() - l # result >= 0
 
     def forward(
         self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio
@@ -102,7 +110,7 @@ class MoBoAligner(nn.Module):
         cond_prob_beta = self.energy_4D(
             energy, text_mask, mel_mask, direction="beta"
         )  # (B, I, J, K)
-        cond_prob_beta = self.shift_right_down(cond_prob_beta, shifts = self.diff_from_max(mel_mask.sum(1)))
+        cond_prob_beta = self.shift(cond_prob_beta, shifts = self.diff_from_max(mel_mask))
 
         # Compute alpha recursively, in the log domain
         alpha = torch.full((B, I + 1, J + 1), -float("inf"), device=energy.device)
@@ -122,6 +130,8 @@ class MoBoAligner(nn.Module):
                 beta[:, i + 1, 1:].unsqueeze(1) + cond_prob_beta[:, i, : (J + i - I + 1)],
                 dim=2,
             )
+
+        beta = self.reshift(beta, shift_1dim = -self.diff_from_max(text_mask), shift_2dim = -self.diff_from_max(mel_mask))
 
         # Compute gamma (soft alignment)
         gamma = alpha[:, 1:, 1:] + beta
