@@ -108,8 +108,8 @@ class MoBoAligner(nn.Module):
         beta = torch.full((B, I, J), -float("inf"), device=energy.device)
         beta[:, -1, -1] = 0  # Initialize beta_{I,J} = 1
         for i in range(I - 2, -1, -1):
-            beta[:, i, : (J + i - 4)] = torch.logsumexp(
-                beta[:, i + 1, 1:].unsqueeze(1) + cond_prob_beta[:, i, : (J + i - 4)],
+            beta[:, i, : (J + i - I + 1)] = torch.logsumexp(
+                beta[:, i + 1, 1:].unsqueeze(1) + cond_prob_beta[:, i, : (J + i - I + 1)],
                 dim=2,
             )
 
