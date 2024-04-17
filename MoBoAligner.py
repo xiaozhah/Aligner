@@ -53,25 +53,27 @@ class MoBoAligner(nn.Module):
         right_mask = mask | (~mask_invalid)
 
         energy_4D.masked_fill_((triu == 0) & (mask_invalid == 1), -float("Inf"))
+        # don't care about -10 value, just make logsumexp don't output -inf
         energy_4D.masked_fill_(
             mask_invalid == 0, -10
-        )  # don't care about this value, just make logsumexp don't output -inf
+        )
         energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
         energy_4D.masked_fill_(mask_invalid == 0, -float("Inf"))
         energy_4D.masked_fill_(right_mask == 0, -10)
         energy_4D.masked_fill_(text_invalid == 0, -10)
         return energy_4D
     
-    def shift(self, x, shifts):
-        x = roll_tensor(x, shifts = shifts, dim = 2)
-        shifts[1:] = shifts[1:] - 1
-        x = roll_tensor(x, shifts = shifts, dim = 3)
+    def right_shift(self, x, shifts_text_dim, shifts_mel_dim):
+        x = roll_tensor(x, shifts = shifts_text_dim, dim = 1)
+        x = roll_tensor(x, shifts = shifts_mel_dim, dim = 2)
+        shifts_mel_dim[1:] = shifts_mel_dim[1:] - 1
+        x = roll_tensor(x, shifts = shifts_mel_dim, dim = 3)
         return x
 
-    def reshift(self, x, shift_1dim, shift_2dim):
+    def left_shift(self, x, shifts_text_dim, shifts_mel_dim):
         x = x.unsqueeze(-1)
-        x = roll_tensor(x, shifts = shift_1dim, dim = 1)
-        x = roll_tensor(x, shifts = shift_2dim, dim = 2)
+        x = roll_tensor(x, shifts = -shifts_text_dim, dim = 1)
+        x = roll_tensor(x, shifts = -shifts_mel_dim, dim = 2)
         x = x.squeeze(-1)
         return x
 
@@ -110,7 +112,7 @@ class MoBoAligner(nn.Module):
         cond_prob_beta = self.energy_4D(
             energy, text_mask, mel_mask, direction="beta"
         )  # (B, I, J, K)
-        cond_prob_beta = self.shift(cond_prob_beta, shifts = self.diff_from_max(mel_mask))
+        cond_prob_beta = self.right_shift(cond_prob_beta, shifts_text_dim = self.diff_from_max(text_mask), shifts_mel_dim = self.diff_from_max(mel_mask))
 
         # Compute alpha recursively, in the log domain
         alpha = torch.full((B, I + 1, J + 1), -float("inf"), device=energy.device)
@@ -131,13 +133,13 @@ class MoBoAligner(nn.Module):
                 dim=2,
             )
 
-        beta = self.reshift(beta, shift_1dim = -self.diff_from_max(text_mask), shift_2dim = -self.diff_from_max(mel_mask))
+        beta = self.left_shift(beta, shifts_text_dim = self.diff_from_max(text_mask), shifts_mel_dim = self.diff_from_max(mel_mask))
 
         # Compute gamma (soft alignment)
         gamma = alpha[:, 1:, 1:] + beta
 
         gamma_mask = text_mask.unsqueeze(2) * mel_mask.unsqueeze(1)
-        gamma_logsumexp_mask = (~text_mask.unsqueeze(2).repeat(1, 1, J)) | gamma_mask
+        gamma_logsumexp_mask = text_mask.unsqueeze(2).repeat(1, 1, J) | gamma_mask
         gamma.masked_fill_(gamma_logsumexp_mask == 0, -float("Inf"))
         gamma = gamma - torch.logsumexp(gamma, dim=1, keepdim=True)
         gamma.masked_fill_(gamma_mask == 0, -float("Inf"))
