@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import math
-
+from roll import roll_tensor
 
 class MoBoAligner(nn.Module):
     def __init__(self, temperature_min=0.1, temperature_max=1.0):
@@ -61,6 +61,15 @@ class MoBoAligner(nn.Module):
         energy_4D.masked_fill_(right_mask == 0, -10)
         energy_4D.masked_fill_(text_invalid == 0, -10)
         return energy_4D
+    
+    def shift_right_down(self, x, shifts):
+        x = roll_tensor(x, shifts = shifts, dim = 2)
+        shifts[1:] = shifts[1:] - 1
+        x = roll_tensor(x, shifts = shifts, dim = 3)
+        return x
+
+    def diff_from_max(self, x):
+        return x.max() - x
 
     def forward(
         self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio
@@ -93,6 +102,7 @@ class MoBoAligner(nn.Module):
         cond_prob_beta = self.energy_4D(
             energy, text_mask, mel_mask, direction="beta"
         )  # (B, I, J, K)
+        cond_prob_beta = self.shift_right_down(cond_prob_beta, shifts = self.diff_from_max(mel_mask.sum(1)))
 
         # Compute alpha recursively, in the log domain
         alpha = torch.full((B, I + 1, J + 1), -float("inf"), device=energy.device)
