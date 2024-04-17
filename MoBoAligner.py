@@ -46,8 +46,11 @@ class MoBoAligner(nn.Module):
         mask_invalid = (
             text_mask.unsqueeze(2).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(1)
         ).repeat(1, 1, J, 1)
+        text_invalid = text_mask.unsqueeze(2).unsqueeze(3).repeat(1, 1, J, J)
         if direction == "beta":  # because K is J-1
             mask_invalid = mask_invalid[:, :, :, :-1]
+            text_invalid = text_invalid[:, :, :, :-1]
+        right_mask = mask | (~mask_invalid)
 
         energy_4D.masked_fill_((triu == 0) & (mask_invalid == 1), -float("Inf"))
         energy_4D.masked_fill_(
@@ -55,6 +58,8 @@ class MoBoAligner(nn.Module):
         )  # don't care about this value, just make logsumexp don't output -inf
         energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
         energy_4D.masked_fill_(mask_invalid == 0, -float("Inf"))
+        energy_4D.masked_fill_(right_mask == 0, -10)
+        energy_4D.masked_fill_(text_invalid == 0, -10)
         return energy_4D
 
     def forward(
@@ -112,7 +117,8 @@ class MoBoAligner(nn.Module):
         gamma = alpha[:, 1:, 1:] + beta
 
         gamma_mask = text_mask.unsqueeze(2) * mel_mask.unsqueeze(1)
-        gamma.masked_fill_(gamma_mask == 0, -float("Inf"))
+        gamma_logsumexp_mask = (~text_mask.unsqueeze(2).repeat(1, 1, J)) | gamma_mask
+        gamma.masked_fill_(gamma_logsumexp_mask == 0, -float("Inf"))
         gamma = gamma - torch.logsumexp(gamma, dim=1, keepdim=True)
         gamma.masked_fill_(gamma_mask == 0, -float("Inf"))
 
