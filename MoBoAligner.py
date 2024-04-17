@@ -23,7 +23,9 @@ class MoBoAligner(nn.Module):
         """
         text_channels = text_embeddings.size(-1)
         mel_channels = mel_embeddings.size(-1)
-        return torch.bmm(text_embeddings, mel_embeddings.transpose(1, 2)) / math.sqrt(text_channels * mel_channels)
+        return torch.bmm(text_embeddings, mel_embeddings.transpose(1, 2)) / math.sqrt(
+            text_channels * mel_channels
+        )
 
     def apply_gumbel_noise(self, energy, temperature_ratio):
         """
@@ -36,7 +38,10 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The energy matrix with Gumbel noise and temperature applied.
         """
-        temperature = self.temperature_min + (self.temperature_max - self.temperature_min) * temperature_ratio
+        temperature = (
+            self.temperature_min
+            + (self.temperature_max - self.temperature_min) * temperature_ratio
+        )
         noise = -torch.log(-torch.log(torch.rand_like(energy)))
         return (energy + noise) / temperature
 
@@ -59,10 +64,14 @@ class MoBoAligner(nn.Module):
 
         if direction == "alpha":
             energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J)  # (B, I, J, K)
-            triu = torch.triu(torch.ones((J, J)), diagonal=0).to(energy.device)  # (K, J)
+            triu = torch.triu(torch.ones((J, J)), diagonal=0).to(
+                energy.device
+            )  # (K, J)
         elif direction == "beta":
             energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J - 1)  # (B, I, J, K)
-            triu = torch.tril(torch.ones((J - 1, J)), diagonal=0).to(energy.device)  # (K, J), K == J-1
+            triu = torch.tril(torch.ones((J - 1, J)), diagonal=0).to(
+                energy.device
+            )  # (K, J), K == J-1
         else:
             raise ValueError("direction must be 'alpha' or 'beta'")
 
@@ -70,12 +79,18 @@ class MoBoAligner(nn.Module):
         triu = triu.repeat(B, 1, 1, I)  # (B, K, J, I)
         triu = triu.transpose(1, 3)  # (B, I, J, K)
 
-        mask = text_mask.unsqueeze(2).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(1)
+        mask = (
+            text_mask.unsqueeze(2).unsqueeze(3)
+            * mel_mask.unsqueeze(1).unsqueeze(3)
+            * mel_mask.unsqueeze(1).unsqueeze(1)
+        )
         if direction == "beta":  # because K is J-1
             mask = mask[:, :, :, :-1]
         triu = triu * mask
 
-        mask_invalid = (text_mask.unsqueeze(2).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(1)).repeat(1, 1, J, 1)
+        mask_invalid = (
+            text_mask.unsqueeze(2).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(1)
+        ).repeat(1, 1, J, 1)
         text_invalid = text_mask.unsqueeze(2).unsqueeze(3).repeat(1, 1, J, J)
         if direction == "beta":  # because K is J-1
             mask_invalid = mask_invalid[:, :, :, :-1]
@@ -89,7 +104,7 @@ class MoBoAligner(nn.Module):
         energy_4D.masked_fill_(mask_invalid == 0, -float("Inf"))
         energy_4D.masked_fill_(right_mask == 0, -10)
         energy_4D.masked_fill_(text_invalid == 0, -10)
-        
+
         return energy_4D
 
     def right_shift(self, x, shifts_text_dim, shifts_mel_dim):
@@ -155,12 +170,18 @@ class MoBoAligner(nn.Module):
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
-        
-        alpha = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob_alpha.device)
+
+        alpha = torch.full(
+            (B, I + 1, J + 1), -float("inf"), device=log_cond_prob_alpha.device
+        )
         alpha[:, 0, 0] = 0  # Initialize alpha[0, 0] = 0
         for i in range(1, I + 1):
-            alpha[:, i, i:] = torch.logsumexp(alpha[:, i - 1, :-1].unsqueeze(1) + log_cond_prob_alpha[:, i - 1, (i - 1):], dim=2)
-        
+            alpha[:, i, i:] = torch.logsumexp(
+                alpha[:, i - 1, :-1].unsqueeze(1)
+                + log_cond_prob_alpha[:, i - 1, (i - 1) :],
+                dim=2,
+            )
+
         return alpha
 
     def compute_beta(self, log_cond_prob_beta, text_mask, mel_mask):
@@ -177,12 +198,16 @@ class MoBoAligner(nn.Module):
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
-        
+
         beta = torch.full((B, I, J), -float("inf"), device=log_cond_prob_beta.device)
         beta[:, -1, -1] = 0  # Initialize beta_{I,J} = 1
         for i in range(I - 2, -1, -1):
-            beta[:, i, :(J + i - I + 1)] = torch.logsumexp(beta[:, i + 1, 1:].unsqueeze(1) + log_cond_prob_beta[:, i, :(J + i - I + 1)], dim=2)
-        
+            beta[:, i, : (J + i - I + 1)] = torch.logsumexp(
+                beta[:, i + 1, 1:].unsqueeze(1)
+                + log_cond_prob_beta[:, i, : (J + i - I + 1)],
+                dim=2,
+            )
+
         return beta
 
     def compute_gamma(self, alpha, beta, text_mask, mel_mask):
@@ -199,7 +224,7 @@ class MoBoAligner(nn.Module):
             torch.Tensor: The gamma tensor of shape (B, I, J) in the log domain.
         """
         _, J = mel_mask.shape
-        
+
         gamma = alpha[:, 1:, 1:] + beta
 
         gamma_mask = text_mask.unsqueeze(2) * mel_mask.unsqueeze(1)
@@ -209,7 +234,7 @@ class MoBoAligner(nn.Module):
         gamma.masked_fill_(gamma_mask == 0, -float("Inf"))
 
         return gamma
-    
+
     def compute_expanded_text_embeddings(self, gamma, text_embeddings, mel_mask):
         """
         Compute the expanded text embeddings based on gamma and text embeddings.
@@ -222,12 +247,16 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The expanded text embeddings of shape (B, J, D_text).
         """
-        expanded_text_embeddings = torch.bmm(torch.exp(gamma).transpose(1, 2), text_embeddings)
+        expanded_text_embeddings = torch.bmm(
+            torch.exp(gamma).transpose(1, 2), text_embeddings
+        )
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
         return expanded_text_embeddings
-    
-    def forward(self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio):
+
+    def forward(
+        self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio
+    ):
         """
         Compute the soft alignment (gamma) and the expanded text embeddings.
 
@@ -250,23 +279,37 @@ class MoBoAligner(nn.Module):
         energy = self.apply_gumbel_noise(energy, temperature_ratio)
 
         # Compute the log conditional probability P(B_i=j | B_{i-1}=k) for alpha
-        log_cond_prob_alpha = self.compute_log_cond_prob(energy, text_mask, mel_mask, direction="alpha")  # (B, I, J, K)
+        log_cond_prob_alpha = self.compute_log_cond_prob(
+            energy, text_mask, mel_mask, direction="alpha"
+        )  # (B, I, J, K)
 
         # Compute the log conditional probability P(B_i=j | B_{i+1}=k) for beta
-        log_cond_prob_beta = self.compute_log_cond_prob(energy, text_mask, mel_mask, direction="beta")  # (B, I, J, K)
-        log_cond_prob_beta = self.right_shift(log_cond_prob_beta, shifts_text_dim=self.compute_max_length_diff(text_mask), shifts_mel_dim=self.compute_max_length_diff(mel_mask))
+        log_cond_prob_beta = self.compute_log_cond_prob(
+            energy, text_mask, mel_mask, direction="beta"
+        )  # (B, I, J, K)
+        log_cond_prob_beta = self.right_shift(
+            log_cond_prob_beta,
+            shifts_text_dim=self.compute_max_length_diff(text_mask),
+            shifts_mel_dim=self.compute_max_length_diff(mel_mask),
+        )
 
         # Compute alpha recursively in the log domain
         alpha = self.compute_alpha(log_cond_prob_alpha, text_mask, mel_mask)
 
         # Compute beta recursively in the log domain
         beta = self.compute_beta(log_cond_prob_beta, text_mask, mel_mask)
-        beta = self.left_shift(beta, shifts_text_dim=self.compute_max_length_diff(text_mask), shifts_mel_dim=self.compute_max_length_diff(mel_mask))
+        beta = self.left_shift(
+            beta,
+            shifts_text_dim=self.compute_max_length_diff(text_mask),
+            shifts_mel_dim=self.compute_max_length_diff(mel_mask),
+        )
 
         # Compute gamma (soft alignment) in the log domain
         gamma = self.compute_gamma(alpha, beta, text_mask, mel_mask)
 
         # Compute the expanded text embeddings
-        expanded_text_embeddings = self.compute_expanded_text_embeddings(gamma, text_embeddings, mel_mask)
+        expanded_text_embeddings = self.compute_expanded_text_embeddings(
+            gamma, text_embeddings, mel_mask
+        )
 
         return gamma, expanded_text_embeddings  # gamma is still in the log domain
