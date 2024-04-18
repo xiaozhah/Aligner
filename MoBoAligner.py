@@ -56,8 +56,12 @@ class MoBoAligner(nn.Module):
             direction (str): The direction of the alignment, either "alpha" or "beta".
 
         Returns:
-            torch.Tensor: The log conditional probability tensor of shape (B, I, J, K),
-                where K is J for "alpha" and J-1 for "beta".
+            tuple: A tuple containing:
+                - log_cond_prob (torch.Tensor): The log conditional probability tensor of shape (B, I, J).
+                - log_cond_prob_geq (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J)
+                    for "alpha" direction, or None for "beta" direction.
+                - log_cond_prob_lt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J)
+                    for "beta" direction, or None for "alpha" direction.
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
@@ -100,12 +104,17 @@ class MoBoAligner(nn.Module):
         energy_4D.masked_fill_((triu == 0) & (mask_invalid == 1), -float("Inf"))
         # Fill the energy_4D tensor with -10, to avoid -inf values in the subsequent logsumexp operation.
         energy_4D.masked_fill_(mask_invalid == 0, -10)
-        energy_4D = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
-        energy_4D.masked_fill_(mask_invalid == 0, -float("Inf"))
-        energy_4D.masked_fill_(right_mask == 0, -10)
-        energy_4D.masked_fill_(text_invalid == 0, -10)
+        log_cond_prob = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
+        log_cond_prob.masked_fill_(mask_invalid == 0, -float("Inf"))
+        log_cond_prob.masked_fill_(right_mask == 0, -10)
+        log_cond_prob.masked_fill_(text_invalid == 0, -10)
 
-        return energy_4D
+        if direction == "alpha":
+            log_cond_prob_geq = torch.logcumsumexp(log_cond_prob, dim=2)
+            return log_cond_prob, log_cond_prob_geq, None
+        else:  # direction == "beta"
+            log_cond_prob_lt = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
+            return log_cond_prob, None, log_cond_prob_lt
 
     def right_shift(self, x, shifts_text_dim, shifts_mel_dim):
         """
@@ -210,50 +219,6 @@ class MoBoAligner(nn.Module):
 
         return beta
 
-    def compute_gamma(self, alpha, beta, text_mask, mel_mask):
-        """
-        Compute gamma (soft alignment) in the log domain.
-
-        Args:
-            alpha (torch.Tensor): The alpha tensor of shape (B, I+1, J+1).
-            beta (torch.Tensor): The beta tensor of shape (B, I, J).
-            text_mask (torch.Tensor): The text mask of shape (B, I).
-            mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
-
-        Returns:
-            torch.Tensor: The gamma tensor of shape (B, I, J) in the log domain.
-        """
-        _, J = mel_mask.shape
-
-        gamma = alpha[:, 1:, 1:] + beta
-
-        gamma_mask = text_mask.unsqueeze(2) * mel_mask.unsqueeze(1)
-        gamma_logsumexp_mask = text_mask.unsqueeze(2).repeat(1, 1, J) | gamma_mask
-        gamma.masked_fill_(gamma_logsumexp_mask == 0, -float("Inf"))
-        gamma = gamma - torch.logsumexp(gamma, dim=1, keepdim=True)
-        gamma.masked_fill_(gamma_mask == 0, -float("Inf"))
-
-        return gamma, gamma_mask
-
-    def compute_expanded_text_embeddings(self, gamma, text_embeddings, mel_mask):
-        """
-        Compute the expanded text embeddings based on gamma and text embeddings.
-
-        Args:
-            gamma (torch.Tensor): The gamma tensor of shape (B, I, J) in the log domain.
-            text_embeddings (torch.Tensor): The text embeddings of shape (B, I, D_text).
-            mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
-
-        Returns:
-            torch.Tensor: The expanded text embeddings of shape (B, J, D_text).
-        """
-        expanded_text_embeddings = torch.bmm(
-            torch.exp(gamma).transpose(1, 2), text_embeddings
-        )
-        expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
-
-        return expanded_text_embeddings
-
     def forward(
         self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio
     ):
@@ -269,7 +234,7 @@ class MoBoAligner(nn.Module):
 
         Returns:
             tuple: A tuple containing:
-                - gamma (torch.Tensor): The soft alignment tensor of shape (B, I, J) in the log domain.
+                - delta (torch.Tensor): The soft alignment tensor of shape (B, I, J) in the log domain.
                 - expanded_text_embeddings (torch.Tensor): The expanded text embeddings of shape (B, J, D_text).
         """
         # Compute the energy matrix
@@ -278,17 +243,22 @@ class MoBoAligner(nn.Module):
         # Apply Gumbel noise and temperature
         energy = self.apply_gumbel_noise(energy, temperature_ratio)
 
-        # Compute the log conditional probability P(B_i=j | B_{i-1}=k) for alpha
-        log_cond_prob_alpha = self.compute_log_cond_prob(
+        # Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i \geq j | B_{i-1}=k) for alpha
+        log_cond_prob_alpha, log_cond_prob_alpha_geq, _ = self.compute_log_cond_prob(
             energy, text_mask, mel_mask, direction="alpha"
-        )  # (B, I, J, K)
+        )  # (B, I, J)
 
-        # Compute the log conditional probability P(B_i=j | B_{i+1}=k) for beta
-        log_cond_prob_beta = self.compute_log_cond_prob(
+        # Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i \leq j | B_{i+1}=k) for beta
+        log_cond_prob_beta, _, log_cond_prob_beta_lt = self.compute_log_cond_prob(
             energy, text_mask, mel_mask, direction="beta"
-        )  # (B, I, J, K)
+        )  # (B, I, J)
         log_cond_prob_beta = self.right_shift(
             log_cond_prob_beta,
+            shifts_text_dim=self.compute_max_length_diff(text_mask),
+            shifts_mel_dim=self.compute_max_length_diff(mel_mask),
+        )
+        log_cond_prob_beta_lt = self.right_shift(
+            log_cond_prob_beta_lt,
             shifts_text_dim=self.compute_max_length_diff(text_mask),
             shifts_mel_dim=self.compute_max_length_diff(mel_mask),
         )
@@ -304,12 +274,16 @@ class MoBoAligner(nn.Module):
             shifts_mel_dim=self.compute_max_length_diff(mel_mask),
         )
 
-        # Compute gamma (soft alignment) in the log domain
-        gamma, gamma_mask = self.compute_gamma(alpha, beta, text_mask, mel_mask)
+        # Compute the forward and backward P(B_{i-1}<j\leq B_i)
+        log_delta_forward = alpha[:, :-1, :].unsqueeze(3) + log_cond_prob_alpha_geq
+        log_delta_backward = beta.unsqueeze(2) + log_cond_prob_beta_lt
 
-        # Compute the expanded text embeddings
-        expanded_text_embeddings = self.compute_expanded_text_embeddings(
-            gamma, text_embeddings, mel_mask
-        )
+        # Combine the forward and backward P(B_{i-1}<j\leq B_i)
+        log_delta = torch.logaddexp(log_delta_forward, log_delta_backward)
+        delta = torch.exp(log_delta)
 
-        return gamma, gamma_mask, expanded_text_embeddings  # gamma is still in the log domain
+        # Use delta to compute the expanded text embeddings
+        expanded_text_embeddings = torch.bmm(delta.transpose(1, 2), text_embeddings)
+        expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
+
+        return delta, expanded_text_embeddings
