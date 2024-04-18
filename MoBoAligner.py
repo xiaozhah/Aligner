@@ -295,12 +295,12 @@ class MoBoAligner(nn.Module):
         log_delta_forward = alpha[:, :-1, :].unsqueeze(3) + log_cond_prob_alpha_geq
         log_delta_backward = beta.unsqueeze(2) + log_cond_prob_beta_lt
 
-        # Combine the forward and backward P(B_{i-1}<j\leq B_i)
-        log_delta = torch.logaddexp(log_delta_forward, log_delta_backward)
-        delta = torch.exp(log_delta)
+        # Combine the forward and backward P(B_{i-1}<j\leq B_i) in the log domain
+        log_2 = torch.log(torch.tensor(2.0, device=log_delta_forward.device))
+        log_delta = torch.logaddexp(log_delta_forward - log_2, log_delta_backward - log_2)
 
-        # Use delta to compute the expanded text embeddings
-        expanded_text_embeddings = torch.bmm(delta.transpose(1, 2), text_embeddings)
+        # Use log_delta to compute the expanded text embeddings
+        expanded_text_embeddings = torch.bmm(torch.exp(log_delta).transpose(1, 2), text_embeddings)
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
-        return delta, expanded_text_embeddings
+        return log_delta, expanded_text_embeddings
