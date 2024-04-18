@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import math
 from roll import roll_tensor
+import numpy as np
 
 
 class MoBoAligner(nn.Module):
@@ -100,20 +101,24 @@ class MoBoAligner(nn.Module):
             mask_invalid = mask_invalid[:, :, :, :-1]
             text_invalid = text_invalid[:, :, :, :-1]
         right_mask = mask | (~mask_invalid)
+        triu_mask_invalid = (triu == 0) & (mask_invalid == 1)
 
-        energy_4D.masked_fill_((triu == 0) & (mask_invalid == 1), -float("Inf"))
+        energy_4D.masked_fill_(triu_mask_invalid, -float("Inf"))
         # Fill the energy_4D tensor with -10, to avoid -inf values in the subsequent logsumexp operation.
         energy_4D.masked_fill_(mask_invalid == 0, -10)
         log_cond_prob = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True)
         log_cond_prob.masked_fill_(mask_invalid == 0, -float("Inf"))
-        log_cond_prob.masked_fill_(right_mask == 0, -10)
         log_cond_prob.masked_fill_(text_invalid == 0, -10)
 
         if direction == "alpha":
-            log_cond_prob_geq = torch.logcumsumexp(log_cond_prob, dim=2)
+            log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
+            log_cond_prob_geq.masked_fill_(triu_mask_invalid, -float("Inf"))
+            log_cond_prob.masked_fill_(right_mask == 0, -10)
             return log_cond_prob, log_cond_prob_geq, None
         else:  # direction == "beta"
-            log_cond_prob_lt = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
+            log_cond_prob_lt = torch.logcumsumexp(log_cond_prob.roll(shifts=1, dims=2), dim=2)
+            log_cond_prob_lt.masked_fill_(triu_mask_invalid, -float("Inf"))
+            log_cond_prob.masked_fill_(right_mask == 0, -10)
             return log_cond_prob, None, log_cond_prob_lt
 
     def right_shift(self, x, shifts_text_dim, shifts_mel_dim):
