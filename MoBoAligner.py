@@ -197,15 +197,13 @@ class MoBoAligner(nn.Module):
         B, I = text_mask.shape
         _, J = mel_mask.shape
 
-        alpha = torch.full(
-            (B, I + 1, J + 1), -float("inf"), device=log_cond_prob_alpha.device
-        )
+        alpha = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob_alpha.device)
         alpha[:, 0, 0] = 0  # Initialize alpha[0, 0] = 0
         for i in range(1, I + 1):
             alpha[:, i, i:] = torch.logsumexp(
                 alpha[:, i - 1, :-1].unsqueeze(1)
                 + log_cond_prob_alpha[:, i - 1, (i - 1) :],
-                dim=2,
+                dim=2, # sum at the K dimension
             )
 
         return alpha
@@ -231,7 +229,7 @@ class MoBoAligner(nn.Module):
             beta[:, i, : (J + i - I + 1)] = torch.logsumexp(
                 beta[:, i + 1, 1:].unsqueeze(1)
                 + log_cond_prob_beta[:, i, : (J + i - I + 1)],
-                dim=2,
+                dim=2, # sum at the K dimension
             )
 
         return beta
@@ -296,7 +294,7 @@ class MoBoAligner(nn.Module):
         log_delta_backward = beta.unsqueeze(2) + log_cond_prob_beta_lt
 
         # Combine the forward and backward P(B_{i-1}<j\leq B_i) in the log domain
-        log_2 = torch.log(torch.tensor(2.0, device=log_delta_forward.device))
+        log_2 = math.log(2.0)
         log_delta = torch.logaddexp(log_delta_forward - log_2, log_delta_backward - log_2)
 
         # Use log_delta to compute the expanded text embeddings
