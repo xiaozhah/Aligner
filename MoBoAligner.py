@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+from mask import *
 from roll import roll_tensor
 import numpy as np
 
@@ -65,53 +66,35 @@ class MoBoAligner(nn.Module):
                 - log_cond_prob_lt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J)
                     for "beta" direction, or None for "alpha" direction.
         """
+        assert direction in ["alpha", "beta"] # direction must be "alpha" or "beta"
         B, I = text_mask.shape
         _, J = mel_mask.shape
+        K = J if direction == "alpha" else J - 1
+        
+        tri = gen_tri(B, I, J, K, direction)
+        ijk_mask = gen_ijk_mask(text_mask, mel_mask, direction)
+        energy_mask = gen_i_range_mask(B, I, J, K, text_mask.sum(1))
+        tri_ijk_mask = tri * ijk_mask
+        
+        ik_mask = gen_ik_mask(text_mask, mel_mask, direction)
+        most_i_mask = gen_most_i_mask(B, I, J, K)
 
-        if direction == "alpha":
-            energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J)  # (B, I, J, K)
-            triu = torch.triu(torch.ones((J, J)), diagonal=0).to(
-                energy.device
-            )  # (K, J)
-        elif direction == "beta":
-            energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J - 1)  # (B, I, J, K)
-            triu = torch.tril(torch.ones((J - 1, J)), diagonal=0).to(
-                energy.device
-            )  # (K, J), K == J-1
-        else:
-            raise ValueError("direction must be 'alpha' or 'beta'")
+        energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, K)  # (B, I, J, K)
 
-        triu = triu.unsqueeze(-1).unsqueeze(0)  # (1, K, J, 1)
-        triu = triu.repeat(B, 1, 1, I)  # (B, K, J, I)
-        triu = triu.transpose(1, 3)  # (B, I, J, K)
-
-        IJK_mask = (
-            text_mask.unsqueeze(2).unsqueeze(3)
-            * mel_mask.unsqueeze(1).unsqueeze(3)
-            * mel_mask.unsqueeze(1).unsqueeze(1)
-        )
-        if direction == "beta":  # because K is J-1
-            IJK_mask = IJK_mask[:, :, :, :-1]
-        triu_IJK_mask = (triu * IJK_mask).bool()
-
-        IK_mask = (
-            text_mask.unsqueeze(2).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(1)
-        ).repeat(1, 1, J, 1)
-        if direction == "beta":  # because K is J-1
-            IK_mask = IK_mask[:, :, :, :-1]
-
-        energy_4D.masked_fill_(~triu_IJK_mask, -float("Inf"))
-        energy_4D.masked_fill_(~IK_mask, -10)
+        energy_4D.masked_fill_(~energy_mask, -1000)
+        energy_4D.masked_fill_(~tri_ijk_mask, -float("Inf"))
+        energy_4D.masked_fill_(~ik_mask, -10)
+        energy_4D.masked_fill_(~most_i_mask, -float("Inf"))
         log_cond_prob = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True) # on the J dimension
-        log_cond_prob.masked_fill_(~IK_mask, -float("Inf"))
+        log_cond_prob.masked_fill_(~ik_mask, -float("Inf"))
 
         if direction == "alpha":
             log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
-            log_cond_prob_geq.masked_fill_(~triu_IJK_mask, -float("Inf"))   
+            log_cond_prob_geq.masked_fill_(~tri_ijk_mask, -float("Inf"))   
             return log_cond_prob, log_cond_prob_geq, None
         else:  # direction == "beta"
             log_cond_prob_lt = torch.logcumsumexp(log_cond_prob.roll(shifts=1, dims=2), dim=2)
-            log_cond_prob_lt.masked_fill_(~triu_IJK_mask.roll(shifts=1, dims=2), -float("Inf"))
+            log_cond_prob_lt.masked_fill_(~tri_ijk_mask.roll(shifts=1, dims=2), -float("Inf"))
             return log_cond_prob, None, log_cond_prob_lt
 
     def right_shift(self, x, shifts_text_dim, shifts_mel_dim):
