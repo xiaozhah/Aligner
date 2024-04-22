@@ -163,7 +163,8 @@ class MoBoAligner(nn.Module):
 
         alpha = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob_alpha.device)
         alpha[:, 0, 0] = 0  # Initialize alpha[0, 0] = 0
-        for i in range(1, I + 1):
+        alpha[:, -1, -1] = 0
+        for i in range(1, I):
             alpha[:, i, i:] = torch.logsumexp(
                 alpha[:, i - 1, :-1].unsqueeze(1)
                 + log_cond_prob_alpha[:, i - 1, (i - 1) :],
@@ -197,6 +198,15 @@ class MoBoAligner(nn.Module):
             )
 
         return beta
+    
+    def cal_delta_forward(self, alpha, log_cond_prob_alpha_geq, text_mask, mel_mask):
+        B, I = text_mask.shape
+        _, J = mel_mask.shape
+        x = alpha[:, :-1, :-1].unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_alpha_geq.transpose(2, 3)
+        mask = gen_upper_left_mask(B, I, J, J)
+        x.masked_fill_(mask == 0, -10)
+        x = torch.logsumexp(x, dim = 2)
+        return x
 
     def forward(
         self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio
@@ -254,15 +264,10 @@ class MoBoAligner(nn.Module):
         )
 
         # Compute the forward and backward P(B_{i-1}<j\leq B_i)
-        _, J = mel_mask.shape
-        log_delta_forward = torch.logsumexp(alpha[:, :-1, :-1].unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_alpha_geq.transpose(2, 3), dim = 2)
-        log_delta_backward = beta.unsqueeze(2) + log_cond_prob_beta_lt
-
-        # Combine the forward and backward P(B_{i-1}<j\leq B_i) in the log domain
-        log_2 = math.log(2.0)
-        log_delta = torch.logaddexp(log_delta_forward - log_2, log_delta_backward - log_2)
+        log_delta_forward = self.cal_delta_forward(alpha, log_cond_prob_alpha_geq, text_mask, mel_mask)
 
         # Use log_delta to compute the expanded text embeddings
+        log_delta = log_delta_forward
         expanded_text_embeddings = torch.bmm(torch.exp(log_delta).transpose(1, 2), text_embeddings)
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 

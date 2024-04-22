@@ -47,10 +47,9 @@ def gen_most_i_mask(B, I, J, K):
     mask[:, -1, :-1] = False
     return mask
 
-if __name__ == "__main__":
-    # 测试用例1
-    B, I, J = 2, 5, 10
-    I_lens = torch.tensor([5, 2])
-    masked_tensor = gen_i_range_mask(B, I, J, I_lens)
-    print(masked_tensor)
+def gen_upper_left_mask(B, I, J, K):
+    tensor = torch.ones(B, I, J, K)
+    for i in range(1, I):
+        tensor[:, i, :i, :i] = 0
+    return tensor
     
