@@ -212,7 +212,7 @@ class MoBoAligner(nn.Module):
         mask = gen_upper_left_mask(B, I, J, J)
         x.masked_fill_(mask == 0, self.log_eps) # for avoid logsumexp to produce -inf
         x = torch.logsumexp(x, dim = 2)
-        mask = phone_boundry_mask(I, J)
+        mask = phone_boundary_mask(text_mask, mel_mask)
         y = x.masked_fill(mask, -float("Inf"))
         return y
 
@@ -276,7 +276,8 @@ class MoBoAligner(nn.Module):
 
         # Use log_delta to compute the expanded text embeddings
         log_delta = log_delta_forward
+        log_delta_mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)
         expanded_text_embeddings = torch.bmm(torch.exp(log_delta).transpose(1, 2), text_embeddings)
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
-        return log_delta, expanded_text_embeddings
+        return log_delta, log_delta_mask, expanded_text_embeddings

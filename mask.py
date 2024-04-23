@@ -45,16 +45,33 @@ def gen_upper_left_mask(B, I, J, K):
         tensor[:, i, :i, :i] = 0
     return tensor
 
-def phone_boundry_mask(I, J):
-    left_mask = torch.tril(torch.ones(I, J), diagonal = -1).bool()
-    right_mask = torch.triu(torch.ones(I, J), diagonal = J-I+1).bool()
-    mask = left_mask | right_mask # True means position to mask
+def phone_boundary_mask(text_mask, mel_mask):
+    B, I = text_mask.shape
+    _, J = mel_mask.shape
+    
+    I_lengths = text_mask.sum(1)
+    J_lengths = mel_mask.sum(1)
+    
+    left_mask = torch.zeros(B, I, J)
+    right_mask = torch.zeros(B, I, J)
+    
+    for b in range(B):
+        I_len = I_lengths[b]
+        J_len = J_lengths[b]
+        
+        left_mask[b, :I_len, :J_len] = torch.tril(torch.ones(I_len, J_len), diagonal=-1)
+        right_mask[b, :I_len, :J_len] = torch.triu(torch.ones(I_len, J_len), diagonal=J_len-I_len+1)
+    
+    mask = left_mask.bool() | right_mask.bool() # True means position to mask
+    
     return mask
 
 def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, direction):
-    energy_mask = gen_i_range_mask(B, I, J, K, text_mask.sum(1), mel_mask.sum(1))
+    i_lens = text_mask.sum(1)
+    j_lens = mel_mask.sum(1)
+    energy_mask = gen_i_range_mask(B, I, J, K, i_lens, j_lens)
     tri_ijk_mask = gen_tri(B, I, J, K, direction)
-    most_i_mask = gen_most_i_mask(B, I, J, K, text_mask.sum(1), mel_mask.sum(1))
+    most_i_mask = gen_most_i_mask(B, I, J, K, i_lens, j_lens)
     return (~energy_mask) | (~tri_ijk_mask) | (~most_i_mask)
 
 if __name__ == "__main__":
