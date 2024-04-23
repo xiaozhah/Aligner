@@ -208,11 +208,13 @@ class MoBoAligner(nn.Module):
     def cal_delta_forward(self, alpha, log_cond_prob_alpha_geq, text_mask, mel_mask):
         B, I = text_mask.shape
         _, J = mel_mask.shape
-        x = alpha[:, :-1, :-1].unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_alpha_geq.transpose(2, 3)
+        x = alpha[:, :-1, :-1].unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_alpha_geq.transpose(2, 3) # (B, I, K, J)
         mask = gen_upper_left_mask(B, I, J, J)
-        x.masked_fill_(mask == 0, -10)
+        x.masked_fill_(mask == 0, -10) # for avoid logsumexp to produce -inf
         x = torch.logsumexp(x, dim = 2)
-        return x
+        mask = phone_boundry_mask(I, J)
+        y = x.masked_fill(mask, -float("Inf"))
+        return y
 
     def forward(
         self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio

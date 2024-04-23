@@ -52,4 +52,9 @@ def gen_upper_left_mask(B, I, J, K):
     for i in range(1, I):
         tensor[:, i, :i, :i] = 0
     return tensor
-    
+
+def phone_boundry_mask(I, J):
+    left_mask = torch.tril(torch.ones(I, J), diagonal = -1).bool()
+    right_mask = torch.triu(torch.ones(I, J), diagonal = J-I+1).bool()
+    mask = left_mask | right_mask # True means position to mask
+    return mask
