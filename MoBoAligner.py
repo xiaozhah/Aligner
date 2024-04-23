@@ -83,13 +83,11 @@ class MoBoAligner(nn.Module):
         log_cond_prob = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True) # on the J dimension
 
         if direction == "alpha":
-            log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
-            log_cond_prob_geq.masked_fill_(tri_invalid, self.log_eps)   
-            return log_cond_prob, log_cond_prob_geq, None
+            log_cond_prob_geq_or_gt = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
         else:
-            log_cond_prob_lt = torch.logcumsumexp(log_cond_prob.roll(shifts=1, dims=2), dim=2)
-            log_cond_prob_lt.masked_fill_(~tri_invalid.roll(shifts=1, dims=2), -float("Inf"))
-            return log_cond_prob, None, log_cond_prob_lt
+            log_cond_prob_geq_or_gt = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
+        log_cond_prob_geq_or_gt.masked_fill_(tri_invalid, self.log_eps)
+        return log_cond_prob, log_cond_prob_geq_or_gt
 
     def right_shift(self, x, shifts_text_dim, shifts_mel_dim):
         """
@@ -192,23 +190,23 @@ class MoBoAligner(nn.Module):
             )
 
         return beta
-    
-    def cal_delta_forward(self, alpha, log_cond_prob_alpha_geq, text_mask, mel_mask):
+   
+    def cal_delta(self, prob, log_cond_prob_geq_or_gt, text_mask, mel_mask):
         """
-        Compute the forward log-delta, which is the log of the probability P(B_{i-1} < j <= B_i).
+        Compute the log-delta, which is the log of the probability P(B_{i-1} < j <= B_i).
 
         Args:
-            alpha (torch.Tensor): The alpha tensor of shape (B, I+1, J+1).
-            log_cond_prob_alpha_geq (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J).
+            prob (torch.Tensor): The alpha or beta tensor of shape (B, I+1, J+1) for alpha, or (B, I, J) for beta.
+            log_cond_prob_geq_or_gt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J).
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
 
         Returns:
-            torch.Tensor: The forward log-delta tensor of shape (B, I, J).
+            torch.Tensor: The log-delta tensor of shape (B, I, J).
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
-        x = alpha[:, :-1, :-1].unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_alpha_geq.transpose(2, 3) # (B, I, K, J)
+        x = prob[:, :-1, :-1].unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_geq_or_gt.transpose(2, 3) # (B, I, K, J)
         mask = gen_upper_left_mask(B, I, J, J)
         x.masked_fill_(mask == 0, self.log_eps) # for avoid logsumexp to produce -inf
         x = torch.logsumexp(x, dim = 2)
@@ -241,42 +239,27 @@ class MoBoAligner(nn.Module):
         energy = self.apply_gumbel_noise(energy, temperature_ratio)
 
         # Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i \geq j | B_{i-1}=k) for alpha
-        log_cond_prob_alpha, log_cond_prob_alpha_geq, _ = self.compute_log_cond_prob(
+        log_cond_prob_alpha, log_cond_prob_alpha_geq_or_gt = self.compute_log_cond_prob(
             energy, text_mask, mel_mask, direction="alpha"
         )  # (B, I, J)
+        
+        # Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i \lt j | B_{i+1}=k) for beta
+        # log_cond_prob_beta, log_cond_prob_beta_geq_or_gt = self.compute_log_cond_prob(
+        #     energy, text_mask, mel_mask, direction="beta"
+        # )  # (B, I, J)
 
-        # Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i \leq j | B_{i+1}=k) for beta
-        log_cond_prob_beta, _, log_cond_prob_beta_lt = self.compute_log_cond_prob(
-            energy, text_mask, mel_mask, direction="beta"
-        )  # (B, I, J)
-        log_cond_prob_beta = self.right_shift(
-            log_cond_prob_beta,
-            shifts_text_dim=self.compute_max_length_diff(text_mask),
-            shifts_mel_dim=self.compute_max_length_diff(mel_mask),
-        )
-        log_cond_prob_beta_lt = self.right_shift(
-            log_cond_prob_beta_lt,
-            shifts_text_dim=self.compute_max_length_diff(text_mask),
-            shifts_mel_dim=self.compute_max_length_diff(mel_mask),
-        )
-
-        # Compute alpha recursively in the log domain
+        # Compute alpha and beta recursively in the log domain
         alpha = self.compute_alpha(log_cond_prob_alpha, text_mask, mel_mask)
-
-        # Compute beta recursively in the log domain
-        beta = self.compute_beta(log_cond_prob_beta, text_mask, mel_mask)
-        beta = self.left_shift(
-            beta,
-            shifts_text_dim=self.compute_max_length_diff(text_mask),
-            shifts_mel_dim=self.compute_max_length_diff(mel_mask),
-        )
+        # beta = self.compute_alpha(log_cond_prob_beta, text_mask, mel_mask)
 
         # Compute the forward and backward P(B_{i-1}<j\leq B_i)
-        log_delta_forward = self.cal_delta_forward(alpha, log_cond_prob_alpha_geq, text_mask, mel_mask)
+        log_delta_forward = self.cal_delta(alpha, log_cond_prob_alpha_geq_or_gt, text_mask, mel_mask)
+        # log_delta_backward = self.cal_delta(beta, log_cond_prob_beta_geq_or_gt, text_mask, mel_mask, direction="beta")
 
-        # Use log_delta to compute the expanded text embeddings
+        # Combine the forward and backward log-delta
         log_delta = log_delta_forward
         log_delta_mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)
+        # Use log_delta to compute the expanded text embeddings
         expanded_text_embeddings = torch.bmm(torch.exp(log_delta).transpose(1, 2), text_embeddings)
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
