@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import math
 from mask import *
 from roll import roll_tensor
@@ -15,9 +14,9 @@ class MoBoAligner(nn.Module):
         self.temperature_max = temperature_max
         self.log_eps = -1000
 
-    def check_parameter_validity(self, I, J, direction):
+    def check_parameter_validity(self, text_mask, mel_mask, direction):
         assert direction in ["alpha", "beta"] # direction must be "alpha" or "beta"
-        if I >= J:
+        if torch.any(text_mask.sum(1) >= mel_mask.sum(1)):
             warnings.warn("Warning: The dimension of text embeddings (I) is greater than or equal to the dimension of mel spectrogram embeddings (J), which may affect alignment performance.")
 
     def compute_energy(self, text_embeddings, mel_embeddings):
@@ -75,7 +74,7 @@ class MoBoAligner(nn.Module):
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
-        self.check_parameter_validity(I, J, direction)
+        self.check_parameter_validity(text_mask, mel_mask, direction)
         K = J if direction == "alpha" else J - 1
         
         energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, K)  # (B, I, J, K)
