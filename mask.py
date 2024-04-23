@@ -1,16 +1,26 @@
 import torch
+from roll import roll_tensor
 
-def gen_i_range_mask(B, I, J, K, i_lens):
+def gen_i_range_mask(B, I, J, K, i_lens, j_lens):
     indices_i = torch.arange(I).unsqueeze(0).unsqueeze(-1).repeat(B, 1, J)
     indices_j = torch.arange(J).unsqueeze(0).unsqueeze(0).repeat(B, I, 1)
     indices = indices_i + indices_j
 
     limit_s = (i_lens - 1).unsqueeze(-1).unsqueeze(-1).expand(B, I, J)
-    limit_e = J + I - i_lens.unsqueeze(-1).unsqueeze(-1).expand(B, I, J)
+    limit_e = j_lens.unsqueeze(-1).unsqueeze(-1).expand(B, I, J)
 
     mask_b = (indices >= limit_s).flip(1)
     mask_e = (indices < limit_e).flip(1)
-    mask = (mask_b & mask_e).unsqueeze(-1).repeat(1, 1, 1, K)
+
+    mask = (mask_b & mask_e).unsqueeze(-1)
+    diff = i_lens - i_lens.max()
+    mask = roll_tensor(mask, shifts=diff, dim=1)
+
+    bool_tensor = i_lens.unsqueeze(1) > torch.arange(I)
+    bool_tensor = bool_tensor[:, :, None, None].repeat(1, 1, J, 1)
+    mask = mask * bool_tensor
+    mask = mask.repeat(1, 1, 1, K)
+
     return mask
 
 def gen_tri(B, I, J, K, direction):
@@ -58,3 +68,11 @@ def phone_boundry_mask(I, J):
     right_mask = torch.triu(torch.ones(I, J), diagonal = J-I+1).bool()
     mask = left_mask | right_mask # True means position to mask
     return mask
+
+if __name__ == "__main__":
+    # 测试用例1
+    B, I, J, K = 2, 5, 10, 10
+    i_lens = torch.tensor([5, 2])
+    j_lens = torch.tensor([10, 5])
+    masked_tensor = gen_i_range_mask(B, I, J, K, i_lens, j_lens).int()
+    print(masked_tensor.shape)
