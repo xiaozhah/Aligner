@@ -15,7 +15,7 @@ class MoBoAligner(nn.Module):
         self.log_eps = -1000
 
     def check_parameter_validity(self, text_mask, mel_mask, direction):
-        assert direction in ["alpha", "beta"] # direction must be "alpha" or "beta"
+        assert direction in ["alpha", "beta"], "Direction must be 'alpha' or 'beta'."
         if torch.any(text_mask.sum(1) >= mel_mask.sum(1)):
             warnings.warn("Warning: The dimension of text embeddings (I) is greater than or equal to the dimension of mel spectrogram embeddings (J), which may affect alignment performance.")
 
@@ -157,7 +157,7 @@ class MoBoAligner(nn.Module):
 
         alpha = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob_alpha.device)
         alpha[:, 0, 0] = 0  # Initialize alpha[0, 0] = 0
-        alpha[:, -1, -1] = 0
+        alpha[:, -1, -1] = 0  # Initialize alpha[I, J] = 0
         for i in range(1, I):
             alpha[:, i, i:(J - I + i + 2)] = torch.logsumexp(
                 alpha[:, i - 1, :-1].unsqueeze(1)
@@ -183,7 +183,7 @@ class MoBoAligner(nn.Module):
         _, J = mel_mask.shape
 
         beta = torch.full((B, I, J), -float("inf"), device=log_cond_prob_beta.device)
-        beta[:, -1, -1] = 0  # Initialize beta_{I,J} = 1
+        beta[:, -1, -1] = 0  # Initialize beta_{I,J} = 0
         for i in range(I - 2, -1, -1):
             beta[:, i, : (J + i - I + 1)] = torch.logsumexp(
                 beta[:, i + 1, 1:].unsqueeze(1)
@@ -194,6 +194,18 @@ class MoBoAligner(nn.Module):
         return beta
     
     def cal_delta_forward(self, alpha, log_cond_prob_alpha_geq, text_mask, mel_mask):
+        """
+        Compute the forward log-delta, which is the log of the probability P(B_{i-1} < j <= B_i).
+
+        Args:
+            alpha (torch.Tensor): The alpha tensor of shape (B, I+1, J+1).
+            log_cond_prob_alpha_geq (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J).
+            text_mask (torch.Tensor): The text mask of shape (B, I).
+            mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
+
+        Returns:
+            torch.Tensor: The forward log-delta tensor of shape (B, I, J).
+        """
         B, I = text_mask.shape
         _, J = mel_mask.shape
         x = alpha[:, :-1, :-1].unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_alpha_geq.transpose(2, 3) # (B, I, K, J)
