@@ -33,28 +33,10 @@ def gen_tri(B, I, J, K, direction):
     triu = triu.transpose(1, 3)  # (B, I, J, K)
     return triu.bool()
 
-def gen_ijk_mask(text_mask, mel_mask, direction):
-    ijk_mask = (
-        text_mask.unsqueeze(2).unsqueeze(3)
-        * mel_mask.unsqueeze(1).unsqueeze(3)
-        * mel_mask.unsqueeze(1).unsqueeze(1)
-    )
-    if direction == "beta":  # because K is J-1
-        ijk_mask = ijk_mask[:, :, :, :-1]
-    return ijk_mask
-
-def gen_ik_mask(text_mask, mel_mask, direction):
-    _, J = mel_mask.shape
-    ik_mask = (
-        text_mask.unsqueeze(2).unsqueeze(3) * mel_mask.unsqueeze(1).unsqueeze(1)
-    ).repeat(1, 1, J, 1)
-    if direction == "beta":  # because K is J-1
-        ik_mask = ik_mask[:, :, :, :-1]
-    return ik_mask
-
-def gen_most_i_mask(B, I, J, K):
+def gen_most_i_mask(B, I, J, K, i_lens, j_lens):
     mask = torch.ones((B, I, J, K), dtype=torch.bool)
-    mask[:, -1, :-1] = False
+    for b in range(B):
+        mask[b, i_lens[b]-1, :j_lens[b]-1] = False
     return mask
 
 def gen_upper_left_mask(B, I, J, K):
@@ -68,6 +50,12 @@ def phone_boundry_mask(I, J):
     right_mask = torch.triu(torch.ones(I, J), diagonal = J-I+1).bool()
     mask = left_mask | right_mask # True means position to mask
     return mask
+
+def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, direction):
+    energy_mask = gen_i_range_mask(B, I, J, K, text_mask.sum(1), mel_mask.sum(1))
+    tri_ijk_mask = gen_tri(B, I, J, K, direction)
+    most_i_mask = gen_most_i_mask(B, I, J, K, text_mask.sum(1), mel_mask.sum(1))
+    return (~energy_mask) | (~tri_ijk_mask) | (~most_i_mask)
 
 if __name__ == "__main__":
     # 测试用例1

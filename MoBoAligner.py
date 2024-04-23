@@ -13,6 +13,7 @@ class MoBoAligner(nn.Module):
         super(MoBoAligner, self).__init__()
         self.temperature_min = temperature_min
         self.temperature_max = temperature_max
+        self.log_eps = -1000
 
     def check_parameter_validity(self, I, J, direction):
         assert direction in ["alpha", "beta"] # direction must be "alpha" or "beta"
@@ -77,30 +78,18 @@ class MoBoAligner(nn.Module):
         self.check_parameter_validity(I, J, direction)
         K = J if direction == "alpha" else J - 1
         
-        tri = gen_tri(B, I, J, K, direction)
-        ijk_mask = gen_ijk_mask(text_mask, mel_mask, direction)
-        energy_mask = gen_i_range_mask(B, I, J, K, text_mask.sum(1))
-        tri_ijk_mask = tri * ijk_mask
-        
-        ik_mask = gen_ik_mask(text_mask, mel_mask, direction)
-        most_i_mask = gen_most_i_mask(B, I, J, K)
-
         energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, K)  # (B, I, J, K)
-
-        energy_4D.masked_fill_(~energy_mask, -1000)
-        energy_4D.masked_fill_(~tri_ijk_mask, -float("Inf"))
-        energy_4D.masked_fill_(~ik_mask, -10)
-        energy_4D.masked_fill_(~most_i_mask, -float("Inf"))
+        tri_invalid = get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, direction)
+        energy_4D.masked_fill_(tri_invalid, self.log_eps)
         log_cond_prob = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True) # on the J dimension
-        log_cond_prob.masked_fill_(~ik_mask, -float("Inf"))
 
         if direction == "alpha":
             log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
-            log_cond_prob_geq.masked_fill_(~tri_ijk_mask, -float("Inf"))   
+            log_cond_prob_geq.masked_fill_(tri_invalid, self.log_eps)   
             return log_cond_prob, log_cond_prob_geq, None
-        else:  # direction == "beta"
+        else:
             log_cond_prob_lt = torch.logcumsumexp(log_cond_prob.roll(shifts=1, dims=2), dim=2)
-            log_cond_prob_lt.masked_fill_(~tri_ijk_mask.roll(shifts=1, dims=2), -float("Inf"))
+            log_cond_prob_lt.masked_fill_(~tri_invalid.roll(shifts=1, dims=2), -float("Inf"))
             return log_cond_prob, None, log_cond_prob_lt
 
     def right_shift(self, x, shifts_text_dim, shifts_mel_dim):
@@ -210,7 +199,7 @@ class MoBoAligner(nn.Module):
         _, J = mel_mask.shape
         x = alpha[:, :-1, :-1].unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_alpha_geq.transpose(2, 3) # (B, I, K, J)
         mask = gen_upper_left_mask(B, I, J, J)
-        x.masked_fill_(mask == 0, -10) # for avoid logsumexp to produce -inf
+        x.masked_fill_(mask == 0, self.log_eps) # for avoid logsumexp to produce -inf
         x = torch.logsumexp(x, dim = 2)
         mask = phone_boundry_mask(I, J)
         y = x.masked_fill(mask, -float("Inf"))
