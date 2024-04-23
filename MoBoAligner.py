@@ -171,9 +171,9 @@ class MoBoAligner(nn.Module):
         alpha[:, 0, 0] = 0  # Initialize alpha[0, 0] = 0
         alpha[:, -1, -1] = 0
         for i in range(1, I):
-            alpha[:, i, i:] = torch.logsumexp(
+            alpha[:, i, i:(J - I + i + 2)] = torch.logsumexp(
                 alpha[:, i - 1, :-1].unsqueeze(1)
-                + log_cond_prob_alpha[:, i - 1, (i - 1) :],
+                + log_cond_prob_alpha[:, i - 1, (i - 1) : (J - I + i + 1)],
                 dim=2, # sum at the K dimension
             )
 
