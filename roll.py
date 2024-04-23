@@ -16,7 +16,7 @@ def roll_tensor(tensor, shifts, dim):
     )
 
     # 将shifts转换为tensor并调整形状
-    shifts = torch.tensor(shifts).view([-1] + [1] * (len(shape) - 1))
+    shifts = shifts.clone().detach().view([-1] + [1] * (len(shape) - 1))
 
     # 计算移位后的索引
     shifted_indices = (indices - shifts) % shape[dim]
