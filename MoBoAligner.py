@@ -5,6 +5,7 @@ import math
 from mask import *
 from roll import roll_tensor
 import numpy as np
+import warnings
 
 
 class MoBoAligner(nn.Module):
@@ -12,6 +13,11 @@ class MoBoAligner(nn.Module):
         super(MoBoAligner, self).__init__()
         self.temperature_min = temperature_min
         self.temperature_max = temperature_max
+
+    def check_parameter_validity(self, I, J, direction):
+        assert direction in ["alpha", "beta"] # direction must be "alpha" or "beta"
+        if I >= J:
+            warnings.warn("Warning: The dimension of text embeddings (I) is greater than or equal to the dimension of mel spectrogram embeddings (J), which may affect alignment performance.")
 
     def compute_energy(self, text_embeddings, mel_embeddings):
         """
@@ -66,9 +72,9 @@ class MoBoAligner(nn.Module):
                 - log_cond_prob_lt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J)
                     for "beta" direction, or None for "alpha" direction.
         """
-        assert direction in ["alpha", "beta"] # direction must be "alpha" or "beta"
         B, I = text_mask.shape
         _, J = mel_mask.shape
+        self.check_parameter_validity(I, J, direction)
         K = J if direction == "alpha" else J - 1
         
         tri = gen_tri(B, I, J, K, direction)
