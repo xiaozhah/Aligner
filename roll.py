@@ -16,7 +16,7 @@ def roll_tensor(tensor, shifts, dim):
     )
 
     # 将shifts转换为tensor并调整形状
-    shifts = shifts.clone().detach().view([-1] + [1] * (len(shape) - 1))
+    shifts = shifts.view([-1] + [1] * (len(shape) - 1))
 
     # 计算移位后的索引
     shifted_indices = (indices - shifts) % shape[dim]
@@ -35,7 +35,7 @@ if __name__ == "__main__":
             [[[13, 14, 15], [16, 17, 18]], [[19, 20, 21], [22, 23, 24]]],
         ]
     )
-    shifts1 = [1, 2]  # 每个sample在最后一个维度上的右移量
+    shifts1 = torch.tensor([1, 2])  # 每个sample在最后一个维度上的右移量
     dim1 = 3  # 在最后一个维度上进行移位
     result1 = roll_tensor(tensor1, shifts1, dim1)
     print("示例 1 - 在最后一个维度上移位:")
@@ -49,7 +49,7 @@ if __name__ == "__main__":
             [[13, 14], [15, 16], [17, 18]],
         ]
     )
-    shifts2 = [1, 2, 3]  # 每个sample在第二个维度上的左移量
+    shifts2 = torch.tensor([1, 2, 3])  # 每个sample在第二个维度上的左移量
     dim2 = 1  # 在第二个维度上进行移位
     result2 = roll_tensor(tensor2, shifts2, dim2)
     print("示例 2 - 在第二个维度上移位:")
