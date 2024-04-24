@@ -1,6 +1,5 @@
 from MoBoAligner import MoBoAligner
 import torch
-import monotonic_align
 import numpy as np
 
 torch.autograd.set_detect_anomaly(True)
@@ -30,19 +29,19 @@ temperature_ratio = 0.5  # Temperature ratio for Gumbel noise
 # Initialize the MoBoAligner model
 aligner = MoBoAligner()
 
-log_delta, log_delta_mask, expanded_text_embeddings = aligner(
+soft_alignment, hard_alignment, expanded_text_embeddings = aligner(
     text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio
 )
-# log_delta still in the log domain
 
-# Print the shape of the soft alignment (log_delta) and the expanded text embeddings
-print("Soft alignment (log_delta):")
-print(log_delta.shape)
+# Print the shape of the soft and hard alignment and the expanded text embeddings
+print("Soft alignment:")
+print(soft_alignment.shape)
+print("Hard alignment:")
+print(hard_alignment.shape)
 print("Expanded text embeddings:")
 print(expanded_text_embeddings)
 
 # Backward pass test
-
 with torch.autograd.detect_anomaly():
     print(expanded_text_embeddings.mean())
     expanded_text_embeddings.mean().backward()
@@ -51,11 +50,3 @@ print("Gradient for text_embeddings:")
 print(text_embeddings.grad)
 print("Gradient for mel_embeddings:")
 print(mel_embeddings.grad)
-
-# Test the hard alignment (Viterbi decoding) function
-with torch.no_grad():
-    attn = monotonic_align.maximum_path(log_delta, log_delta_mask)
-    print(attn.requires_grad)
-
-print("Hard alignment (Viterbi decoding):")
-print(attn.shape)

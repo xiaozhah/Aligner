@@ -5,6 +5,7 @@ from mask import *
 from roll import roll_tensor
 import numpy as np
 import warnings
+import monotonic_align
 
 
 class MoBoAligner(nn.Module):
@@ -138,7 +139,7 @@ class MoBoAligner(nn.Module):
         lengths = mask.sum(1)
         return lengths.max() - lengths
 
-    def compute_alpha(self, log_cond_prob_alpha, text_mask, mel_mask):
+    def compute_forward_pass(self, log_cond_prob_alpha, text_mask, mel_mask):
         """
         Compute alpha recursively in the log domain.
 
@@ -165,33 +166,7 @@ class MoBoAligner(nn.Module):
 
         return alpha
 
-    def compute_beta(self, log_cond_prob_beta, text_mask, mel_mask):
-        """
-        Compute beta recursively in the log domain.
-
-        Args:
-            log_cond_prob_beta (torch.Tensor): The log conditional probability tensor for beta of shape (B, I, J, K).
-            text_mask (torch.Tensor): The text mask of shape (B, I).
-            mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
-
-        Returns:
-            torch.Tensor: The beta tensor of shape (B, I, J).
-        """
-        B, I = text_mask.shape
-        _, J = mel_mask.shape
-
-        beta = torch.full((B, I, J), -float("inf"), device=log_cond_prob_beta.device)
-        beta[:, -1, -1] = 0  # Initialize beta_{I,J} = 0
-        for i in range(I - 2, -1, -1):
-            beta[:, i, : (J + i - I + 1)] = torch.logsumexp(
-                beta[:, i + 1, 1:].unsqueeze(1)
-                + log_cond_prob_beta[:, i, : (J + i - I + 1)],
-                dim=2, # sum at the K dimension
-            )
-
-        return beta
-   
-    def cal_delta(self, prob, log_cond_prob_geq_or_gt, text_mask, mel_mask):
+    def compute_boundary_prob(self, prob, log_cond_prob_geq_or_gt, text_mask, mel_mask):
         """
         Compute the log-delta, which is the log of the probability P(B_{i-1} < j <= B_i).
 
@@ -213,6 +188,22 @@ class MoBoAligner(nn.Module):
         mask = phone_boundary_mask(text_mask, mel_mask)
         y = x.masked_fill(mask, -float("Inf"))
         return y
+    
+    @torch.no_grad()
+    def hard_alignment(self, log_probs, text_mask, mel_mask):
+        """
+        Compute the Viterbi path for the maximum alignment probabilities.
+
+        Args:
+            log_probs (torch.Tensor): The log probabilities tensor of shape (B, I, J).
+            text_mask (torch.Tensor): The mask tensor of shape (B, I) indicating valid positions of text.
+            mel_mask (torch.Tensor): The mask tensor of shape (B, J) indicating valid positions of mel.
+        Returns:
+            torch.Tensor: The tensor representing the hard alignment path of shape (B, I, J).
+        """
+        mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)
+        attn = monotonic_align.maximum_path(log_probs, mask)
+        return attn
 
     def forward(
         self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio
@@ -249,18 +240,19 @@ class MoBoAligner(nn.Module):
         # )  # (B, I, J)
 
         # Compute alpha and beta recursively in the log domain
-        alpha = self.compute_alpha(log_cond_prob_alpha, text_mask, mel_mask)
-        # beta = self.compute_alpha(log_cond_prob_beta, text_mask, mel_mask)
+        alpha = self.compute_forward_pass(log_cond_prob_alpha, text_mask, mel_mask)
+        # beta = self.compute_forward_pass(log_cond_prob_beta, text_mask, mel_mask)
 
         # Compute the forward and backward P(B_{i-1}<j\leq B_i)
-        log_delta_forward = self.cal_delta(alpha, log_cond_prob_alpha_geq_or_gt, text_mask, mel_mask)
-        # log_delta_backward = self.cal_delta(beta, log_cond_prob_beta_geq_or_gt, text_mask, mel_mask, direction="beta")
+        log_delta_forward = self.compute_boundary_prob(alpha, log_cond_prob_alpha_geq_or_gt, text_mask, mel_mask)
+        # log_delta_backward = self.compute_boundary_prob(beta, log_cond_prob_beta_geq_or_gt, text_mask, mel_mask, direction="beta")
 
         # Combine the forward and backward log-delta
-        log_delta = log_delta_forward
-        log_delta_mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)
-        # Use log_delta to compute the expanded text embeddings
-        expanded_text_embeddings = torch.bmm(torch.exp(log_delta).transpose(1, 2), text_embeddings)
+        soft_alignment = log_delta_forward
+        # Use soft_alignment to compute the expanded text embeddings
+        expanded_text_embeddings = torch.bmm(torch.exp(soft_alignment).transpose(1, 2), text_embeddings)
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
-        return log_delta, log_delta_mask, expanded_text_embeddings
+        hard_alignment = self.hard_alignment(soft_alignment, text_mask, mel_mask)
+
+        return soft_alignment, hard_alignment, expanded_text_embeddings
