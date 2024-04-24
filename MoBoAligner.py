@@ -44,25 +44,25 @@ class MoBoAligner(nn.Module):
             text_channels * mel_channels
         )
 
-    def apply_gumbel_noise(self, energy, temperature_ratio):
+    def apply_gumbel_noise(self, energy, gumbel_temperature_ratio):
         """
         Apply Gumbel noise and temperature to the energy matrix.
 
         Args:
             energy (torch.Tensor): The energy matrix of shape (B, I, J).
-            temperature_ratio (float): The temperature ratio for Gumbel noise.
+            gumbel_temperature_ratio (float): The temperature ratio for Gumbel noise.
 
         Returns:
             torch.Tensor: The energy matrix with Gumbel noise and temperature applied.
         """
         temperature = (
             self.temperature_min
-            + (self.temperature_max - self.temperature_min) * temperature_ratio
+            + (self.temperature_max - self.temperature_min) * gumbel_temperature_ratio
         )
         noise = -torch.log(-torch.log(torch.rand_like(energy)))
         return (energy + noise) / temperature
 
-    def compute_energy_and_masks_backward(self, energy, text_mask, mel_mask):
+    def compute_backward_energy_and_masks(self, energy, text_mask, mel_mask):
         shifts_text_dim = self.compute_max_length_diff(text_mask)
         shifts_mel_dim = self.compute_max_length_diff(mel_mask)
 
@@ -183,7 +183,7 @@ class MoBoAligner(nn.Module):
 
         return B_ij
 
-    def calculate_interval_probability(self, prob, log_cond_prob_geq_or_gt, mel_mask):
+    def compute_interval_probability(self, prob, log_cond_prob_geq_or_gt, mel_mask):
         """
         Compute the log-delta, which is the log of the probability P(B_{i-1} < j <= B_i).
 
@@ -203,7 +203,7 @@ class MoBoAligner(nn.Module):
         x = torch.logsumexp(x, dim=2)
         return x
 
-    def combine_bidirectional_alignment(
+    def combine_alignments(
         self, log_boundary_forward, log_boundary_backward
     ):
         """
@@ -222,7 +222,7 @@ class MoBoAligner(nn.Module):
         return log_delta
 
     @torch.no_grad()
-    def viterbi_decoding(self, log_probs, text_mask, mel_mask):
+    def compute_hard_alignment(self, log_probs, text_mask, mel_mask):
         """
         Compute the Viterbi path for the maximum alignment probabilities.
 
@@ -243,7 +243,7 @@ class MoBoAligner(nn.Module):
         mel_embeddings: torch.Tensor,
         text_mask: torch.Tensor,
         mel_mask: torch.Tensor,
-        temperature_ratio: float,
+        gumbel_temperature_ratio: float,
         direction: List[str],
     ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], torch.Tensor]:
         """
@@ -254,7 +254,7 @@ class MoBoAligner(nn.Module):
             mel_embeddings (torch.Tensor): The mel spectrogram embeddings of shape (B, J, D_mel).
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
-            temperature_ratio (float): The temperature ratio for Gumbel noise.
+            gumbel_temperature_ratio (float): The temperature ratio for Gumbel noise.
             direction (List[str]): The direction of the alignment, a subset of ["forward", "backward"].
 
         Returns:
@@ -270,7 +270,7 @@ class MoBoAligner(nn.Module):
         energy = self.compute_energy(text_embeddings, mel_embeddings)
 
         # Apply Gumbel noise and temperature
-        energy = self.apply_gumbel_noise(energy, temperature_ratio)
+        energy = self.apply_gumbel_noise(energy, gumbel_temperature_ratio)
 
         if "forward" in direction:
             # Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i \geq j | B_{i-1}=k) for forward
@@ -287,14 +287,14 @@ class MoBoAligner(nn.Module):
             Bij_forward = Bij_forward[:, :-1, :-1]
 
             # Compute the forward P(B_{i-1}<j\leq B_i)
-            log_boundary_forward = self.calculate_interval_probability(
+            log_boundary_forward = self.compute_interval_probability(
                 Bij_forward, log_cond_prob_forward_geq, mel_mask
             )
 
         if "backward" in direction:
             # Compute the energy matrix for backward direction
             energy_backward, text_mask_backward, mel_mask_backward = (
-                self.compute_energy_and_masks_backward(energy, text_mask, mel_mask)
+                self.compute_backward_energy_and_masks(energy, text_mask, mel_mask)
             )
 
             # Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i \lt j | B_{i+1}=k) for backward
@@ -323,7 +323,7 @@ class MoBoAligner(nn.Module):
             Bij_backward = Bij_backward[:, :-1, :-1]
 
             # Compute the backward P(B_{i-1}<j\leq B_i)
-            log_boundary_backward = self.calculate_interval_probability(
+            log_boundary_backward = self.compute_interval_probability(
                 Bij_backward, log_cond_prob_gt_backward, mel_mask_backward
             )
             shifts_text_dim = self.compute_max_length_diff(text_mask_backward)
@@ -340,7 +340,7 @@ class MoBoAligner(nn.Module):
         elif direction == ["backward"]:
             soft_alignment = log_boundary_backward
         else:
-            soft_alignment = self.combine_bidirectional_alignment(
+            soft_alignment = self.combine_alignments(
                 log_boundary_forward, log_boundary_backward
             )
 
@@ -350,6 +350,6 @@ class MoBoAligner(nn.Module):
         )
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
-        hard_alignment = self.viterbi_decoding(soft_alignment, text_mask, mel_mask)
+        hard_alignment = self.compute_hard_alignment(soft_alignment, text_mask, mel_mask)
 
         return soft_alignment, hard_alignment, expanded_text_embeddings
