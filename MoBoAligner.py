@@ -68,7 +68,7 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The energy matrix with gussian noise applied.
         """
-        noise = torch.randn(energy.shape, device=energy.device) * self.noise_scale
+        noise = torch.randn_like(energy) * self.noise_scale
         return energy + noise
 
     def compute_backward_energy_and_masks(self, energy, text_mask, mel_mask):
