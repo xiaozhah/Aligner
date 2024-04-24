@@ -190,6 +190,16 @@ class MoBoAligner(nn.Module):
         return x
     
     def combine_bidirectional_alignment(self, log_boundary_forward, log_boundary_backward):
+        """
+        Combine the log probabilities from forward and backward boundary calculations.
+
+        Args:
+            log_boundary_forward (torch.Tensor): The log probabilities from the forward boundary calculation of shape (B, I, J).
+            log_boundary_backward (torch.Tensor): The log probabilities from the backward boundary calculation of shape (B, I, J).
+
+        Returns:
+            torch.Tensor: The combined log probabilities of shape (B, I, J).
+        """
         log_2 = math.log(2.0)
         log_delta = torch.logaddexp(log_boundary_forward - log_2, log_boundary_backward - log_2)
         return log_delta
