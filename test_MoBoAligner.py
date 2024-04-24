@@ -9,7 +9,7 @@ torch.manual_seed(1234)
 
 I = 20
 J = 40
-device="cpu"
+device = "cpu"
 # Initialize the text and mel embedding tensors
 text_embeddings = torch.randn(
     2, I, 10, requires_grad=True, device=device
@@ -31,7 +31,12 @@ temperature_ratio = 0.5  # Temperature ratio for Gumbel noise
 aligner = MoBoAligner()
 
 soft_alignment, hard_alignment, expanded_text_embeddings = aligner(
-    text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio, direction=['forward']
+    text_embeddings,
+    mel_embeddings,
+    text_mask,
+    mel_mask,
+    temperature_ratio,
+    direction=["forward"],
 )
 
 # Print the shape of the soft and hard alignment and the expanded text embeddings

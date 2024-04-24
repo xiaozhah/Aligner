@@ -3,8 +3,12 @@ from tensor_utils import roll_tensor
 
 
 def gen_i_range_mask(B, I, J, K, i_lens, j_lens):
-    indices_i = torch.arange(I, device=i_lens.device).unsqueeze(0).unsqueeze(-1).repeat(B, 1, J)
-    indices_j = torch.arange(J, device=i_lens.device).unsqueeze(0).unsqueeze(0).repeat(B, I, 1)
+    indices_i = (
+        torch.arange(I, device=i_lens.device).unsqueeze(0).unsqueeze(-1).repeat(B, 1, J)
+    )
+    indices_j = (
+        torch.arange(J, device=i_lens.device).unsqueeze(0).unsqueeze(0).repeat(B, I, 1)
+    )
     indices = indices_i + indices_j
 
     limit_s = (i_lens - 1).unsqueeze(-1).unsqueeze(-1).expand(B, I, J)
@@ -46,7 +50,9 @@ def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, force_assign_last):
     energy_mask = gen_i_range_mask(B, I, J, K, i_lens, j_lens)
     tri_ijk_mask = gen_tri(B, I, J, K, device=text_mask.device)
     if force_assign_last:
-        most_i_mask = gen_most_i_mask(B, I, J, K, i_lens, j_lens, device=text_mask.device)
+        most_i_mask = gen_most_i_mask(
+            B, I, J, K, i_lens, j_lens, device=text_mask.device
+        )
         return (~energy_mask) | (~tri_ijk_mask) | (~most_i_mask)
     else:
         return (~energy_mask) | (~tri_ijk_mask)
