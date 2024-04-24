@@ -23,11 +23,8 @@ def gen_i_range_mask(B, I, J, K, i_lens, j_lens):
 
     return mask
 
-def gen_tri(B, I, J, K, direction):
-    if direction == 'alpha':
-        triu = torch.triu(torch.ones((K, J)), diagonal=0)
-    else:
-        triu = torch.tril(torch.ones((K, J)), diagonal=0)
+def gen_tri(B, I, J, K):
+    triu = torch.triu(torch.ones((K, J)), diagonal=0)
     triu = triu.unsqueeze(-1).unsqueeze(0)  # (1, K, J, 1)
     triu = triu.repeat(B, 1, 1, I)  # (B, K, J, I)
     triu = triu.transpose(1, 3)  # (B, I, J, K)
@@ -66,11 +63,11 @@ def phone_boundary_mask(text_mask, mel_mask):
     
     return mask
 
-def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, direction):
+def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
     i_lens = text_mask.sum(1)
     j_lens = mel_mask.sum(1)
     energy_mask = gen_i_range_mask(B, I, J, K, i_lens, j_lens)
-    tri_ijk_mask = gen_tri(B, I, J, K, direction)
+    tri_ijk_mask = gen_tri(B, I, J, K)
     most_i_mask = gen_most_i_mask(B, I, J, K, i_lens, j_lens)
     return (~energy_mask) | (~tri_ijk_mask) | (~most_i_mask)
 
