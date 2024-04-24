@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import math
 from mask_utils import get_invalid_tri_mask, get_j_last
-from tensor_utils import roll_tensor_1d, right_shift, left_shift
+from tensor_utils import roll_tensor_1d, right_shift, left_shift, LinearNorm
 import numpy as np
 import warnings
 import monotonic_align
@@ -13,10 +13,15 @@ LOG_2 = math.log(2.0)
 
 
 class MoBoAligner(nn.Module):
-    def __init__(self, temperature_min=0.1, temperature_max=1.0):
+    def __init__(self, text_channels, mel_channels, attention_dim, sigmoid_noise=2.0):
         super(MoBoAligner, self).__init__()
-        self.temperature_min = temperature_min
-        self.temperature_max = temperature_max
+        self.query_layer = LinearNorm(mel_channels, attention_dim,
+                                      bias=True,  w_init_gain='tanh')
+        self.memory_layer = LinearNorm(text_channels, attention_dim,
+                                      bias=False, w_init_gain='tanh')
+        self.v = LinearNorm(attention_dim, 1, bias=False)
+        
+        self.sigmoid_noise = sigmoid_noise
 
     def check_parameter_validity(self, text_mask, mel_mask, direction):
         assert len(direction) >= 1 and set(direction).issubset(
@@ -38,29 +43,25 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The energy matrix of shape (B, I, J).
         """
-        text_channels = text_embeddings.size(-1)
-        mel_channels = mel_embeddings.size(-1)
-        return torch.bmm(text_embeddings, mel_embeddings.transpose(1, 2)) / math.sqrt(
-            text_channels * mel_channels
-        )
+        processed_query = self.query_layer(mel_embeddings.unsqueeze(1)) # (B, 1, J, D_att)
+        processed_memory = self.memory_layer(text_embeddings.unsqueeze(2)) # (B, I, 1, D_att)
+        energies = self.v(torch.tanh(processed_query + processed_memory)) # (B, I, J, 1)
 
-    def apply_gumbel_noise(self, energy, gumbel_temperature_ratio):
+        energies = energies.squeeze(-1) # (B, I, J)
+        return energies
+
+    def apply_noise(self, energy):
         """
-        Apply Gumbel noise and temperature to the energy matrix.
+        Apply gussian noise to the energy matrix.
 
         Args:
             energy (torch.Tensor): The energy matrix of shape (B, I, J).
-            gumbel_temperature_ratio (float): The temperature ratio for Gumbel noise.
 
         Returns:
-            torch.Tensor: The energy matrix with Gumbel noise and temperature applied.
+            torch.Tensor: The energy matrix with gussian noise applied.
         """
-        temperature = (
-            self.temperature_min
-            + (self.temperature_max - self.temperature_min) * gumbel_temperature_ratio
-        )
-        noise = -torch.log(-torch.log(torch.rand_like(energy)))
-        return (energy + noise) / temperature
+        noise = torch.randn(energy.shape, device=energy.device) * self.sigmoid_noise
+        return energy + noise
 
     def compute_backward_energy_and_masks(self, energy, text_mask, mel_mask):
         shifts_text_dim = self.compute_max_length_diff(text_mask)
@@ -210,7 +211,6 @@ class MoBoAligner(nn.Module):
         mel_embeddings: torch.FloatTensor,
         text_mask: torch.BoolTensor,
         mel_mask: torch.BoolTensor,
-        gumbel_temperature_ratio: float,
         direction: List[str],
     ) -> Tuple[
         Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor
@@ -223,7 +223,6 @@ class MoBoAligner(nn.Module):
             mel_embeddings (torch.Tensor): The mel spectrogram embeddings of shape (B, J, D_mel).
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
-            gumbel_temperature_ratio (float): The temperature ratio for Gumbel noise.
             direction (List[str]): The direction of the alignment, a subset of ["forward", "backward"].
 
         Returns:
@@ -238,8 +237,8 @@ class MoBoAligner(nn.Module):
         # Compute the energy matrix
         energy = self.compute_energy(text_embeddings, mel_embeddings)
 
-        # Apply Gumbel noise and temperature
-        energy = self.apply_gumbel_noise(energy, gumbel_temperature_ratio)
+        # Apply Gussian noise
+        energy = self.apply_noise(energy)
 
         if "forward" in direction:
             # Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward

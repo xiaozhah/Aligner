@@ -25,17 +25,14 @@ mel_mask = torch.tensor(
     [[1] * J, [1] * 20 + [0] * 20], dtype=torch.bool, device=device
 )  # Batch size: 2, Mel frames: 800
 
-temperature_ratio = 0.5  # Temperature ratio for Gumbel noise
-
 # Initialize the MoBoAligner model
-aligner = MoBoAligner()
+aligner = MoBoAligner(text_embeddings.size(-1), mel_embeddings.size(-1), 128)
 
 soft_alignment, hard_alignment, expanded_text_embeddings = aligner(
     text_embeddings,
     mel_embeddings,
     text_mask,
     mel_mask,
-    temperature_ratio,
     direction=["forward"],
 )
 
