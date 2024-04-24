@@ -188,9 +188,9 @@ class MoBoAligner(nn.Module):
         x = torch.logsumexp(x, dim = 2)
         return x
     
-    def combine_bidirectional_alignment(self, log_delta_forward, log_delta_backward):
+    def combine_bidirectional_alignment(self, log_boundary_forward, log_boundary_backward):
         log_2 = math.log(2.0)
-        log_delta = torch.logaddexp(log_delta_forward - log_2, log_delta_backward - log_2)
+        log_delta = torch.logaddexp(log_boundary_forward - log_2, log_boundary_backward - log_2)
         return log_delta
     
     @torch.no_grad()
@@ -251,10 +251,10 @@ class MoBoAligner(nn.Module):
             )
             
             # Compute forward recursively in the log domain
-            forward = self.compute_forward_pass(log_cond_prob_forward, text_mask, mel_mask)
+            forward_Bij = self.compute_forward_pass(log_cond_prob_forward, text_mask, mel_mask)
             
             # Compute the forward P(B_{i-1}<j\leq B_i)
-            log_delta_forward = self.compute_boundary_prob(forward, log_cond_prob_forward_geq, mel_mask)
+            log_boundary_forward = self.compute_boundary_prob(forward_Bij, log_cond_prob_forward_geq, mel_mask)
         
         if 'backward' in direction:
             # Compute the energy matrix for backward direction
@@ -269,18 +269,18 @@ class MoBoAligner(nn.Module):
             log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(shifts=1, dims=2)
 
             # Compute backward recursively in the log domain
-            backward = self.compute_forward_pass(log_cond_prob_backward, text_mask_backward, mel_mask_backward)
+            backward_Bij = self.compute_forward_pass(log_cond_prob_backward, text_mask_backward, mel_mask_backward)
 
             # Compute the backward P(B_{i-1}<j\leq B_i)
-            log_delta_backward = self.compute_boundary_prob(backward, log_cond_prob_gt_backward, mel_mask_backward)
+            log_boundary_backward = self.compute_boundary_prob(backward_Bij, log_cond_prob_gt_backward, mel_mask_backward)
 
         # Combine the forward and backward log-delta
         if direction == ["forward"]:
-            soft_alignment = log_delta_forward
+            soft_alignment = log_boundary_forward
         elif direction == ["backward"]:
-            soft_alignment = log_delta_backward
+            soft_alignment = log_boundary_backward
         else:
-            soft_alignment = self.combine_bidirectional_alignment(log_delta_forward, log_delta_backward)
+            soft_alignment = self.combine_bidirectional_alignment(log_boundary_forward, log_boundary_backward)
 
         # Use soft_alignment to compute the expanded text embeddings
         expanded_text_embeddings = torch.bmm(torch.exp(soft_alignment).transpose(1, 2), text_embeddings)
