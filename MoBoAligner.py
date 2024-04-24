@@ -211,7 +211,13 @@ class MoBoAligner(nn.Module):
         return attn
 
     def forward(
-        self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio, direction
+        self, 
+        text_embeddings: torch.Tensor, 
+        mel_embeddings: torch.Tensor, 
+        text_mask: torch.Tensor, 
+        mel_mask: torch.Tensor, 
+        temperature_ratio: float, 
+        direction: list
     ):
         """
         Compute the soft alignment (gamma) and the expanded text embeddings.
@@ -222,7 +228,7 @@ class MoBoAligner(nn.Module):
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
             temperature_ratio (float): The temperature ratio for Gumbel noise.
-            direction (str): The direction of the alignment, subset of ["forward", "backward"].
+            direction (list): The direction of the alignment, subset of ["forward", "backward"].
 
         Returns:
             tuple: A tuple containing:
