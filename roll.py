@@ -54,6 +54,42 @@ def roll_tensor_1d(tensor, shifts):
     return result
 
 
+def right_shift(x, shifts_text_dim, shifts_mel_dim):
+    """
+    Shift the tensor x to the right along the text and mel dimensions.
+
+    Args:
+        x (torch.Tensor): The input tensor of shape (B, I, J, K).
+        shifts_text_dim (torch.Tensor): The shift amounts along the text dimension of shape (B,).
+        shifts_mel_dim (torch.Tensor): The shift amounts along the mel dimension of shape (B,).
+
+    Returns:
+        torch.Tensor: The right-shifted tensor of shape (B, I, J, K).
+    """
+    x = roll_tensor(x, shifts=shifts_text_dim, dim=1)
+    x = roll_tensor(x, shifts=shifts_mel_dim, dim=2)
+    return x
+
+
+def left_shift(x, shifts_text_dim, shifts_mel_dim):
+    """
+    Shift the tensor x to the left along the text and mel dimensions.
+
+    Args:
+        x (torch.Tensor): The input tensor of shape (B, I, J).
+        shifts_text_dim (torch.Tensor): The shift amounts along the text dimension of shape (B,).
+        shifts_mel_dim (torch.Tensor): The shift amounts along the mel dimension of shape (B,).
+
+    Returns:
+        torch.Tensor: The left-shifted tensor of shape (B, I, J).
+    """
+    x = x.unsqueeze(-1)
+    x = roll_tensor(x, shifts=-shifts_text_dim, dim=1)
+    x = roll_tensor(x, shifts=-shifts_mel_dim, dim=2)
+    x = x.squeeze(-1)
+    return x
+
+
 if __name__ == "__main__":
     # 示例用法 1
     tensor1 = torch.tensor(

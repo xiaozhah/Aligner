@@ -3,13 +3,14 @@ import torch
 import torch.nn as nn
 import math
 from mask import *
-from roll import roll_tensor, roll_tensor_1d
+from roll import *
 import numpy as np
 import warnings
 import monotonic_align
 
 LOG_EPS = -1000
 LOG_2 = math.log(2.0)
+
 
 class MoBoAligner(nn.Module):
     def __init__(self, temperature_min=0.1, temperature_max=1.0):
@@ -66,7 +67,7 @@ class MoBoAligner(nn.Module):
         shifts_text_dim = self.compute_max_length_diff(text_mask)
         shifts_mel_dim = self.compute_max_length_diff(mel_mask)
 
-        energy_backward = self.left_shift(
+        energy_backward = left_shift(
             energy.flip(1, 2),
             shifts_text_dim=shifts_text_dim,
             shifts_mel_dim=shifts_mel_dim,
@@ -109,40 +110,6 @@ class MoBoAligner(nn.Module):
         log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
         log_cond_prob_geq.masked_fill_(tri_invalid, LOG_EPS)
         return log_cond_prob, log_cond_prob_geq
-
-    def right_shift(self, x, shifts_text_dim, shifts_mel_dim):
-        """
-        Shift the tensor x to the right along the text and mel dimensions.
-
-        Args:
-            x (torch.Tensor): The input tensor of shape (B, I, J, K).
-            shifts_text_dim (torch.Tensor): The shift amounts along the text dimension of shape (B,).
-            shifts_mel_dim (torch.Tensor): The shift amounts along the mel dimension of shape (B,).
-
-        Returns:
-            torch.Tensor: The right-shifted tensor of shape (B, I, J, K).
-        """
-        x = roll_tensor(x, shifts=shifts_text_dim, dim=1)
-        x = roll_tensor(x, shifts=shifts_mel_dim, dim=2)
-        return x
-
-    def left_shift(self, x, shifts_text_dim, shifts_mel_dim):
-        """
-        Shift the tensor x to the left along the text and mel dimensions.
-
-        Args:
-            x (torch.Tensor): The input tensor of shape (B, I, J).
-            shifts_text_dim (torch.Tensor): The shift amounts along the text dimension of shape (B,).
-            shifts_mel_dim (torch.Tensor): The shift amounts along the mel dimension of shape (B,).
-
-        Returns:
-            torch.Tensor: The left-shifted tensor of shape (B, I, J).
-        """
-        x = x.unsqueeze(-1)
-        x = roll_tensor(x, shifts=-shifts_text_dim, dim=1)
-        x = roll_tensor(x, shifts=-shifts_mel_dim, dim=2)
-        x = x.squeeze(-1)
-        return x
 
     def compute_max_length_diff(self, mask):
         """
@@ -203,9 +170,7 @@ class MoBoAligner(nn.Module):
         x = torch.logsumexp(x, dim=2)
         return x
 
-    def combine_alignments(
-        self, log_boundary_forward, log_boundary_backward
-    ):
+    def combine_alignments(self, log_boundary_forward, log_boundary_backward):
         """
         Combine the log probabilities from forward and backward boundary calculations.
 
@@ -245,7 +210,9 @@ class MoBoAligner(nn.Module):
         mel_mask: torch.BoolTensor,
         gumbel_temperature_ratio: float,
         direction: List[str],
-    ) -> Tuple[Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor]:
+    ) -> Tuple[
+        Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor
+    ]:
         """
         Compute the soft alignment and the expanded text embeddings.
 
@@ -328,7 +295,7 @@ class MoBoAligner(nn.Module):
             )
             shifts_text_dim = self.compute_max_length_diff(text_mask_backward)
             shifts_mel_dim = self.compute_max_length_diff(mel_mask_backward)
-            log_boundary_backward = self.right_shift(
+            log_boundary_backward = right_shift(
                 log_boundary_backward.flip(1, 2),
                 shifts_text_dim=shifts_text_dim,
                 shifts_mel_dim=shifts_mel_dim,
@@ -350,6 +317,8 @@ class MoBoAligner(nn.Module):
         )
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
-        hard_alignment = self.compute_hard_alignment(soft_alignment, text_mask, mel_mask)
+        hard_alignment = self.compute_hard_alignment(
+            soft_alignment, text_mask, mel_mask
+        )
 
         return soft_alignment, hard_alignment, expanded_text_embeddings
