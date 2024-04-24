@@ -39,14 +39,13 @@ print(soft_alignment.shape)
 print("Hard alignment:")
 print(hard_alignment.shape)
 print("Expanded text embeddings:")
-print(expanded_text_embeddings)
+print(expanded_text_embeddings.mean())
 
 # Backward pass test
 with torch.autograd.detect_anomaly():
-    print(expanded_text_embeddings.mean())
     expanded_text_embeddings.mean().backward()
 
 print("Gradient for text_embeddings:")
-print(text_embeddings.grad)
+print(text_embeddings.grad.mean())
 print("Gradient for mel_embeddings:")
-print(mel_embeddings.grad)
+print(mel_embeddings.grad.mean())
