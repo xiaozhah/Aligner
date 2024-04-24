@@ -185,7 +185,7 @@ class MoBoAligner(nn.Module):
 
     def compute_interval_probability(self, prob, log_cond_prob_geq_or_gt, mel_mask):
         """
-        Compute the log-delta, which is the log of the probability P(B_{i-1} < j <= B_i).
+        Compute the log interval probability, which is the log of the probability P(B_{i-1} < j <= B_i).
 
         Args:
             prob (torch.Tensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I, J) for backward.
@@ -194,7 +194,7 @@ class MoBoAligner(nn.Module):
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
 
         Returns:
-            torch.Tensor: The log-delta tensor of shape (B, I, J).
+            torch.Tensor: The log interval probability tensor of shape (B, I, J).
         """
         _, J = mel_mask.shape
         x = prob.unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_geq_or_gt.transpose(
@@ -216,15 +216,15 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The combined log probabilities of shape (B, I, J).
         """
-        log_delta = torch.logaddexp(
+        log_interval_probability = torch.logaddexp(
             log_boundary_forward - LOG_2, log_boundary_backward - LOG_2
         )
-        return log_delta
+        return log_interval_probability
 
     @torch.no_grad()
     def compute_hard_alignment(self, log_probs, text_mask, mel_mask):
         """
-        Compute the Viterbi path for the maximum alignment probabilities.
+        Compute the viterbi path for the maximum alignment probabilities.
 
         Args:
             log_probs (torch.Tensor): The log probabilities tensor of shape (B, I, J).
@@ -239,15 +239,15 @@ class MoBoAligner(nn.Module):
 
     def forward(
         self,
-        text_embeddings: torch.Tensor,
-        mel_embeddings: torch.Tensor,
-        text_mask: torch.Tensor,
-        mel_mask: torch.Tensor,
+        text_embeddings: torch.FloatTensor,
+        mel_embeddings: torch.FloatTensor,
+        text_mask: torch.BoolTensor,
+        mel_mask: torch.BoolTensor,
         gumbel_temperature_ratio: float,
         direction: List[str],
-    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], torch.Tensor]:
+    ) -> Tuple[Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor]:
         """
-        Compute the soft alignment (gamma) and the expanded text embeddings.
+        Compute the soft alignment and the expanded text embeddings.
 
         Args:
             text_embeddings (torch.Tensor): The text embeddings of shape (B, I, D_text).
@@ -273,7 +273,7 @@ class MoBoAligner(nn.Module):
         energy = self.apply_gumbel_noise(energy, gumbel_temperature_ratio)
 
         if "forward" in direction:
-            # Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i \geq j | B_{i-1}=k) for forward
+            # Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
             log_cond_prob_forward, log_cond_prob_forward_geq = (
                 self.compute_log_cond_prob(
                     energy, text_mask, mel_mask, force_assign_last=True
@@ -297,7 +297,7 @@ class MoBoAligner(nn.Module):
                 self.compute_backward_energy_and_masks(energy, text_mask, mel_mask)
             )
 
-            # Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i \lt j | B_{i+1}=k) for backward
+            # Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i < j | B_{i+1}=k) for backward
             log_cond_prob_backward, log_cond_prob_geq_backward = (
                 self.compute_log_cond_prob(
                     energy_backward,
@@ -307,7 +307,7 @@ class MoBoAligner(nn.Module):
                 )
             )
 
-            # Compute the log conditional probability P(B_i \gt j | B_{i+1}=k)
+            # Compute the log conditional probability P(B_i < j | B_{i+1}=k) based on P(B_i <= j | B_{i+1}=k)
             log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(
                 shifts=-1, dims=2
             )
@@ -334,7 +334,7 @@ class MoBoAligner(nn.Module):
                 shifts_mel_dim=shifts_mel_dim,
             )
 
-        # Combine the forward and backward log-delta
+        # Combine the forward and backward soft alignment
         if direction == ["forward"]:
             soft_alignment = log_boundary_forward
         elif direction == ["backward"]:
