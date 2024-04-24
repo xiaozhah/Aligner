@@ -16,7 +16,7 @@ class MoBoAligner(nn.Module):
         self.log_eps = -1000
 
     def check_parameter_validity(self, text_mask, mel_mask, direction):
-        assert direction in ["alpha", "beta"], "Direction must be 'alpha' or 'beta'."
+        assert set([direction]).issubset(set(["alpha", "beta"])), "Direction must be a subset of 'alpha' or 'beta'."
         if torch.any(text_mask.sum(1) >= mel_mask.sum(1)):
             warnings.warn("Warning: The dimension of text embeddings (I) is greater than or equal to the dimension of mel spectrogram embeddings (J), which may affect alignment performance.")
 
@@ -75,7 +75,6 @@ class MoBoAligner(nn.Module):
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
-        self.check_parameter_validity(text_mask, mel_mask, direction)
         K = J if direction == "alpha" else J - 1
         
         energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, K)  # (B, I, J, K)
@@ -206,7 +205,7 @@ class MoBoAligner(nn.Module):
         return attn
 
     def forward(
-        self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio
+        self, text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio, direction
     ):
         """
         Compute the soft alignment (gamma) and the expanded text embeddings.
@@ -223,6 +222,9 @@ class MoBoAligner(nn.Module):
                 - delta (torch.Tensor): The soft alignment tensor of shape (B, I, J) in the log domain.
                 - expanded_text_embeddings (torch.Tensor): The expanded text embeddings of shape (B, J, D_text).
         """
+        # Check length of text < length of mel and direction is either "alpha" or "beta"
+        self.check_parameter_validity(text_mask, mel_mask, direction)
+
         # Compute the energy matrix
         energy = self.compute_energy(text_embeddings, mel_embeddings)
 
