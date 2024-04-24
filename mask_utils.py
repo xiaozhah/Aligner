@@ -59,7 +59,7 @@ def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, force_assign_last):
 
 
 def get_j_last(x):
-    x = torch.zeros_like(x).bool()
+    x = torch.zeros_like(x, dtype=torch.bool)
     x[:, :, -1, :] = True
     return x
 
