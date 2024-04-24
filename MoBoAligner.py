@@ -19,8 +19,7 @@ class MoBoAligner(nn.Module):
         self.temperature_max = temperature_max
 
     def check_parameter_validity(self, text_mask, mel_mask, direction):
-        d = set(direction)
-        assert len(d) >= 1 and d.issubset(
+        assert len(direction) >= 1 and set(direction).issubset(
             set(["forward", "backward"])
         ), "Direction must be a subset of 'forward' or 'backward'."
         if torch.any(text_mask.sum(1) >= mel_mask.sum(1)):
@@ -189,7 +188,10 @@ class MoBoAligner(nn.Module):
     @torch.no_grad()
     def compute_hard_alignment(self, log_probs, text_mask, mel_mask):
         """
-        Compute the viterbi path for the maximum alignment probabilities.
+        Compute the Viterbi path for the maximum alignment probabilities.
+
+        This function uses `monotonic_align.maximum_path` to find the path with the maximum probabilities,
+        subject to the constraints of the text and mel masks.
 
         Args:
             log_probs (torch.Tensor): The log probabilities tensor of shape (B, I, J).
