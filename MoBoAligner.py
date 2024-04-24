@@ -169,7 +169,7 @@ class MoBoAligner(nn.Module):
 
         return B_ij
 
-    def compute_boundary_prob(self, prob, log_cond_prob_geq_or_gt, mel_mask):
+    def calculate_interval_probability(self, prob, log_cond_prob_geq_or_gt, mel_mask):
         """
         Compute the log-delta, which is the log of the probability P(B_{i-1} < j <= B_i).
 
@@ -264,7 +264,7 @@ class MoBoAligner(nn.Module):
             Bij_forward = Bij_forward[:, :-1, :-1]
             
             # Compute the forward P(B_{i-1}<j\leq B_i)
-            log_boundary_forward = self.compute_boundary_prob(Bij_forward, log_cond_prob_forward_geq, mel_mask)
+            log_boundary_forward = self.calculate_interval_probability(Bij_forward, log_cond_prob_forward_geq, mel_mask)
         
         if 'backward' in direction:
             # Compute the energy matrix for backward direction
@@ -285,7 +285,7 @@ class MoBoAligner(nn.Module):
             Bij_backward = Bij_backward[:, :-1, :-1]
 
             # Compute the backward P(B_{i-1}<j\leq B_i)
-            log_boundary_backward = self.compute_boundary_prob(Bij_backward, log_cond_prob_gt_backward, mel_mask_backward)
+            log_boundary_backward = self.calculate_interval_probability(Bij_backward, log_cond_prob_gt_backward, mel_mask_backward)
             shifts_text_dim = self.compute_max_length_diff(text_mask_backward)
             shifts_mel_dim = self.compute_max_length_diff(mel_mask_backward)
             log_boundary_backward = self.right_shift(log_boundary_backward.flip(1, 2), shifts_text_dim=shifts_text_dim, shifts_mel_dim=shifts_mel_dim)
