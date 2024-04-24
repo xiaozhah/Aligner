@@ -288,7 +288,7 @@ class MoBoAligner(nn.Module):
                 shifts=-1, dims=2
             )
             log_cond_prob_gt_backward_mask = get_j_last(
-                log_cond_prob_gt_backward, device=text_mask.device
+                log_cond_prob_gt_backward
             )
             log_cond_prob_gt_backward.masked_fill_(
                 log_cond_prob_gt_backward_mask, LOG_EPS

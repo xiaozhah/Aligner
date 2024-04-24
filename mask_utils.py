@@ -58,8 +58,8 @@ def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, force_assign_last):
         return (~energy_mask) | (~tri_ijk_mask)
 
 
-def get_j_last(size, device):
-    x = torch.zeros_like(size, device=device).bool()
+def get_j_last(x):
+    x = torch.zeros_like(x).bool()
     x[:, :, -1, :] = True
     return x
 
