@@ -2,8 +2,8 @@ from typing import Optional, List, Tuple
 import torch
 import torch.nn as nn
 import math
-from mask import *
-from roll import *
+from mask_utils import get_invalid_tri_mask
+from tensor_utils import roll_tensor_1d, right_shift, left_shift
 import numpy as np
 import warnings
 import monotonic_align

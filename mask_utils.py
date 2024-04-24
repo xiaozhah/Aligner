@@ -1,5 +1,5 @@
 import torch
-from roll import roll_tensor
+from tensor_utils import roll_tensor
 
 
 def gen_i_range_mask(B, I, J, K, i_lens, j_lens):
