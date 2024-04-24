@@ -216,10 +216,12 @@ class MoBoAligner(nn.Module):
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
             temperature_ratio (float): The temperature ratio for Gumbel noise.
+            direction (str): The direction of the alignment, either "alpha" or "beta".
 
         Returns:
             tuple: A tuple containing:
-                - delta (torch.Tensor): The soft alignment tensor of shape (B, I, J) in the log domain.
+                - soft_alignment (torch.Tensor): The soft alignment tensor of shape (B, I, J) in the log domain.
+                - hard_alignment (torch.Tensor): The hard alignment tensor of shape (B, I, J).
                 - expanded_text_embeddings (torch.Tensor): The expanded text embeddings of shape (B, J, D_text).
         """
         # Check length of text < length of mel and direction is either "alpha" or "beta"
