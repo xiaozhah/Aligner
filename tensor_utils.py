@@ -100,7 +100,7 @@ class LinearNorm(torch.nn.Module):
             self.linear_layer = torch.nn.utils.weight_norm(
                 torch.nn.Linear(in_dim, out_dim, bias=bias)
             )
-            self.linear_layer.weight_g.data.mul_(math.sqrt(1 / in_dim)) # if in_dim is attention_dim, this is sqrt(1/attention_dim)
+            self.linear_layer.weight_g.data = math.sqrt(1 / in_dim)
         else:
             self.linear_layer = torch.nn.Linear(in_dim, out_dim, bias=bias)
 
