@@ -1,3 +1,4 @@
+from typing import Optional, List, Tuple
 import torch
 import torch.nn as nn
 import math
@@ -7,13 +8,14 @@ import numpy as np
 import warnings
 import monotonic_align
 
+LOG_EPS = -1000
+LOG_2 = math.log(2.0)
 
 class MoBoAligner(nn.Module):
     def __init__(self, temperature_min=0.1, temperature_max=1.0):
         super(MoBoAligner, self).__init__()
         self.temperature_min = temperature_min
         self.temperature_max = temperature_max
-        self.log_eps = -1000
 
     def check_parameter_validity(self, text_mask, mel_mask, direction):
         d = set(direction)
@@ -99,13 +101,13 @@ class MoBoAligner(nn.Module):
         tri_invalid = get_invalid_tri_mask(
             B, I, J, J, text_mask, mel_mask, force_assign_last
         )
-        energy_4D.masked_fill_(tri_invalid, self.log_eps)
+        energy_4D.masked_fill_(tri_invalid, LOG_EPS)
         log_cond_prob = energy_4D - torch.logsumexp(
             energy_4D, dim=2, keepdim=True
         )  # on the J dimension
 
         log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
-        log_cond_prob_geq.masked_fill_(tri_invalid, self.log_eps)
+        log_cond_prob_geq.masked_fill_(tri_invalid, LOG_EPS)
         return log_cond_prob, log_cond_prob_geq
 
     def right_shift(self, x, shifts_text_dim, shifts_mel_dim):
@@ -214,9 +216,8 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The combined log probabilities of shape (B, I, J).
         """
-        log_2 = math.log(2.0)
         log_delta = torch.logaddexp(
-            log_boundary_forward - log_2, log_boundary_backward - log_2
+            log_boundary_forward - LOG_2, log_boundary_backward - LOG_2
         )
         return log_delta
 
@@ -243,8 +244,8 @@ class MoBoAligner(nn.Module):
         text_mask: torch.Tensor,
         mel_mask: torch.Tensor,
         temperature_ratio: float,
-        direction: list,
-    ):
+        direction: List[str],
+    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], torch.Tensor]:
         """
         Compute the soft alignment (gamma) and the expanded text embeddings.
 
@@ -254,10 +255,10 @@ class MoBoAligner(nn.Module):
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
             temperature_ratio (float): The temperature ratio for Gumbel noise.
-            direction (list): The direction of the alignment, subset of ["forward", "backward"].
+            direction (List[str]): The direction of the alignment, a subset of ["forward", "backward"].
 
         Returns:
-            tuple: A tuple containing:
+            Tuple[Optional[torch.Tensor], Optional[torch.Tensor], torch.Tensor]:
                 - soft_alignment (torch.Tensor): The soft alignment tensor of shape (B, I, J) in the log domain.
                 - hard_alignment (torch.Tensor): The hard alignment tensor of shape (B, I, J).
                 - expanded_text_embeddings (torch.Tensor): The expanded text embeddings of shape (B, J, D_text).
@@ -312,7 +313,7 @@ class MoBoAligner(nn.Module):
             )
             log_cond_prob_gt_backward_mask = get_j_last(log_cond_prob_gt_backward)
             log_cond_prob_gt_backward.masked_fill_(
-                log_cond_prob_gt_backward_mask, self.log_eps
+                log_cond_prob_gt_backward_mask, LOG_EPS
             )
 
             # Compute backward recursively in the log domain
