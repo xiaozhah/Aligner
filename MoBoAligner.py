@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import math
 from mask import *
-from roll import roll_tensor
+from roll import roll_tensor, roll_tensor_1d
 import numpy as np
 import warnings
 import monotonic_align
@@ -16,7 +16,7 @@ class MoBoAligner(nn.Module):
         self.log_eps = -1000
 
     def check_parameter_validity(self, text_mask, mel_mask, direction):
-        d = set([direction])
+        d = set(direction)
         assert len(d) >= 1 and d.issubset(set(["alpha", "beta"])), "Direction must be a subset of 'alpha' or 'beta'."
         if torch.any(text_mask.sum(1) >= mel_mask.sum(1)):
             warnings.warn("Warning: The dimension of text embeddings (I) is greater than or equal to the dimension of mel spectrogram embeddings (J), which may affect alignment performance.")
@@ -55,6 +55,19 @@ class MoBoAligner(nn.Module):
         )
         noise = -torch.log(-torch.log(torch.rand_like(energy)))
         return (energy + noise) / temperature
+    
+    def compute_energy_and_masks_backward(self, energy, text_mask, mel_mask):
+        shifts_text_dim = self.compute_max_length_diff(text_mask)
+        shifts_mel_dim = self.compute_max_length_diff(mel_mask)
+        
+        energy_backward = self.left_shift(energy.flip(1).flip(2), shifts_text_dim=shifts_text_dim, shifts_mel_dim=shifts_mel_dim)
+        text_mask_backward = roll_tensor_1d(text_mask.flip(1), shifts=shifts_text_dim)
+        mel_mask_backward = roll_tensor_1d(mel_mask.flip(1), shifts=shifts_mel_dim)
+
+        energy_backward = energy_backward[:, 1:, 1:]
+        text_mask_backward = text_mask_backward[:, 1:]
+        mel_mask_backward = mel_mask_backward[:, 1:]
+        return energy_backward, text_mask_backward, mel_mask_backward
 
     def compute_log_cond_prob(self, energy, text_mask, mel_mask):
         """
@@ -247,16 +260,22 @@ class MoBoAligner(nn.Module):
             log_delta_forward = self.compute_boundary_prob(alpha, log_cond_prob_alpha_geq, text_mask, mel_mask)
         
         if 'beta' in direction:
+            # Compute the energy matrix for backward direction
+            energy_backward, text_mask_backward, mel_mask_backward = self.compute_energy_and_masks_backward(energy, text_mask, mel_mask)
+            
             # Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i \lt j | B_{i+1}=k) for beta
-            log_cond_prob_beta, log_cond_prob_beta_geq = self.compute_log_cond_prob(
-                energy, text_mask, mel_mask
+            log_cond_prob_backward, log_cond_prob_geq_backward = self.compute_log_cond_prob(
+                energy_backward, text_mask_backward, mel_mask_backward
             )
 
+            # Compute the log conditional probability P(B_i \gt j | B_{i+1}=k)
+            log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(shifts=1, dims=2)
+
             # Compute beta recursively in the log domain
-            beta = self.compute_forward_pass(log_cond_prob_beta, text_mask, mel_mask)
+            beta = self.compute_forward_pass(log_cond_prob_backward, text_mask_backward, mel_mask_backward)
 
             # Compute the backward P(B_{i-1}<j\leq B_i)
-            log_delta_backward = self.compute_boundary_prob(beta, log_cond_prob_beta_gt, text_mask, mel_mask, direction="beta")
+            log_delta_backward = self.compute_boundary_prob(beta, log_cond_prob_gt_backward, text_mask_backward, mel_mask_backward)
 
         # Combine the forward and backward log-delta
         if direction == "alpha":
