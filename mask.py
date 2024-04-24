@@ -36,13 +36,16 @@ def gen_most_i_mask(B, I, J, K, i_lens, j_lens):
         mask[b, i_lens[b]-1, :j_lens[b]-1] = False
     return mask
 
-def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
+def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, force_assign_last):
     i_lens = text_mask.sum(1)
     j_lens = mel_mask.sum(1)
     energy_mask = gen_i_range_mask(B, I, J, K, i_lens, j_lens)
     tri_ijk_mask = gen_tri(B, I, J, K)
-    most_i_mask = gen_most_i_mask(B, I, J, K, i_lens, j_lens)
-    return (~energy_mask) | (~tri_ijk_mask) | (~most_i_mask)
+    if force_assign_last:
+        most_i_mask = gen_most_i_mask(B, I, J, K, i_lens, j_lens)
+        return (~energy_mask) | (~tri_ijk_mask) | (~most_i_mask)
+    else:
+        return (~energy_mask) | (~tri_ijk_mask)
 
 if __name__ == "__main__":
     # 测试用例1

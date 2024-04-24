@@ -69,7 +69,7 @@ class MoBoAligner(nn.Module):
         mel_mask_backward = mel_mask_backward[:, 1:]
         return energy_backward, text_mask_backward, mel_mask_backward
 
-    def compute_log_cond_prob(self, energy, text_mask, mel_mask):
+    def compute_log_cond_prob(self, energy, text_mask, mel_mask, force_assign_last):
         """
         Compute the log conditional probability of the alignment in the specified direction.
 
@@ -77,6 +77,7 @@ class MoBoAligner(nn.Module):
             energy (torch.Tensor): The energy matrix of shape (B, I, J).
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
+            force_assign_last (bool): Whether to force the last element of mask to be assigned.
 
         Returns:
             tuple: A tuple containing:
@@ -87,7 +88,7 @@ class MoBoAligner(nn.Module):
         _, J = mel_mask.shape
         
         energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J)  # (B, I, J, K)
-        tri_invalid = get_invalid_tri_mask(B, I, J, J, text_mask, mel_mask)
+        tri_invalid = get_invalid_tri_mask(B, I, J, J, text_mask, mel_mask, force_assign_last)
         energy_4D.masked_fill_(tri_invalid, self.log_eps)
         log_cond_prob = energy_4D - torch.logsumexp(energy_4D, dim=2, keepdim=True) # on the J dimension
 
@@ -247,7 +248,7 @@ class MoBoAligner(nn.Module):
         if "forward" in direction:
             # Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i \geq j | B_{i-1}=k) for forward
             log_cond_prob_forward, log_cond_prob_forward_geq = self.compute_log_cond_prob(
-                energy, text_mask, mel_mask
+                energy, text_mask, mel_mask, force_assign_last=True
             )
             
             # Compute forward recursively in the log domain
@@ -262,7 +263,7 @@ class MoBoAligner(nn.Module):
             
             # Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i \lt j | B_{i+1}=k) for backward
             log_cond_prob_backward, log_cond_prob_geq_backward = self.compute_log_cond_prob(
-                energy_backward, text_mask_backward, mel_mask_backward
+                energy_backward, text_mask_backward, mel_mask_backward, force_assign_last=False
             )
 
             # Compute the log conditional probability P(B_i \gt j | B_{i+1}=k)
