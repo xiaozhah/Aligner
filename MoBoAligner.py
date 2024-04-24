@@ -17,7 +17,7 @@ class MoBoAligner(nn.Module):
 
     def check_parameter_validity(self, text_mask, mel_mask, direction):
         d = set(direction)
-        assert len(d) >= 1 and d.issubset(set(["alpha", "beta"])), "Direction must be a subset of 'alpha' or 'beta'."
+        assert len(d) >= 1 and d.issubset(set(["forward", "backward"])), "Direction must be a subset of 'forward' or 'backward'."
         if torch.any(text_mask.sum(1) >= mel_mask.sum(1)):
             warnings.warn("Warning: The dimension of text embeddings (I) is greater than or equal to the dimension of mel spectrogram embeddings (J), which may affect alignment performance.")
 
@@ -82,9 +82,6 @@ class MoBoAligner(nn.Module):
             tuple: A tuple containing:
                 - log_cond_prob (torch.Tensor): The log conditional probability tensor of shape (B, I, J).
                 - log_cond_prob_geq (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J)
-                    for "alpha" direction, or None for "beta" direction.
-                - log_cond_prob_lt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J)
-                    for "beta" direction, or None for "alpha" direction.
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
@@ -147,39 +144,39 @@ class MoBoAligner(nn.Module):
         lengths = mask.sum(1)
         return lengths.max() - lengths
 
-    def compute_forward_pass(self, log_cond_prob_alpha, text_mask, mel_mask):
+    def compute_forward_pass(self, log_cond_prob, text_mask, mel_mask):
         """
-        Compute alpha recursively in the log domain.
+        Compute forward recursively in the log domain.
 
         Args:
-            log_cond_prob_alpha (torch.Tensor): The log conditional probability tensor for alpha of shape (B, I, J, K).
+            log_cond_prob (torch.Tensor): The log conditional probability tensor for forward of shape (B, I, J, K).
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
 
         Returns:
-            torch.Tensor: The alpha tensor of shape (B, I+1, J+1).
+            torch.Tensor: The forward tensor of shape (B, I+1, J+1).
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
 
-        alpha = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob_alpha.device)
-        alpha[:, 0, 0] = 0  # Initialize alpha[0, 0] = 0
-        alpha[:, -1, -1] = 0  # Initialize alpha[I, J] = 0
+        Bij = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob.device)
+        Bij[:, 0, 0] = 0  # Initialize forward[0, 0] = 0
+        Bij[:, -1, -1] = 0  # Initialize forward[I, J] = 0
         for i in range(1, I):
-            alpha[:, i, i:(J - I + i + 2)] = torch.logsumexp(
-                alpha[:, i - 1, :-1].unsqueeze(1)
-                + log_cond_prob_alpha[:, i - 1, (i - 1) : (J - I + i + 1)],
+            Bij[:, i, i:(J - I + i + 2)] = torch.logsumexp(
+                Bij[:, i - 1, :-1].unsqueeze(1)
+                + log_cond_prob[:, i - 1, (i - 1) : (J - I + i + 1)],
                 dim=2, # sum at the K dimension
             )
 
-        return alpha
+        return Bij
 
     def compute_boundary_prob(self, prob, log_cond_prob_geq_or_gt, text_mask, mel_mask):
         """
         Compute the log-delta, which is the log of the probability P(B_{i-1} < j <= B_i).
 
         Args:
-            prob (torch.Tensor): The alpha or beta tensor of shape (B, I+1, J+1) for alpha, or (B, I, J) for beta.
+            prob (torch.Tensor): The forward or backward tensor of shape (B, I+1, J+1) for forward, or (B, I, J) for backward.
             log_cond_prob_geq_or_gt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J).
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
@@ -230,7 +227,7 @@ class MoBoAligner(nn.Module):
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
             temperature_ratio (float): The temperature ratio for Gumbel noise.
-            direction (str): The direction of the alignment, either "alpha" or "beta".
+            direction (str): The direction of the alignment, subset of ["forward", "backward"].
 
         Returns:
             tuple: A tuple containing:
@@ -238,7 +235,7 @@ class MoBoAligner(nn.Module):
                 - hard_alignment (torch.Tensor): The hard alignment tensor of shape (B, I, J).
                 - expanded_text_embeddings (torch.Tensor): The expanded text embeddings of shape (B, J, D_text).
         """
-        # Check length of text < length of mel and direction is either "alpha" or "beta"
+        # Check length of text < length of mel and direction is either "forward" or "backward"
         self.check_parameter_validity(text_mask, mel_mask, direction)
 
         # Compute the energy matrix
@@ -247,23 +244,23 @@ class MoBoAligner(nn.Module):
         # Apply Gumbel noise and temperature
         energy = self.apply_gumbel_noise(energy, temperature_ratio)
 
-        if "alpha" in direction:
-            # Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i \geq j | B_{i-1}=k) for alpha
-            log_cond_prob_alpha, log_cond_prob_alpha_geq = self.compute_log_cond_prob(
+        if "forward" in direction:
+            # Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i \geq j | B_{i-1}=k) for forward
+            log_cond_prob_forward, log_cond_prob_forward_geq = self.compute_log_cond_prob(
                 energy, text_mask, mel_mask
             )
             
-            # Compute alpha recursively in the log domain
-            alpha = self.compute_forward_pass(log_cond_prob_alpha, text_mask, mel_mask)
+            # Compute forward recursively in the log domain
+            forward = self.compute_forward_pass(log_cond_prob_forward, text_mask, mel_mask)
             
             # Compute the forward P(B_{i-1}<j\leq B_i)
-            log_delta_forward = self.compute_boundary_prob(alpha, log_cond_prob_alpha_geq, text_mask, mel_mask)
+            log_delta_forward = self.compute_boundary_prob(forward, log_cond_prob_forward_geq, text_mask, mel_mask)
         
-        if 'beta' in direction:
+        if 'backward' in direction:
             # Compute the energy matrix for backward direction
             energy_backward, text_mask_backward, mel_mask_backward = self.compute_energy_and_masks_backward(energy, text_mask, mel_mask)
             
-            # Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i \lt j | B_{i+1}=k) for beta
+            # Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i \lt j | B_{i+1}=k) for backward
             log_cond_prob_backward, log_cond_prob_geq_backward = self.compute_log_cond_prob(
                 energy_backward, text_mask_backward, mel_mask_backward
             )
@@ -271,16 +268,16 @@ class MoBoAligner(nn.Module):
             # Compute the log conditional probability P(B_i \gt j | B_{i+1}=k)
             log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(shifts=1, dims=2)
 
-            # Compute beta recursively in the log domain
-            beta = self.compute_forward_pass(log_cond_prob_backward, text_mask_backward, mel_mask_backward)
+            # Compute backward recursively in the log domain
+            backward = self.compute_forward_pass(log_cond_prob_backward, text_mask_backward, mel_mask_backward)
 
             # Compute the backward P(B_{i-1}<j\leq B_i)
-            log_delta_backward = self.compute_boundary_prob(beta, log_cond_prob_gt_backward, text_mask_backward, mel_mask_backward)
+            log_delta_backward = self.compute_boundary_prob(backward, log_cond_prob_gt_backward, text_mask_backward, mel_mask_backward)
 
         # Combine the forward and backward log-delta
-        if direction == "alpha":
+        if direction == ["forward"]:
             soft_alignment = log_delta_forward
-        elif direction == "beta":
+        elif direction == ["backward"]:
             soft_alignment = log_delta_backward
         else:
             soft_alignment = self.combine_bidirectional_alignment(log_delta_forward, log_delta_backward)

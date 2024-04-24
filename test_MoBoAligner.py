@@ -30,7 +30,7 @@ temperature_ratio = 0.5  # Temperature ratio for Gumbel noise
 aligner = MoBoAligner()
 
 soft_alignment, hard_alignment, expanded_text_embeddings = aligner(
-    text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio, direction=['alpha', 'beta']
+    text_embeddings, mel_embeddings, text_mask, mel_mask, temperature_ratio, direction=['forward']
 )
 
 # Print the shape of the soft and hard alignment and the expanded text embeddings
