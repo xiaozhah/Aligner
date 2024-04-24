@@ -159,17 +159,17 @@ class MoBoAligner(nn.Module):
         B, I = text_mask.shape
         _, J = mel_mask.shape
 
-        Bij = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob.device)
-        Bij[:, 0, 0] = 0  # Initialize forward[0, 0] = 0
-        Bij[:, -1, -1] = 0  # Initialize forward[I, J] = 0
+        B_ij = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob.device)
+        B_ij[:, 0, 0] = 0  # Initialize forward[0, 0] = 0
+        B_ij[:, -1, -1] = 0  # Initialize forward[I, J] = 0
         for i in range(1, I):
-            Bij[:, i, i:(J - I + i + 2)] = torch.logsumexp(
-                Bij[:, i - 1, :-1].unsqueeze(1)
+            B_ij[:, i, i:(J - I + i + 2)] = torch.logsumexp(
+                B_ij[:, i - 1, :-1].unsqueeze(1)
                 + log_cond_prob[:, i - 1, (i - 1) : (J - I + i + 1)],
                 dim=2, # sum at the K dimension
             )
 
-        return Bij
+        return B_ij
 
     def compute_boundary_prob(self, prob, log_cond_prob_geq_or_gt, text_mask, mel_mask):
         """
