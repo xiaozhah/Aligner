@@ -1,6 +1,7 @@
 import torch
 from roll import roll_tensor
 
+
 def gen_i_range_mask(B, I, J, K, i_lens, j_lens):
     indices_i = torch.arange(I).unsqueeze(0).unsqueeze(-1).repeat(B, 1, J)
     indices_j = torch.arange(J).unsqueeze(0).unsqueeze(0).repeat(B, I, 1)
@@ -23,6 +24,7 @@ def gen_i_range_mask(B, I, J, K, i_lens, j_lens):
 
     return mask
 
+
 def gen_tri(B, I, J, K):
     triu = torch.triu(torch.ones((K, J)), diagonal=0)
     triu = triu.unsqueeze(-1).unsqueeze(0)  # (1, K, J, 1)
@@ -30,11 +32,13 @@ def gen_tri(B, I, J, K):
     triu = triu.transpose(1, 3)  # (B, I, J, K)
     return triu.bool()
 
+
 def gen_most_i_mask(B, I, J, K, i_lens, j_lens):
     mask = torch.ones((B, I, J, K), dtype=torch.bool)
     for b in range(B):
-        mask[b, i_lens[b]-1, :j_lens[b]-1] = False
+        mask[b, i_lens[b] - 1, : j_lens[b] - 1] = False
     return mask
+
 
 def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, force_assign_last):
     i_lens = text_mask.sum(1)
@@ -47,10 +51,12 @@ def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, force_assign_last):
     else:
         return (~energy_mask) | (~tri_ijk_mask)
 
+
 def get_j_last(size):
     x = torch.zeros_like(size).bool()
     x[:, :, -1, :] = True
     return x
+
 
 if __name__ == "__main__":
     # 测试用例1
