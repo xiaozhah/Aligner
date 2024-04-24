@@ -60,7 +60,7 @@ class MoBoAligner(nn.Module):
         shifts_text_dim = self.compute_max_length_diff(text_mask)
         shifts_mel_dim = self.compute_max_length_diff(mel_mask)
         
-        energy_backward = self.left_shift(energy.flip(1).flip(2), shifts_text_dim=shifts_text_dim, shifts_mel_dim=shifts_mel_dim)
+        energy_backward = self.left_shift(energy.flip(1, 2), shifts_text_dim=shifts_text_dim, shifts_mel_dim=shifts_mel_dim)
         text_mask_backward = roll_tensor_1d(text_mask.flip(1), shifts=shifts_text_dim)
         mel_mask_backward = roll_tensor_1d(mel_mask.flip(1), shifts=shifts_mel_dim)
 
@@ -110,8 +110,6 @@ class MoBoAligner(nn.Module):
         """
         x = roll_tensor(x, shifts=shifts_text_dim, dim=1)
         x = roll_tensor(x, shifts=shifts_mel_dim, dim=2)
-        shifts_mel_dim[1:] = shifts_mel_dim[1:] - 1
-        x = roll_tensor(x, shifts=shifts_mel_dim, dim=3)
         return x
 
     def left_shift(self, x, shifts_text_dim, shifts_mel_dim):
@@ -279,12 +277,18 @@ class MoBoAligner(nn.Module):
 
             # Compute the log conditional probability P(B_i \gt j | B_{i+1}=k)
             log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(shifts=-1, dims=2)
+            log_cond_prob_gt_backward_mask = get_j_last(log_cond_prob_gt_backward)
+            log_cond_prob_gt_backward.masked_fill_(log_cond_prob_gt_backward_mask, self.log_eps)
 
             # Compute backward recursively in the log domain
             Bij_backward = self.compute_forward_pass(log_cond_prob_backward, text_mask_backward, mel_mask_backward)
+            Bij_backward = Bij_backward[:, :-1, :-1]
 
             # Compute the backward P(B_{i-1}<j\leq B_i)
             log_boundary_backward = self.compute_boundary_prob(Bij_backward, log_cond_prob_gt_backward, mel_mask_backward)
+            shifts_text_dim = self.compute_max_length_diff(text_mask_backward)
+            shifts_mel_dim = self.compute_max_length_diff(mel_mask_backward)
+            log_boundary_backward = self.right_shift(log_boundary_backward.flip(1, 2), shifts_text_dim=shifts_text_dim, shifts_mel_dim=shifts_mel_dim)
 
         # Combine the forward and backward log-delta
         if direction == ["forward"]:
