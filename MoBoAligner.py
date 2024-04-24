@@ -161,8 +161,7 @@ class MoBoAligner(nn.Module):
 
         B_ij = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob.device)
         B_ij[:, 0, 0] = 0  # Initialize forward[0, 0] = 0
-        B_ij[:, -1, -1] = 0  # Initialize forward[I, J] = 0
-        for i in range(1, I):
+        for i in range(1, I+1):
             B_ij[:, i, i:(J - I + i + 2)] = torch.logsumexp(
                 B_ij[:, i - 1, :-1].unsqueeze(1)
                 + log_cond_prob[:, i - 1, (i - 1) : (J - I + i + 1)],
