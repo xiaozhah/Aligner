@@ -264,9 +264,9 @@ class MoBoAligner(nn.Module):
             log_delta_backward = self.compute_boundary_prob(beta, log_cond_prob_beta_gt, text_mask, mel_mask, direction="beta")
 
         # Combine the forward and backward log-delta
-        if direction is "alpha":
+        if direction == "alpha":
             soft_alignment = log_delta_forward
-        elif direction is "beta":
+        elif direction == "beta":
             soft_alignment = log_delta_backward
         else:
             soft_alignment = self.combine_bidirectional_alignment(log_delta_forward, log_delta_backward)
