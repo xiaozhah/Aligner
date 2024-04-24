@@ -176,7 +176,7 @@ class MoBoAligner(nn.Module):
         Compute the log-delta, which is the log of the probability P(B_{i-1} < j <= B_i).
 
         Args:
-            prob (torch.Tensor): The forward or backward tensor of shape (B, I+1, J+1) for forward, or (B, I, J) for backward.
+            prob (torch.Tensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I, J) for backward.
             log_cond_prob_geq_or_gt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J).
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
@@ -185,7 +185,7 @@ class MoBoAligner(nn.Module):
             torch.Tensor: The log-delta tensor of shape (B, I, J).
         """
         _, J = mel_mask.shape
-        x = prob[:, :-1, :-1].unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_geq_or_gt.transpose(2, 3) # (B, I, K, J)
+        x = prob.unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_geq_or_gt.transpose(2, 3) # (B, I, K, J)
         x = torch.logsumexp(x, dim = 2)
         return x
     
@@ -253,6 +253,7 @@ class MoBoAligner(nn.Module):
             
             # Compute forward recursively in the log domain
             forward_Bij = self.compute_forward_pass(log_cond_prob_forward, text_mask, mel_mask)
+            forward_Bij = forward_Bij[:, :-1, :-1]
             
             # Compute the forward P(B_{i-1}<j\leq B_i)
             log_boundary_forward = self.compute_boundary_prob(forward_Bij, log_cond_prob_forward_geq, mel_mask)
@@ -267,7 +268,7 @@ class MoBoAligner(nn.Module):
             )
 
             # Compute the log conditional probability P(B_i \gt j | B_{i+1}=k)
-            log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(shifts=1, dims=2)
+            log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(shifts=-1, dims=2)
 
             # Compute backward recursively in the log domain
             backward_Bij = self.compute_forward_pass(log_cond_prob_backward, text_mask_backward, mel_mask_backward)
