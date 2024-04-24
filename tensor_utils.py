@@ -10,7 +10,7 @@ def roll_tensor(tensor, shifts, dim):
 
     # 生成一个索引tensor
     indices = (
-        torch.arange(shape[dim])
+        torch.arange(shape[dim], device=tensor.device)
         .view([1] * dim + [-1] + [1] * (len(shape) - dim - 1))
         .expand(shape)
     )
