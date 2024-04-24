@@ -26,6 +26,27 @@ def roll_tensor(tensor, shifts, dim):
 
     return result
 
+def roll_tensor_1d(tensor, shifts):
+    # 获取tensor的形状
+    shape = tensor.size()
+    dim = 1  # 沿着第二个维度进行移位
+    
+    # 确保dim在有效范围内
+    assert dim >= 0 and dim < len(shape), "Invalid dimension"
+    
+    # 生成一个索引tensor
+    indices = torch.arange(shape[dim]).view([1] * dim + [-1] + [1] * (len(shape) - dim - 1)).expand(shape)
+    
+    # 将shifts转换为tensor并调整形状
+    shifts = shifts.view([-1] + [1] * (len(shape) - 1))
+    
+    # 计算移位后的索引
+    shifted_indices = (indices - shifts) % shape[dim]
+    
+    # 使用移位后的索引对tensor进行索引操作
+    result = tensor.gather(dim, shifted_indices.expand(shape))
+    
+    return result
 
 if __name__ == "__main__":
     # 示例用法 1
@@ -54,3 +75,11 @@ if __name__ == "__main__":
     result2 = roll_tensor(tensor2, shifts2, dim2)
     print("示例 2 - 在第二个维度上移位:")
     print(result2)
+
+    # 示例用法
+    tensor = torch.tensor([[1, 2, 3, 4, 5],
+                           [6, 7, 8, 9, 10]])
+    shifts = torch.tensor([1, 2])  # 第一行右移1个位置,第二行右移2个位置
+
+    result = roll_tensor_1d(tensor, shifts)
+    print(result)
