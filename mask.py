@@ -36,33 +36,6 @@ def gen_most_i_mask(B, I, J, K, i_lens, j_lens):
         mask[b, i_lens[b]-1, :j_lens[b]-1] = False
     return mask
 
-def gen_upper_left_mask(B, I, J, K):
-    tensor = torch.ones(B, I, J, K)
-    for i in range(1, I):
-        tensor[:, i, :i, :i] = 0
-    return tensor
-
-def phone_boundary_mask(text_mask, mel_mask):
-    B, I = text_mask.shape
-    _, J = mel_mask.shape
-    
-    I_lengths = text_mask.sum(1)
-    J_lengths = mel_mask.sum(1)
-    
-    left_mask = torch.zeros(B, I, J)
-    right_mask = torch.zeros(B, I, J)
-    
-    for b in range(B):
-        I_len = I_lengths[b]
-        J_len = J_lengths[b]
-        
-        left_mask[b, :I_len, :J_len] = torch.tril(torch.ones(I_len, J_len), diagonal=-1)
-        right_mask[b, :I_len, :J_len] = torch.triu(torch.ones(I_len, J_len), diagonal=J_len-I_len+1)
-    
-    mask = left_mask.bool() | right_mask.bool() # True means position to mask
-    
-    return mask
-
 def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
     i_lens = text_mask.sum(1)
     j_lens = mel_mask.sum(1)

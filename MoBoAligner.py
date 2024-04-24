@@ -171,7 +171,7 @@ class MoBoAligner(nn.Module):
 
         return B_ij
 
-    def compute_boundary_prob(self, prob, log_cond_prob_geq_or_gt, text_mask, mel_mask):
+    def compute_boundary_prob(self, prob, log_cond_prob_geq_or_gt, mel_mask):
         """
         Compute the log-delta, which is the log of the probability P(B_{i-1} < j <= B_i).
 
@@ -184,15 +184,10 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The log-delta tensor of shape (B, I, J).
         """
-        B, I = text_mask.shape
         _, J = mel_mask.shape
         x = prob[:, :-1, :-1].unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_geq_or_gt.transpose(2, 3) # (B, I, K, J)
-        mask = gen_upper_left_mask(B, I, J, J)
-        x.masked_fill_(mask == 0, self.log_eps) # for avoid logsumexp to produce -inf
         x = torch.logsumexp(x, dim = 2)
-        mask = phone_boundary_mask(text_mask, mel_mask)
-        y = x.masked_fill(mask, -float("Inf"))
-        return y
+        return x
     
     def combine_bidirectional_alignment(self, log_delta_forward, log_delta_backward):
         log_2 = math.log(2.0)
@@ -254,7 +249,7 @@ class MoBoAligner(nn.Module):
             forward = self.compute_forward_pass(log_cond_prob_forward, text_mask, mel_mask)
             
             # Compute the forward P(B_{i-1}<j\leq B_i)
-            log_delta_forward = self.compute_boundary_prob(forward, log_cond_prob_forward_geq, text_mask, mel_mask)
+            log_delta_forward = self.compute_boundary_prob(forward, log_cond_prob_forward_geq, mel_mask)
         
         if 'backward' in direction:
             # Compute the energy matrix for backward direction
@@ -272,7 +267,7 @@ class MoBoAligner(nn.Module):
             backward = self.compute_forward_pass(log_cond_prob_backward, text_mask_backward, mel_mask_backward)
 
             # Compute the backward P(B_{i-1}<j\leq B_i)
-            log_delta_backward = self.compute_boundary_prob(backward, log_cond_prob_gt_backward, text_mask_backward, mel_mask_backward)
+            log_delta_backward = self.compute_boundary_prob(backward, log_cond_prob_gt_backward, mel_mask_backward)
 
         # Combine the forward and backward log-delta
         if direction == ["forward"]:
