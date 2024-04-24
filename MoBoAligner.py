@@ -151,7 +151,7 @@ class MoBoAligner(nn.Module):
 
     def compute_interval_probability(self, prob, log_cond_prob_geq_or_gt, mel_mask):
         """
-        Compute the log interval probability, which is the log of the probability P(B_{i-1} < j <= B_i).
+        Compute the log interval probability, which is the log of the probability P(B_{i-1} < j <= B_i), the sum of P(B_{i-1} < j <= B_i) over i is 1.
 
         Args:
             prob (torch.Tensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I, J) for backward.
