@@ -195,7 +195,7 @@ class MoBoAligner(nn.Module):
         return log_delta
     
     @torch.no_grad()
-    def hard_alignment(self, log_probs, text_mask, mel_mask):
+    def viterbi_decoding(self, log_probs, text_mask, mel_mask):
         """
         Compute the Viterbi path for the maximum alignment probabilities.
 
@@ -252,11 +252,11 @@ class MoBoAligner(nn.Module):
             )
             
             # Compute forward recursively in the log domain
-            forward_Bij = self.compute_forward_pass(log_cond_prob_forward, text_mask, mel_mask)
-            forward_Bij = forward_Bij[:, :-1, :-1]
+            Bij_forward = self.compute_forward_pass(log_cond_prob_forward, text_mask, mel_mask)
+            Bij_forward = Bij_forward[:, :-1, :-1]
             
             # Compute the forward P(B_{i-1}<j\leq B_i)
-            log_boundary_forward = self.compute_boundary_prob(forward_Bij, log_cond_prob_forward_geq, mel_mask)
+            log_boundary_forward = self.compute_boundary_prob(Bij_forward, log_cond_prob_forward_geq, mel_mask)
         
         if 'backward' in direction:
             # Compute the energy matrix for backward direction
@@ -271,10 +271,10 @@ class MoBoAligner(nn.Module):
             log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(shifts=-1, dims=2)
 
             # Compute backward recursively in the log domain
-            backward_Bij = self.compute_forward_pass(log_cond_prob_backward, text_mask_backward, mel_mask_backward)
+            Bij_backward = self.compute_forward_pass(log_cond_prob_backward, text_mask_backward, mel_mask_backward)
 
             # Compute the backward P(B_{i-1}<j\leq B_i)
-            log_boundary_backward = self.compute_boundary_prob(backward_Bij, log_cond_prob_gt_backward, mel_mask_backward)
+            log_boundary_backward = self.compute_boundary_prob(Bij_backward, log_cond_prob_gt_backward, mel_mask_backward)
 
         # Combine the forward and backward log-delta
         if direction == ["forward"]:
@@ -288,6 +288,6 @@ class MoBoAligner(nn.Module):
         expanded_text_embeddings = torch.bmm(torch.exp(soft_alignment).transpose(1, 2), text_embeddings)
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
-        hard_alignment = self.hard_alignment(soft_alignment, text_mask, mel_mask)
+        hard_alignment = self.viterbi_decoding(soft_alignment, text_mask, mel_mask)
 
         return soft_alignment, hard_alignment, expanded_text_embeddings
