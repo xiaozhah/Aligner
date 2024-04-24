@@ -13,7 +13,7 @@ LOG_2 = math.log(2.0)
 
 
 class MoBoAligner(nn.Module):
-    def __init__(self, text_channels, mel_channels, attention_dim, sigmoid_noise=2.0):
+    def __init__(self, text_channels, mel_channels, attention_dim, noise_scale=2.0):
         super(MoBoAligner, self).__init__()
         self.query_layer = LinearNorm(
             mel_channels, attention_dim, bias=True, w_init_gain="tanh"
@@ -21,9 +21,9 @@ class MoBoAligner(nn.Module):
         self.memory_layer = LinearNorm(
             text_channels, attention_dim, bias=False, w_init_gain="tanh"
         )
-        self.v = LinearNorm(attention_dim, 1, bias=False)
+        self.v = LinearNorm(attention_dim, 1, bias=True, weight_norm=True)
 
-        self.sigmoid_noise = sigmoid_noise
+        self.noise_scale = noise_scale
 
     def check_parameter_validity(self, text_mask, mel_mask, direction):
         assert len(direction) >= 1 and set(direction).issubset(
@@ -68,7 +68,7 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The energy matrix with gussian noise applied.
         """
-        noise = torch.randn(energy.shape, device=energy.device) * self.sigmoid_noise
+        noise = torch.randn(energy.shape, device=energy.device) * self.noise_scale
         return energy + noise
 
     def compute_backward_energy_and_masks(self, energy, text_mask, mel_mask):
