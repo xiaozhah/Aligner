@@ -4,7 +4,7 @@ import torch.nn as nn
 import math
 from tensor_utils import (
     roll_tensor_1d,
-    left_shift,
+    shift_tensor,
     compute_max_length_diff,
     reverse_text_mel_direction_add_onehot,
     get_invalid_tri_mask,
@@ -84,11 +84,11 @@ class MoBoAligner(nn.Module):
         shifts_text_dim = compute_max_length_diff(text_mask)
         shifts_mel_dim = compute_max_length_diff(mel_mask)
 
-        energy_backward = left_shift(
-            energy.flip(1, 2),
-            shifts_text_dim=shifts_text_dim,
-            shifts_mel_dim=shifts_mel_dim,
-        )
+        energy_backward = shift_tensor(
+            energy.flip(1, 2).unsqueeze(-1),
+            shifts_text_dim=-shifts_text_dim,
+            shifts_mel_dim=-shifts_mel_dim,
+        ).squeeze(-1)
         text_mask_backward = roll_tensor_1d(text_mask.flip(1), shifts=shifts_text_dim)
         mel_mask_backward = roll_tensor_1d(mel_mask.flip(1), shifts=shifts_mel_dim)
 

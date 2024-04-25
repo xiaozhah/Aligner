@@ -55,7 +55,7 @@ def roll_tensor_1d(tensor, shifts):
     return result
 
 
-def right_shift(x, shifts_text_dim, shifts_mel_dim):
+def shift_tensor(x, shifts_text_dim, shifts_mel_dim):
     """
     Shift the tensor x to the right along the text and mel dimensions.
 
@@ -69,25 +69,6 @@ def right_shift(x, shifts_text_dim, shifts_mel_dim):
     """
     x = roll_tensor(x, shifts=shifts_text_dim, dim=1)
     x = roll_tensor(x, shifts=shifts_mel_dim, dim=2)
-    return x
-
-
-def left_shift(x, shifts_text_dim, shifts_mel_dim):
-    """
-    Shift the tensor x to the left along the text and mel dimensions.
-
-    Args:
-        x (torch.Tensor): The input tensor of shape (B, I, J).
-        shifts_text_dim (torch.Tensor): The shift amounts along the text dimension of shape (B,).
-        shifts_mel_dim (torch.Tensor): The shift amounts along the mel dimension of shape (B,).
-
-    Returns:
-        torch.Tensor: The left-shifted tensor of shape (B, I, J).
-    """
-    x = x.unsqueeze(-1)
-    x = roll_tensor(x, shifts=-shifts_text_dim, dim=1)
-    x = roll_tensor(x, shifts=-shifts_mel_dim, dim=2)
-    x = x.squeeze(-1)
     return x
 
 
@@ -108,7 +89,7 @@ def reverse_text_mel_direction_add_onehot(
     log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim=2)
     shifts_text_dim = compute_max_length_diff(text_mask_backward)
     shifts_mel_dim = compute_max_length_diff(mel_mask_backward)
-    log_boundary_backward = right_shift(
+    log_boundary_backward = shift_tensor(
         log_boundary_backward.flip(1, 2),
         shifts_text_dim=shifts_text_dim,
         shifts_mel_dim=shifts_mel_dim,
