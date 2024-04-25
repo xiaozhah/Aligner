@@ -90,7 +90,7 @@ def left_shift(x, shifts_text_dim, shifts_mel_dim):
     return x
 
 
-class LinearNorm(torch.nn.Module):
+class LinearNorm(nn.Module):
     def __init__(
         self,
         in_dim,
