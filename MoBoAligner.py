@@ -15,10 +15,10 @@ LOG_2 = math.log(2.0)
 class MoBoAligner(nn.Module):
     def __init__(self, text_channels, mel_channels, attention_dim, noise_scale=2.0):
         super(MoBoAligner, self).__init__()
-        self.query_layer = LinearNorm(
+        self.mel_layer = LinearNorm(
             mel_channels, attention_dim, bias=True, w_init_gain="tanh"
         )
-        self.memory_layer = LinearNorm(
+        self.text_layer = LinearNorm(
             text_channels, attention_dim, bias=False, w_init_gain="tanh"
         )
         self.v = LinearNorm(
@@ -51,18 +51,18 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The energy matrix of shape (B, I, J).
         """
-        processed_query = self.query_layer(
+        processed_mel = self.mel_layer(
             mel_embeddings.unsqueeze(1)
         )  # (B, 1, J, D_att)
-        processed_memory = self.memory_layer(
+        processed_text = self.text_layer(
             text_embeddings.unsqueeze(2)
         )  # (B, I, 1, D_att)
-        energies = self.v(
-            torch.tanh(processed_query + processed_memory)
+        energy = self.v(
+            torch.tanh(processed_mel + processed_text)
         )  # (B, I, J, 1)
 
-        energies = energies.squeeze(-1)  # (B, I, J)
-        return energies
+        energy = energy.squeeze(-1)  # (B, I, J)
+        return energy
 
     def apply_noise(self, energy):
         """

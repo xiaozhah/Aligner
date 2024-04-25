@@ -13,17 +13,17 @@ device = "cpu"
 # Initialize the text and mel embedding tensors
 text_embeddings = torch.randn(
     2, I, 10, requires_grad=True, device=device
-)  # Batch size: 2, Text tokens: 5, Embedding dimension: 10
+)  # Batch size: 2, Text tokens: I, Embedding dimension: 10
 mel_embeddings = torch.randn(
     2, J, 10, requires_grad=True, device=device
-)  # Batch size: 2, Mel frames: 800, Embedding dimension: 10
+)  # Batch size: 2, Mel frames: J, Embedding dimension: 10
 # Initialize the text and mel masks
 text_mask = torch.tensor(
     [[1] * I, [1] * I], dtype=torch.bool, device=device
-)  # Batch size: 2, Text tokens: 5
+)  # Batch size: 2, Text tokens: I
 mel_mask = torch.tensor(
     [[1] * J, [1] * J], dtype=torch.bool, device=device
-)  # Batch size: 2, Mel frames: 800
+)  # Batch size: 2, Mel frames: J
 
 # Initialize the MoBoAligner model
 aligner = MoBoAligner(text_embeddings.size(-1), mel_embeddings.size(-1), 128)
