@@ -69,9 +69,10 @@ def pad_log_cond_prob_gt_backward(B, J, log_eps):
     x.masked_fill_(x == 1, 0)
     return x
 
-def one_hot(length):
-    x = torch.zeros(length)
-    x[0] = 1
+def one_hot(B, I, device):
+    x = torch.full((I, ), -float("inf"), device = device)
+    x[0] = 0
+    x = x[None, :, None].repeat(B, 1, 1)
     return x
 
 if __name__ == "__main__":

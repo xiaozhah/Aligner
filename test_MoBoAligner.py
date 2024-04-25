@@ -7,8 +7,8 @@ torch.autograd.set_detect_anomaly(True)
 # Set a random seed to ensure reproducibility of the results
 torch.manual_seed(1234)
 
-I = 2
-J = 6
+I = 20
+J = 60
 device = "cpu"
 # Initialize the text and mel embedding tensors
 text_embeddings = torch.randn(
@@ -33,7 +33,7 @@ soft_alignment, hard_alignment, expanded_text_embeddings = aligner(
     mel_embeddings,
     text_mask,
     mel_mask,
-    direction=["backward"],
+    direction=["forward", "backward"],
 )
 
 # Print the shape of the soft and hard alignment and the expanded text embeddings

@@ -313,8 +313,8 @@ class MoBoAligner(nn.Module):
                 Bij_backward, log_cond_prob_gt_backward, mel_mask_backward, direction='backward'
             )
             
-            x = one_hot(2).unsqueeze(1).unsqueeze(2).repeat(1, 2, 2) # 开头pad 正向的onehot
-            log_boundary_backward = torch.cat((x.repeat(2, 2, 1), log_boundary_backward), dim = 1)
+            x = one_hot(B, I, device = log_boundary_backward.device)
+            log_boundary_backward = torch.cat((x, log_boundary_backward), dim = 2)
             shifts_text_dim = self.compute_max_length_diff(text_mask_backward)
             shifts_mel_dim = self.compute_max_length_diff(mel_mask_backward)
             log_boundary_backward = right_shift(
@@ -322,8 +322,7 @@ class MoBoAligner(nn.Module):
                 shifts_text_dim=shifts_text_dim,
                 shifts_mel_dim=shifts_mel_dim,
             )
-            x = one_hot(I).unsqueeze(1).unsqueeze(2).repeat(1, 2, 2) # 最后pad 反向的onehot
-            # 大概就是这样，然后log_boundary_backward和log_boundary_forward维度就对上了
+            log_boundary_backward = torch.cat((x, log_boundary_backward), dim = 2)
 
         # Combine the forward and backward soft alignment
         if direction == ["forward"]:
