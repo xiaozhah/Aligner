@@ -6,7 +6,7 @@ from tensor_utils import (
     roll_tensor_1d,
     shift_tensor,
     compute_max_length_diff,
-    reverse_text_mel_direction_add_onehot,
+    reverse_and_pad_alignment,
     get_invalid_tri_mask,
     geq_to_gt_and_pad_on_i_dim,
 )
@@ -304,7 +304,7 @@ class MoBoAligner(nn.Module):
             )
 
             # 3.2 reverse the text and mel direction of log_boundary_backward, and pad first and last text dimension
-            log_boundary_backward = reverse_text_mel_direction_add_onehot(
+            log_boundary_backward = reverse_and_pad_alignment(
                 log_boundary_backward, text_mask_backward, mel_mask_backward
             )
 

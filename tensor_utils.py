@@ -78,7 +78,7 @@ def one_hot(B, I, device):
     return x
 
 
-def reverse_text_mel_direction_add_onehot(
+def reverse_and_pad_alignment(
     log_boundary_backward, text_mask_backward, mel_mask_backward
 ):
     B, I, _ = log_boundary_backward.shape
