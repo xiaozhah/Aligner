@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+
 def roll_tensor(tensor, shifts, dim):
     # 获取tensor的形状
     shape = tensor.size()
@@ -89,16 +90,22 @@ def left_shift(x, shifts_text_dim, shifts_mel_dim):
     x = x.squeeze(-1)
     return x
 
+
 def one_hot(B, I, device):
-    x = torch.full((I, ), -float("inf"), device = device)
+    x = torch.full((I,), -float("inf"), device=device)
     x[0] = 0
     return x
 
-def reverse_text_mel_direction_add_onehot(log_boundary_backward, text_mask_backward, mel_mask_backward):
+
+def reverse_text_mel_direction_add_onehot(
+    log_boundary_backward, text_mask_backward, mel_mask_backward
+):
     B, I, _ = log_boundary_backward.shape
 
-    onehot = one_hot(B, I, device = log_boundary_backward.device)[None, :, None].repeat(B, 1, 1)
-    log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim = 2)
+    onehot = one_hot(B, I, device=log_boundary_backward.device)[None, :, None].repeat(
+        B, 1, 1
+    )
+    log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim=2)
     shifts_text_dim = compute_max_length_diff(text_mask_backward)
     shifts_mel_dim = compute_max_length_diff(mel_mask_backward)
     log_boundary_backward = right_shift(
@@ -106,12 +113,14 @@ def reverse_text_mel_direction_add_onehot(log_boundary_backward, text_mask_backw
         shifts_text_dim=shifts_text_dim,
         shifts_mel_dim=shifts_mel_dim,
     )
-    log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim = 2)
+    log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim=2)
     return log_boundary_backward
+
 
 def compute_max_length_diff(mask):
     lengths = mask.sum(1)
     return lengths.max() - lengths
+
 
 def gen_i_range_mask(B, I, J, K, i_lens, j_lens):
     indices_i = (
@@ -168,24 +177,31 @@ def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, force_assign_last):
     else:
         return (~energy_mask) | (~tri_ijk_mask)
 
+
 def pad_log_cond_prob_gt_backward(B, J, log_eps):
-    x = torch.tril(torch.ones(B, 1, J-1, J-1), diagonal=1)
+    x = torch.tril(torch.ones(B, 1, J - 1, J - 1), diagonal=1)
     x.masked_fill_(x == 0, log_eps)
     x.masked_fill_(x == 1, 0)
     return x
 
-def geq_to_gt_and_pad_on_i_dim(log_cond_prob_geq_backward, text_mask, mel_mask, log_eps):
+
+def geq_to_gt_and_pad_on_i_dim(
+    log_cond_prob_geq_backward, text_mask, mel_mask, log_eps
+):
     B, I = text_mask.shape
     _, J = mel_mask.shape
 
     log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(
         shifts=-1, dims=2
-    ) # >= -> >
-    
+    )  # >= -> >
+
     pad = pad_log_cond_prob_gt_backward(B, J, log_eps)
-    log_cond_prob_gt_backward = torch.cat((log_cond_prob_gt_backward, pad), dim=1)[:, :, :-1]
+    log_cond_prob_gt_backward = torch.cat((log_cond_prob_gt_backward, pad), dim=1)[
+        :, :, :-1
+    ]
     return log_cond_prob_gt_backward
-    
+
+
 if __name__ == "__main__":
     # 示例用法 1
     tensor1 = torch.tensor(

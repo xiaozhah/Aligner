@@ -2,7 +2,14 @@ from typing import Optional, List, Tuple
 import torch
 import torch.nn as nn
 import math
-from tensor_utils import roll_tensor_1d, left_shift, compute_max_length_diff, reverse_text_mel_direction_add_onehot, get_invalid_tri_mask, geq_to_gt_and_pad_on_i_dim
+from tensor_utils import (
+    roll_tensor_1d,
+    left_shift,
+    compute_max_length_diff,
+    reverse_text_mel_direction_add_onehot,
+    get_invalid_tri_mask,
+    geq_to_gt_and_pad_on_i_dim,
+)
 from layers import LinearNorm
 import numpy as np
 import warnings
@@ -51,15 +58,11 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The energy matrix of shape (B, I, J).
         """
-        processed_mel = self.mel_layer(
-            mel_embeddings.unsqueeze(1)
-        )  # (B, 1, J, D_att)
+        processed_mel = self.mel_layer(mel_embeddings.unsqueeze(1))  # (B, 1, J, D_att)
         processed_text = self.text_layer(
             text_embeddings.unsqueeze(2)
         )  # (B, I, 1, D_att)
-        energy = self.v(
-            torch.tanh(processed_mel + processed_text)
-        )  # (B, I, J, 1)
+        energy = self.v(torch.tanh(processed_mel + processed_text))  # (B, I, J, 1)
 
         energy = energy.squeeze(-1)  # (B, I, J)
         return energy
@@ -125,8 +128,6 @@ class MoBoAligner(nn.Module):
         log_cond_prob_geq.masked_fill_(tri_invalid, LOG_EPS)
         return log_cond_prob, log_cond_prob_geq
 
-
-
     def compute_forward_pass(self, log_cond_prob, text_mask, mel_mask):
         """
         Compute forward recursively in the log domain.
@@ -153,7 +154,9 @@ class MoBoAligner(nn.Module):
 
         return B_ij
 
-    def compute_interval_probability(self, prob, log_cond_prob_geq_or_gt, mel_mask, direction):
+    def compute_interval_probability(
+        self, prob, log_cond_prob_geq_or_gt, mel_mask, direction
+    ):
         """
         Compute the log interval probability, which is the log of the probability P(B_{i-1} < j <= B_i), the sum of P(B_{i-1} < j <= B_i) over i is 1.
 
@@ -166,7 +169,7 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The log interval probability tensor of shape (B, I, J).
         """
-        if direction == 'forward':
+        if direction == "forward":
             K = mel_mask.shape[1]
         else:
             K = mel_mask.shape[1] - 1
@@ -262,7 +265,7 @@ class MoBoAligner(nn.Module):
 
             # 3. Compute the forward P(B_{i-1}<j\leq B_i)
             log_boundary_forward = self.compute_interval_probability(
-                Bij_forward, log_cond_prob_forward_geq, mel_mask, direction='forward'
+                Bij_forward, log_cond_prob_forward_geq, mel_mask, direction="forward"
             )
 
         if "backward" in direction:
@@ -282,7 +285,9 @@ class MoBoAligner(nn.Module):
             )
 
             # 1.3 Compute the log conditional probability P(B_i < j | B_{i+1}=k) based on P(B_i <= j | B_{i+1}=k)
-            log_cond_prob_gt_backward = geq_to_gt_and_pad_on_i_dim(log_cond_prob_geq_backward, text_mask, mel_mask, LOG_EPS)
+            log_cond_prob_gt_backward = geq_to_gt_and_pad_on_i_dim(
+                log_cond_prob_geq_backward, text_mask, mel_mask, LOG_EPS
+            )
 
             # 2. Compute backward recursively in the log domain
             Bij_backward = self.compute_forward_pass(
@@ -292,12 +297,17 @@ class MoBoAligner(nn.Module):
 
             # 3.1 Compute the backward P(B_{i-1}<j\leq B_i)
             log_boundary_backward = self.compute_interval_probability(
-                Bij_backward, log_cond_prob_gt_backward, mel_mask_backward, direction='backward'
+                Bij_backward,
+                log_cond_prob_gt_backward,
+                mel_mask_backward,
+                direction="backward",
             )
-            
+
             # 3.2 reverse the text and mel direction of log_boundary_backward, and pad first and last text dimension
-            log_boundary_backward = reverse_text_mel_direction_add_onehot(log_boundary_backward, text_mask_backward, mel_mask_backward)
-        
+            log_boundary_backward = reverse_text_mel_direction_add_onehot(
+                log_boundary_backward, text_mask_backward, mel_mask_backward
+            )
+
         # Combine the forward and backward soft alignment
         if direction == ["forward"]:
             soft_alignment = log_boundary_forward

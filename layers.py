@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+
 class LinearNorm(nn.Module):
     def __init__(
         self,
@@ -16,7 +17,9 @@ class LinearNorm(nn.Module):
             self.linear_layer = nn.utils.weight_norm(
                 nn.Linear(in_dim, out_dim, bias=bias)
             )
-            self.linear_layer.weight_g = nn.Parameter(torch.FloatTensor(1).fill_(init_weight_norm))
+            self.linear_layer.weight_g = nn.Parameter(
+                torch.FloatTensor(1).fill_(init_weight_norm)
+            )
         else:
             self.linear_layer = nn.Linear(in_dim, out_dim, bias=bias)
 
