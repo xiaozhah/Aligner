@@ -81,6 +81,17 @@ def one_hot(B, I, device):
 def reverse_and_pad_alignment(
     log_boundary_backward, text_mask_backward, mel_mask_backward
 ):
+    """
+    Reverse the alignment and pad the boundary matrix.
+
+    Args:
+        log_boundary_backward (torch.Tensor): The log boundary matrix of shape (B, I, J-2).
+        text_mask_backward (torch.Tensor): The text mask of shape (B, I-1).
+        mel_mask_backward (torch.Tensor): The mel spectrogram mask of shape (B, J-1).
+
+    Returns:
+        torch.Tensor: The reversed and padded alignment matrix of shape (B, I, J).
+    """
     B, I, _ = log_boundary_backward.shape
 
     onehot = one_hot(B, I, device=log_boundary_backward.device)[None, :, None].repeat(
@@ -166,20 +177,30 @@ def pad_log_cond_prob_gt_backward(B, J, log_eps):
     return x
 
 
-def geq_to_gt_and_pad_on_i_dim(
-    log_cond_prob_geq_backward, text_mask, mel_mask, log_eps
+def convert_geq_to_gt_and_pad_on_text_dim(
+    log_cond_prob_geq_backward, mel_mask, log_eps
 ):
-    B, I = text_mask.shape
-    _, J = mel_mask.shape
+    """
+    Convert the log conditional probability tensor from "greater than or equal to" format to "greater than" format,
+    and pad the first and last text dimension.
+
+    Args:
+        log_cond_prob_geq_backward (torch.Tensor): The log conditional probability tensor in "greater than or equal to" format, of shape (B, I-1, J-1, J-1).
+        mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
+        log_eps (float): The log epsilon value to use for padding.
+
+    Returns:
+        torch.Tensor: The log conditional probability tensor in "greater than" format, with padding on the first and last text dimension, of shape (B, I, J-2, J-1).
+    """
+    B, J = mel_mask.shape
 
     log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(
         shifts=-1, dims=2
-    )  # >= -> >
+    ) # (B, I-1, J-1, J-1) -> (B, I-1, J-1, J-1)
 
     pad = pad_log_cond_prob_gt_backward(B, J, log_eps)
-    log_cond_prob_gt_backward = torch.cat((log_cond_prob_gt_backward, pad), dim=1)[
-        :, :, :-1
-    ]
+    log_cond_prob_gt_backward = torch.cat((log_cond_prob_gt_backward, pad), dim=1) # (B, I-1, J-1, J-1) -> (B, I, J-1, J-1)
+    log_cond_prob_gt_backward = log_cond_prob_gt_backward[:, :, :-1] # -> (B, I, J-2, J-1)
     return log_cond_prob_gt_backward
 
 
