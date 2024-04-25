@@ -2,8 +2,7 @@ from typing import Optional, List, Tuple
 import torch
 import torch.nn as nn
 import math
-from mask_utils import get_invalid_tri_mask, pad_log_cond_prob_gt_backward
-from tensor_utils import roll_tensor_1d, left_shift, compute_max_length_diff, reverse_text_mel_direction
+from tensor_utils import roll_tensor_1d, left_shift, compute_max_length_diff, reverse_text_mel_direction_add_onehot, get_invalid_tri_mask, geq_to_gt_and_pad_on_i_dim
 from layers import LinearNorm
 import numpy as np
 import warnings
@@ -248,31 +247,31 @@ class MoBoAligner(nn.Module):
         energy = self.apply_noise(energy)
 
         if "forward" in direction:
-            # Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
+            # 1. Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
             log_cond_prob_forward, log_cond_prob_forward_geq = (
                 self.compute_log_cond_prob(
                     energy, text_mask, mel_mask, force_assign_last=True
                 )
             )
 
-            # Compute forward recursively in the log domain
+            # 2. Compute forward recursively in the log domain
             Bij_forward = self.compute_forward_pass(
                 log_cond_prob_forward, text_mask, mel_mask
             )
             Bij_forward = Bij_forward[:, :-1, :-1]
 
-            # Compute the forward P(B_{i-1}<j\leq B_i)
+            # 3. Compute the forward P(B_{i-1}<j\leq B_i)
             log_boundary_forward = self.compute_interval_probability(
                 Bij_forward, log_cond_prob_forward_geq, mel_mask, direction='forward'
             )
 
         if "backward" in direction:
-            # Compute the energy matrix for backward direction
+            # 1.1 Compute the energy matrix for backward direction
             energy_backward, text_mask_backward, mel_mask_backward = (
                 self.compute_backward_energy_and_masks(energy, text_mask, mel_mask)
             )
 
-            # Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i < j | B_{i+1}=k) for backward
+            # 1.2 Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i < j | B_{i+1}=k) for backward
             log_cond_prob_backward, log_cond_prob_geq_backward = (
                 self.compute_log_cond_prob(
                     energy_backward,
@@ -282,28 +281,22 @@ class MoBoAligner(nn.Module):
                 )
             )
 
-            # Compute the log conditional probability P(B_i < j | B_{i+1}=k) based on P(B_i <= j | B_{i+1}=k)
-            log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(
-                shifts=-1, dims=2
-            )
-            
-            B, I = text_mask.shape
-            _, J = mel_mask.shape
-            pad = pad_log_cond_prob_gt_backward(B, J, LOG_EPS)
-            log_cond_prob_gt_backward = torch.cat((log_cond_prob_gt_backward, pad), dim=1)[:, :, :-1]
+            # 1.3 Compute the log conditional probability P(B_i < j | B_{i+1}=k) based on P(B_i <= j | B_{i+1}=k)
+            log_cond_prob_gt_backward = geq_to_gt_and_pad_on_i_dim(log_cond_prob_geq_backward, text_mask, mel_mask, LOG_EPS)
 
-            # Compute backward recursively in the log domain
+            # 2. Compute backward recursively in the log domain
             Bij_backward = self.compute_forward_pass(
                 log_cond_prob_backward, text_mask_backward, mel_mask_backward
             )
             Bij_backward = Bij_backward[:, :, :-1]
 
-            # Compute the backward P(B_{i-1}<j\leq B_i)
+            # 3.1 Compute the backward P(B_{i-1}<j\leq B_i)
             log_boundary_backward = self.compute_interval_probability(
                 Bij_backward, log_cond_prob_gt_backward, mel_mask_backward, direction='backward'
             )
             
-            log_boundary_backward = reverse_text_mel_direction(log_boundary_backward, text_mask_backward, mel_mask_backward)
+            # 3.2 reverse the text and mel direction of log_boundary_backward, and pad first and last text dimension
+            log_boundary_backward = reverse_text_mel_direction_add_onehot(log_boundary_backward, text_mask_backward, mel_mask_backward)
         
         # Combine the forward and backward soft alignment
         if direction == ["forward"]:
