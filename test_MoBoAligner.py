@@ -8,7 +8,7 @@ torch.autograd.set_detect_anomaly(True)
 torch.manual_seed(1234)
 
 I = 2
-J = 4
+J = 6
 device = "cpu"
 # Initialize the text and mel embedding tensors
 text_embeddings = torch.randn(

@@ -69,6 +69,11 @@ def pad_log_cond_prob_gt_backward(B, J, log_eps):
     x.masked_fill_(x == 1, 0)
     return x
 
+def one_hot(length):
+    x = torch.zeros(length)
+    x[0] = 1
+    return x
+
 if __name__ == "__main__":
     # 测试用例1
     B, I, J, K = 2, 5, 10, 10

@@ -2,7 +2,7 @@ from typing import Optional, List, Tuple
 import torch
 import torch.nn as nn
 import math
-from mask_utils import get_invalid_tri_mask, get_j_last, pad_log_cond_prob_gt_backward
+from mask_utils import get_invalid_tri_mask, get_j_last, pad_log_cond_prob_gt_backward, one_hot
 from tensor_utils import roll_tensor_1d, right_shift, left_shift, LinearNorm
 import numpy as np
 import warnings
@@ -312,6 +312,9 @@ class MoBoAligner(nn.Module):
             log_boundary_backward = self.compute_interval_probability(
                 Bij_backward, log_cond_prob_gt_backward, mel_mask_backward, direction='backward'
             )
+            
+            x = one_hot(2).unsqueeze(1).unsqueeze(2).repeat(1, 2, 2) # 开头pad 正向的onehot
+            log_boundary_backward = torch.cat((x.repeat(2, 2, 1), log_boundary_backward), dim = 1)
             shifts_text_dim = self.compute_max_length_diff(text_mask_backward)
             shifts_mel_dim = self.compute_max_length_diff(mel_mask_backward)
             log_boundary_backward = right_shift(
@@ -319,6 +322,8 @@ class MoBoAligner(nn.Module):
                 shifts_text_dim=shifts_text_dim,
                 shifts_mel_dim=shifts_mel_dim,
             )
+            x = one_hot(I).unsqueeze(1).unsqueeze(2).repeat(1, 2, 2) # 最后pad 反向的onehot
+            # 大概就是这样，然后log_boundary_backward和log_boundary_forward维度就对上了
 
         # Combine the forward and backward soft alignment
         if direction == ["forward"]:
