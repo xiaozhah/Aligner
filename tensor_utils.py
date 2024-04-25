@@ -1,6 +1,5 @@
 import torch
-import math
-
+from torch import nn
 
 def roll_tensor(tensor, shifts, dim):
     # 获取tensor的形状
@@ -93,19 +92,25 @@ def left_shift(x, shifts_text_dim, shifts_mel_dim):
 
 class LinearNorm(torch.nn.Module):
     def __init__(
-        self, in_dim, out_dim, bias=True, w_init_gain="linear", weight_norm=False
+        self,
+        in_dim,
+        out_dim,
+        bias=True,
+        w_init_gain="linear",
+        weight_norm=False,
+        init_weight_norm=1.0,
     ):
         super(LinearNorm, self).__init__()
         if weight_norm:
-            self.linear_layer = torch.nn.utils.weight_norm(
-                torch.nn.Linear(in_dim, out_dim, bias=bias)
+            self.linear_layer = nn.utils.weight_norm(
+                nn.Linear(in_dim, out_dim, bias=bias)
             )
-            self.linear_layer.weight_g.data.mul_(math.sqrt(1 / in_dim))
+            self.linear_layer.weight_g = nn.Parameter(torch.FloatTensor(1).fill_(init_weight_norm))
         else:
-            self.linear_layer = torch.nn.Linear(in_dim, out_dim, bias=bias)
+            self.linear_layer = nn.Linear(in_dim, out_dim, bias=bias)
 
-        torch.nn.init.xavier_uniform_(
-            self.linear_layer.weight, gain=torch.nn.init.calculate_gain(w_init_gain)
+        nn.init.xavier_uniform_(
+            self.linear_layer.weight, gain=nn.init.calculate_gain(w_init_gain)
         )
 
     def forward(self, x):
