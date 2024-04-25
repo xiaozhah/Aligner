@@ -57,6 +57,11 @@ def get_j_last(size):
     x[:, :, -1, :] = True
     return x
 
+def pad_log_cond_prob_gt_backward(B, J, log_eps):
+    x = torch.tril(torch.ones(B, 1, J-1, J-1), diagonal=1)
+    x.masked_fill_(x == 0, log_eps)
+    x.masked_fill_(x == 1, 0)
+    return x
 
 if __name__ == "__main__":
     # 测试用例1

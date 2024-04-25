@@ -310,6 +310,11 @@ class MoBoAligner(nn.Module):
             log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(
                 shifts=-1, dims=2
             )
+            
+            B, I = text_mask.shape
+            _, J = mel_mask.shape
+            pad = pad_log_cond_prob_gt_backward(B, J, self.log_eps)
+            log_cond_prob_gt_backward = torch.cat((log_cond_prob_gt_backward, pad), dim=1)
             log_cond_prob_gt_backward_mask = get_j_last(log_cond_prob_gt_backward)
             log_cond_prob_gt_backward.masked_fill_(
                 log_cond_prob_gt_backward_mask, self.log_eps
@@ -319,7 +324,7 @@ class MoBoAligner(nn.Module):
             Bij_backward = self.compute_forward_pass(
                 log_cond_prob_backward, text_mask_backward, mel_mask_backward
             )
-            Bij_backward = Bij_backward[:, :-1, :-1]
+            Bij_backward = Bij_backward[:, :, :-1]
 
             # Compute the backward P(B_{i-1}<j\leq B_i)
             log_boundary_backward = self.calculate_interval_probability(
