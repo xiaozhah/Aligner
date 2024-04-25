@@ -57,22 +57,10 @@ def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, force_assign_last):
     else:
         return (~energy_mask) | (~tri_ijk_mask)
 
-
-def get_j_last(x):
-    x = torch.zeros_like(x, dtype=torch.bool)
-    x[:, :, -1, :] = True
-    return x
-
 def pad_log_cond_prob_gt_backward(B, J, log_eps):
     x = torch.tril(torch.ones(B, 1, J-1, J-1), diagonal=1)
     x.masked_fill_(x == 0, log_eps)
     x.masked_fill_(x == 1, 0)
-    return x
-
-def one_hot(B, I, device):
-    x = torch.full((I, ), -float("inf"), device = device)
-    x[0] = 0
-    x = x[None, :, None].repeat(B, 1, 1)
     return x
 
 if __name__ == "__main__":

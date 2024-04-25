@@ -89,34 +89,30 @@ def left_shift(x, shifts_text_dim, shifts_mel_dim):
     x = x.squeeze(-1)
     return x
 
+def one_hot(B, I, device):
+    x = torch.full((I, ), -float("inf"), device = device)
+    x[0] = 0
+    return x
 
-class LinearNorm(nn.Module):
-    def __init__(
-        self,
-        in_dim,
-        out_dim,
-        bias=True,
-        w_init_gain="linear",
-        weight_norm=False,
-        init_weight_norm=1.0,
-    ):
-        super(LinearNorm, self).__init__()
-        if weight_norm:
-            self.linear_layer = nn.utils.weight_norm(
-                nn.Linear(in_dim, out_dim, bias=bias)
-            )
-            self.linear_layer.weight_g = nn.Parameter(torch.FloatTensor(1).fill_(init_weight_norm))
-        else:
-            self.linear_layer = nn.Linear(in_dim, out_dim, bias=bias)
+def reverse_text_mel_direction(log_boundary_backward, text_mask_backward, mel_mask_backward):
+    B, I, _ = log_boundary_backward.shape
 
-        nn.init.xavier_uniform_(
-            self.linear_layer.weight, gain=nn.init.calculate_gain(w_init_gain)
-        )
+    onehot = one_hot(B, I, device = log_boundary_backward.device)[None, :, None].repeat(B, 1, 1)
+    log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim = 2)
+    shifts_text_dim = compute_max_length_diff(text_mask_backward)
+    shifts_mel_dim = compute_max_length_diff(mel_mask_backward)
+    log_boundary_backward = right_shift(
+        log_boundary_backward.flip(1, 2),
+        shifts_text_dim=shifts_text_dim,
+        shifts_mel_dim=shifts_mel_dim,
+    )
+    log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim = 2)
+    return log_boundary_backward
 
-    def forward(self, x):
-        return self.linear_layer(x)
-
-
+def compute_max_length_diff(mask):
+    lengths = mask.sum(1)
+    return lengths.max() - lengths
+    
 if __name__ == "__main__":
     # 示例用法 1
     tensor1 = torch.tensor(

@@ -2,8 +2,9 @@ from typing import Optional, List, Tuple
 import torch
 import torch.nn as nn
 import math
-from mask_utils import get_invalid_tri_mask, get_j_last, pad_log_cond_prob_gt_backward, one_hot
-from tensor_utils import roll_tensor_1d, right_shift, left_shift, LinearNorm
+from mask_utils import get_invalid_tri_mask, pad_log_cond_prob_gt_backward
+from tensor_utils import roll_tensor_1d, left_shift, compute_max_length_diff, reverse_text_mel_direction
+from layers import LinearNorm
 import numpy as np
 import warnings
 import monotonic_align
@@ -78,8 +79,8 @@ class MoBoAligner(nn.Module):
         return energy + noise
 
     def compute_backward_energy_and_masks(self, energy, text_mask, mel_mask):
-        shifts_text_dim = self.compute_max_length_diff(text_mask)
-        shifts_mel_dim = self.compute_max_length_diff(mel_mask)
+        shifts_text_dim = compute_max_length_diff(text_mask)
+        shifts_mel_dim = compute_max_length_diff(mel_mask)
 
         energy_backward = left_shift(
             energy.flip(1, 2),
@@ -125,18 +126,7 @@ class MoBoAligner(nn.Module):
         log_cond_prob_geq.masked_fill_(tri_invalid, LOG_EPS)
         return log_cond_prob, log_cond_prob_geq
 
-    def compute_max_length_diff(self, mask):
-        """
-        Compute the difference between the maximum length and the actual length for each sequence in the batch.
 
-        Args:
-            mask (torch.Tensor): The mask tensor of shape (B, L).
-
-        Returns:
-            torch.Tensor: The difference tensor of shape (B,).
-        """
-        lengths = mask.sum(1)
-        return lengths.max() - lengths
 
     def compute_forward_pass(self, log_cond_prob, text_mask, mel_mask):
         """
@@ -313,17 +303,8 @@ class MoBoAligner(nn.Module):
                 Bij_backward, log_cond_prob_gt_backward, mel_mask_backward, direction='backward'
             )
             
-            x = one_hot(B, I, device = log_boundary_backward.device)
-            log_boundary_backward = torch.cat((x, log_boundary_backward), dim = 2)
-            shifts_text_dim = self.compute_max_length_diff(text_mask_backward)
-            shifts_mel_dim = self.compute_max_length_diff(mel_mask_backward)
-            log_boundary_backward = right_shift(
-                log_boundary_backward.flip(1, 2),
-                shifts_text_dim=shifts_text_dim,
-                shifts_mel_dim=shifts_mel_dim,
-            )
-            log_boundary_backward = torch.cat((x, log_boundary_backward), dim = 2)
-
+            log_boundary_backward = reverse_text_mel_direction(log_boundary_backward, text_mask_backward, mel_mask_backward)
+        
         # Combine the forward and backward soft alignment
         if direction == ["forward"]:
             soft_alignment = log_boundary_forward
