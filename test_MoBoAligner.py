@@ -33,7 +33,7 @@ soft_alignment, hard_alignment, expanded_text_embeddings = aligner(
     mel_embeddings,
     text_mask,
     mel_mask,
-    direction=["forward"],
+    direction=["backward"],
 )
 
 # Print the shape of the soft and hard alignment and the expanded text embeddings

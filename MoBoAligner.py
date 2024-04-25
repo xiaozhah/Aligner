@@ -2,7 +2,7 @@ from typing import Optional, List, Tuple
 import torch
 import torch.nn as nn
 import math
-from mask_utils import get_invalid_tri_mask, get_j_last
+from mask_utils import get_invalid_tri_mask, get_j_last, pad_log_cond_prob_gt_backward
 from tensor_utils import roll_tensor_1d, right_shift, left_shift, LinearNorm
 import numpy as np
 import warnings
@@ -164,7 +164,7 @@ class MoBoAligner(nn.Module):
 
         return B_ij
 
-    def compute_interval_probability(self, prob, log_cond_prob_geq_or_gt, mel_mask):
+    def compute_interval_probability(self, prob, log_cond_prob_geq_or_gt, mel_mask, direction):
         """
         Compute the log interval probability, which is the log of the probability P(B_{i-1} < j <= B_i), the sum of P(B_{i-1} < j <= B_i) over i is 1.
 
@@ -177,8 +177,11 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The log interval probability tensor of shape (B, I, J).
         """
-        _, J = mel_mask.shape
-        x = prob.unsqueeze(-1).repeat(1, 1, 1, J) + log_cond_prob_geq_or_gt.transpose(
+        if direction == 'forward':
+            K = mel_mask.shape[1]
+        else:
+            K = mel_mask.shape[1] - 1
+        x = prob.unsqueeze(-1).repeat(1, 1, 1, K) + log_cond_prob_geq_or_gt.transpose(
             2, 3
         )  # (B, I, K, J)
         x = torch.logsumexp(x, dim=2)
@@ -270,7 +273,7 @@ class MoBoAligner(nn.Module):
 
             # Compute the forward P(B_{i-1}<j\leq B_i)
             log_boundary_forward = self.compute_interval_probability(
-                Bij_forward, log_cond_prob_forward_geq, mel_mask
+                Bij_forward, log_cond_prob_forward_geq, mel_mask, direction='forward'
             )
 
         if "backward" in direction:
@@ -296,12 +299,8 @@ class MoBoAligner(nn.Module):
             
             B, I = text_mask.shape
             _, J = mel_mask.shape
-            pad = pad_log_cond_prob_gt_backward(B, J, self.log_eps)
-            log_cond_prob_gt_backward = torch.cat((log_cond_prob_gt_backward, pad), dim=1)
-            log_cond_prob_gt_backward_mask = get_j_last(log_cond_prob_gt_backward)
-            log_cond_prob_gt_backward.masked_fill_(
-                log_cond_prob_gt_backward_mask, LOG_EPS
-            )
+            pad = pad_log_cond_prob_gt_backward(B, J, LOG_EPS)
+            log_cond_prob_gt_backward = torch.cat((log_cond_prob_gt_backward, pad), dim=1)[:, :, :-1]
 
             # Compute backward recursively in the log domain
             Bij_backward = self.compute_forward_pass(
@@ -311,7 +310,7 @@ class MoBoAligner(nn.Module):
 
             # Compute the backward P(B_{i-1}<j\leq B_i)
             log_boundary_backward = self.compute_interval_probability(
-                Bij_backward, log_cond_prob_gt_backward, mel_mask_backward
+                Bij_backward, log_cond_prob_gt_backward, mel_mask_backward, direction='backward'
             )
             shifts_text_dim = self.compute_max_length_diff(text_mask_backward)
             shifts_mel_dim = self.compute_max_length_diff(mel_mask_backward)
