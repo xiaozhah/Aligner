@@ -45,7 +45,7 @@ class MoBoAligner(nn.Module):
         ), "Direction must be a subset of 'forward' or 'backward'."
         assert torch.all(
             text_mask.sum(1) < mel_mask.sum(1)
-        ), "\033[1;31mThe dimension of text embeddings (I) is greater than or equal to the dimension of mel embeddings (J), which is not allowed.\033[m"
+        ), "\033[1;31mThe dimension of text embeddings (I) is greater than or equal to the dimension of mel spectrogram embeddings (J), which is not allowed.\033[m"
 
     def compute_energy(self, text_embeddings, mel_embeddings):
         """
