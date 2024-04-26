@@ -9,6 +9,7 @@ from tensor_utils import (
     reverse_and_pad_alignment,
     get_invalid_tri_mask,
     convert_geq_to_gt_and_pad_on_text_dim,
+    geq_pad_on_text_dim
 )
 from layers import LinearNorm
 import numpy as np
@@ -110,7 +111,7 @@ class MoBoAligner(nn.Module):
         mel_mask_backward = mel_mask_backward[:, 1:]
         return energy_backward, text_mask_backward, mel_mask_backward
 
-    def compute_log_cond_prob(self, energy, text_mask, mel_mask, force_assign_last):
+    def compute_log_cond_prob(self, energy, text_mask, mel_mask):
         """
         Compute the log conditional probability of the alignment in the specified direction.
 
@@ -118,7 +119,6 @@ class MoBoAligner(nn.Module):
             energy (torch.Tensor): The energy matrix of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
             text_mask (torch.Tensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J) for forward, or (B, J-1) for backward.
-            force_assign_last (bool): Whether to force the last element of mask to be assigned.
 
         Returns (tuple): A tuple containing:
             log_cond_prob (torch.Tensor): The log conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-1, J-1) for backward.
@@ -129,7 +129,7 @@ class MoBoAligner(nn.Module):
 
         energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J)  # (B, I, J, K)
         tri_invalid = get_invalid_tri_mask(
-            B, I, J, J, text_mask, mel_mask, force_assign_last
+            B, I, J, J, text_mask, mel_mask
         )
         energy_4D.masked_fill_(tri_invalid, LOG_EPS)
         log_cond_prob = energy_4D - torch.logsumexp(
@@ -180,10 +180,7 @@ class MoBoAligner(nn.Module):
         Returns:
             torch.Tensor: The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
         """
-        if direction == "forward":
-            K = mel_mask.shape[1]
-        else:
-            K = mel_mask.shape[1] - 1
+        K = log_cond_prob_geq_or_gt.shape[2]
         x = prob.unsqueeze(-1).repeat(1, 1, 1, K) + log_cond_prob_geq_or_gt.transpose(
             2, 3
         )  # (B, I, K, J)
@@ -264,9 +261,11 @@ class MoBoAligner(nn.Module):
             # 1. Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
             log_cond_prob_forward, log_cond_prob_forward_geq = (
                 self.compute_log_cond_prob(
-                    energy, text_mask, mel_mask, force_assign_last=True
+                    energy, text_mask, mel_mask
                 )
             )
+            # 根据先验知识，对一些概率强制赋值
+            log_cond_prob_forward_geq = geq_pad_on_text_dim(log_cond_prob_forward_geq, mel_mask, LOG_EPS)
 
             # 2. Compute forward recursively in the log domain
             Bij_forward = self.compute_forward_pass(
@@ -286,13 +285,13 @@ class MoBoAligner(nn.Module):
             )
 
             # 1.2 Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i < j | B_{i+1}=k) for backward
+            # 根据先验知识，对一些概率强制赋值# 根据先验知识，对一些概率强制赋值
             log_cond_prob_backward, log_cond_prob_geq_backward = (
                 self.compute_log_cond_prob(
                     energy_backward,
                     text_mask_backward,
-                    mel_mask_backward,
-                    force_assign_last=False,
-                )
+                    mel_mask_backward
+                    )
             )
 
             # 1.3 Compute the log conditional probability P(B_i < j | B_{i+1}=k) based on P(B_i <= j | B_{i+1}=k)

@@ -99,11 +99,12 @@ def reverse_and_pad_alignment(
     )
     log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim=2)
     shifts_text_dim = compute_max_length_diff(text_mask_backward)
+    shifts_text_dim[1:] = shifts_text_dim[1:] + 1
     shifts_mel_dim = compute_max_length_diff(mel_mask_backward)
     log_boundary_backward = shift_tensor(
         log_boundary_backward.flip(1, 2),
-        shifts_text_dim=shifts_text_dim,
-        shifts_mel_dim=shifts_mel_dim,
+        shifts_text_dim=-shifts_text_dim,
+        shifts_mel_dim=-shifts_mel_dim,
     )
     log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim=2)
     return log_boundary_backward
@@ -156,25 +157,12 @@ def gen_most_i_mask(B, I, J, K, i_lens, j_lens, device):
     return mask
 
 
-def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask, force_assign_last):
+def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
     i_lens = text_mask.sum(1)
     j_lens = mel_mask.sum(1)
     energy_mask = gen_i_range_mask(B, I, J, K, i_lens, j_lens)
     tri_ijk_mask = gen_tri(B, I, J, K, device=text_mask.device)
-    if force_assign_last:
-        most_i_mask = gen_most_i_mask(
-            B, I, J, K, i_lens, j_lens, device=text_mask.device
-        )
-        return (~energy_mask) | (~tri_ijk_mask) | (~most_i_mask)
-    else:
-        return (~energy_mask) | (~tri_ijk_mask)
-
-
-def pad_log_cond_prob_gt_backward(B, J, log_eps):
-    x = torch.tril(torch.ones(B, 1, J - 1, J - 1), diagonal=1)
-    x.masked_fill_(x == 0, log_eps)
-    x.masked_fill_(x == 1, 0)
-    return x
+    return (~energy_mask) | (~tri_ijk_mask)
 
 
 def convert_geq_to_gt_and_pad_on_text_dim(
@@ -185,7 +173,7 @@ def convert_geq_to_gt_and_pad_on_text_dim(
     and pad the first and last text dimension.
 
     Args:
-        log_cond_prob_geq_backward (torch.Tensor): The log conditional probability tensor in "greater than or equal to" format, of shape (B, I-1, J-1, J-1).
+        log_cond_prob_geq_backward (torch.Tensor): The log conditional probability tensor in 'greater than or equal to' format, with a shape in the BIJK format (B, I-1, J-1, J-1).
         mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
         log_eps (float): The log epsilon value to use for padding.
 
@@ -194,15 +182,33 @@ def convert_geq_to_gt_and_pad_on_text_dim(
     """
     B, J = mel_mask.shape
 
-    log_cond_prob_gt_backward = log_cond_prob_geq_backward.roll(
-        shifts=-1, dims=2
-    ) # (B, I-1, J-1, J-1) -> (B, I-1, J-1, J-1)
+    # "greater than or equal to" format to "greater than" format
+    log_cond_prob_gt_backward = log_cond_prob_geq_backward[
+        :, :, 1:
+    ]  # (B, I-1, J-1, J-1) -> (B, I-1, J-2, J-1)
 
-    pad = pad_log_cond_prob_gt_backward(B, J, log_eps)
-    log_cond_prob_gt_backward = torch.cat((log_cond_prob_gt_backward, pad), dim=1) # (B, I-1, J-1, J-1) -> (B, I, J-1, J-1)
-    log_cond_prob_gt_backward = log_cond_prob_gt_backward[:, :, :-1] # -> (B, I, J-2, J-1)
+    pad = torch.tril(torch.ones(B, 1, J - 2, J - 1), diagonal=1)
+    # to log domain
+    pad.masked_fill_(pad == 0, log_eps)
+    pad.masked_fill_(pad == 1, 0)
+
+    log_cond_prob_gt_backward = torch.cat(
+        (log_cond_prob_gt_backward, pad), dim=1
+    )  # (B, I-1, J-2, J-1) -> (B, I, J-2, J-1)
     return log_cond_prob_gt_backward
 
+def geq_pad_on_text_dim(log_cond_prob_forward_geq, mel_mask, log_eps):
+    B, J = mel_mask.shape
+    
+    log_cond_prob_forward_geq = log_cond_prob_forward_geq[:, :-1]
+    
+    pad = torch.tril(torch.ones(B, 1, J, J), diagonal=0)
+    # to log domain
+    pad.masked_fill_(pad == 0, log_eps)
+    pad.masked_fill_(pad == 1, 0)
+    
+    log_cond_prob_forward_geq = torch.cat((log_cond_prob_forward_geq, pad), dim=1)
+    return log_cond_prob_forward_geq
 
 if __name__ == "__main__":
     # 示例用法 1
