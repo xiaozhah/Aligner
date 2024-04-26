@@ -9,7 +9,7 @@ from tensor_utils import (
     reverse_and_pad_alignment,
     get_invalid_tri_mask,
     convert_geq_to_gt_and_pad_on_text_dim,
-    geq_pad_on_text_dim
+    geq_pad_on_text_dim,
 )
 from layers import LinearNorm
 import numpy as np
@@ -43,10 +43,9 @@ class MoBoAligner(nn.Module):
         assert len(direction) >= 1 and set(direction).issubset(
             set(["forward", "backward"])
         ), "Direction must be a subset of 'forward' or 'backward'."
-        if torch.any(text_mask.sum(1) >= mel_mask.sum(1)):
-            warnings.warn(
-                "\033[1;31mWarning: The dimension of text embeddings (I) is greater than or equal to the dimension of mel embeddings (J), which may affect alignment performance.\033[m"
-        )
+        assert torch.all(
+            text_mask.sum(1) < mel_mask.sum(1)
+        ), "\033[1;31mThe dimension of text embeddings (I) is greater than or equal to the dimension of mel embeddings (J), which is not allowed.\033[m"
 
     def compute_energy(self, text_embeddings, mel_embeddings):
         """
@@ -128,9 +127,7 @@ class MoBoAligner(nn.Module):
         _, J = mel_mask.shape
 
         energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J)  # (B, I, J, K)
-        tri_invalid = get_invalid_tri_mask(
-            B, I, J, J, text_mask, mel_mask
-        )
+        tri_invalid = get_invalid_tri_mask(B, I, J, J, text_mask, mel_mask)
         energy_4D.masked_fill_(tri_invalid, LOG_EPS)
         log_cond_prob = energy_4D - torch.logsumexp(
             energy_4D, dim=2, keepdim=True
@@ -260,12 +257,12 @@ class MoBoAligner(nn.Module):
         if "forward" in direction:
             # 1. Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
             log_cond_prob_forward, log_cond_prob_forward_geq = (
-                self.compute_log_cond_prob(
-                    energy, text_mask, mel_mask
-                )
+                self.compute_log_cond_prob(energy, text_mask, mel_mask)
             )
             # 根据先验知识，对一些概率强制赋值
-            log_cond_prob_forward_geq = geq_pad_on_text_dim(log_cond_prob_forward_geq, mel_mask, LOG_EPS)
+            log_cond_prob_forward_geq = geq_pad_on_text_dim(
+                log_cond_prob_forward_geq, mel_mask, LOG_EPS
+            )
 
             # 2. Compute forward recursively in the log domain
             Bij_forward = self.compute_forward_pass(
@@ -288,10 +285,8 @@ class MoBoAligner(nn.Module):
             # 根据先验知识，对一些概率强制赋值# 根据先验知识，对一些概率强制赋值
             log_cond_prob_backward, log_cond_prob_geq_backward = (
                 self.compute_log_cond_prob(
-                    energy_backward,
-                    text_mask_backward,
-                    mel_mask_backward
-                    )
+                    energy_backward, text_mask_backward, mel_mask_backward
+                )
             )
 
             # 1.3 Compute the log conditional probability P(B_i < j | B_{i+1}=k) based on P(B_i <= j | B_{i+1}=k)
@@ -303,7 +298,7 @@ class MoBoAligner(nn.Module):
             Bij_backward = self.compute_forward_pass(
                 log_cond_prob_backward, text_mask_backward, mel_mask_backward
             )
-            Bij_backward = Bij_backward[:, :, :-1] # (B, I, J) -> (B, I, J-1)
+            Bij_backward = Bij_backward[:, :, :-1]  # (B, I, J) -> (B, I, J-1)
 
             # 3.1 Compute the backward P(B_{i-1} < j <= B_i)
             log_boundary_backward = self.compute_interval_probability(
