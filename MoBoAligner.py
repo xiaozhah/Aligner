@@ -102,12 +102,10 @@ class MoBoAligner(nn.Module):
             shifts_text_dim=-shifts_text_dim,
             shifts_mel_dim=-shifts_mel_dim,
         ).squeeze(-1)
-        text_mask_backward = roll_tensor_1d(text_mask.flip(1), shifts=shifts_text_dim)
-        mel_mask_backward = roll_tensor_1d(mel_mask.flip(1), shifts=shifts_mel_dim)
 
         energy_backward = energy_backward[:, 1:, 1:]
-        text_mask_backward = text_mask_backward[:, 1:]
-        mel_mask_backward = mel_mask_backward[:, 1:]
+        text_mask_backward = text_mask[:, 1:]
+        mel_mask_backward = mel_mask[:, 1:]
         return energy_backward, text_mask_backward, mel_mask_backward
 
     def compute_log_cond_prob(self, energy, text_mask, mel_mask):
