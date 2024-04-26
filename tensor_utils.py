@@ -197,17 +197,15 @@ def convert_geq_to_gt_and_pad_on_text_dim(
     )  # (B, I-1, J-2, J-1) -> (B, I, J-2, J-1)
     return log_cond_prob_gt_backward
 
-def geq_pad_on_text_dim(log_cond_prob_forward_geq, mel_mask, log_eps):
+def geq_pad_on_text_dim(log_cond_prob_forward_geq, text_mask, mel_mask):
     B, J = mel_mask.shape
-    
-    log_cond_prob_forward_geq = log_cond_prob_forward_geq[:, :-1]
-    
-    pad = torch.tril(torch.ones(B, 1, J, J), diagonal=0)
-    # to log domain
-    pad.masked_fill_(pad == 0, log_eps)
-    pad.masked_fill_(pad == 1, 0)
-    
-    log_cond_prob_forward_geq = torch.cat((log_cond_prob_forward_geq, pad), dim=1)
+        
+    pad = torch.tril(torch.ones(J, J), diagonal=0)
+    mask = torch.zeros_like(log_cond_prob_forward_geq)
+    i_lens = text_mask.sum(1)
+    mask[torch.arange(B), i_lens-1, :, :] = pad
+    log_cond_prob_forward_geq.masked_fill_(mask.bool(), 0)
+
     return log_cond_prob_forward_geq
 
 if __name__ == "__main__":

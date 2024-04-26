@@ -257,9 +257,9 @@ class MoBoAligner(nn.Module):
             log_cond_prob_forward, log_cond_prob_forward_geq = (
                 self.compute_log_cond_prob(energy, text_mask, mel_mask)
             )
-            # 根据先验知识，对一些概率强制赋值
+            # According to prior knowledge, force some probabilities to be assigned
             log_cond_prob_forward_geq = geq_pad_on_text_dim(
-                log_cond_prob_forward_geq, mel_mask, LOG_EPS
+                log_cond_prob_forward_geq, text_mask, mel_mask
             )
 
             # 2. Compute forward recursively in the log domain
@@ -281,7 +281,7 @@ class MoBoAligner(nn.Module):
             )
 
             # 1.2 Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i < j | B_{i+1}=k) for backward
-            # 根据先验知识，对一些概率强制赋值# 根据先验知识，对一些概率强制赋值
+            # According to prior knowledge, force some probabilities to be assigned
             log_cond_prob_backward, log_cond_prob_geq_backward = (
                 self.compute_log_cond_prob(
                     energy_backward, text_mask_backward, mel_mask_backward
