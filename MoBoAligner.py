@@ -161,9 +161,7 @@ class MoBoAligner(nn.Module):
 
         return B_ij
 
-    def compute_interval_probability(
-        self, prob, log_cond_prob_geq_or_gt, mel_mask, direction
-    ):
+    def compute_interval_probability(self, prob, log_cond_prob_geq_or_gt):
         """
         Compute the log interval probability, which is the log of the probability P(B_{i-1} < j <= B_i), the sum of P(B_{i-1} < j <= B_i) over i is 1.
 
@@ -272,7 +270,7 @@ class MoBoAligner(nn.Module):
 
             # 3. Compute the forward P(B_{i-1} < j <= B_i)
             log_boundary_forward = self.compute_interval_probability(
-                Bij_forward, log_cond_prob_forward_geq, mel_mask, direction="forward"
+                Bij_forward, log_cond_prob_forward_geq
             )
             log_boundary_forward.masked_fill_(~alignment_mask, -float("Inf"))
 
@@ -304,9 +302,7 @@ class MoBoAligner(nn.Module):
             # 3.1 Compute the backward P(B_{i-1} < j <= B_i)
             log_boundary_backward = self.compute_interval_probability(
                 Bij_backward,
-                log_cond_prob_gt_backward,
-                mel_mask_backward,
-                direction="backward",
+                log_cond_prob_gt_backward
             )
 
             # 3.2 reverse the text and mel direction of log_boundary_backward, and pad first and last text dimension
