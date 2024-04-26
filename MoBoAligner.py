@@ -254,6 +254,8 @@ class MoBoAligner(nn.Module):
         # Apply Gussian noise
         energy = self.apply_noise(energy)
 
+        alignment_mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)
+
         if "forward" in direction:
             # 1. Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
             log_cond_prob_forward, log_cond_prob_forward_geq = (
@@ -274,6 +276,7 @@ class MoBoAligner(nn.Module):
             log_boundary_forward = self.compute_interval_probability(
                 Bij_forward, log_cond_prob_forward_geq, mel_mask, direction="forward"
             )
+            log_boundary_forward.masked_fill_(~alignment_mask, -float("Inf"))
 
         if "backward" in direction:
             # 1.1 Compute the energy matrix for backward direction
@@ -312,6 +315,7 @@ class MoBoAligner(nn.Module):
             log_boundary_backward = reverse_and_pad_alignment(
                 log_boundary_backward, text_mask_backward, mel_mask_backward
             )
+            log_boundary_backward.masked_fill_(~alignment_mask, -float("Inf"))
 
         # Combine the forward and backward soft alignment
         if direction == ["forward"]:
