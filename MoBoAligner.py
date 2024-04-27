@@ -149,13 +149,14 @@ class MoBoAligner(nn.Module):
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
+        J_minus_I_max = (mel_mask.sum(1) - text_mask.sum(1)).max()
 
         B_ij = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob.device)
         B_ij[:, 0, 0] = 0  # Initialize forward[0, 0] = 0
         for i in range(1, I + 1):
-            B_ij[:, i, i : (J - I + i + 2)] = torch.logsumexp(
+            B_ij[:, i, i : (J_minus_I_max + i + 2)] = torch.logsumexp(
                 B_ij[:, i - 1, :-1].unsqueeze(1)
-                + log_cond_prob[:, i - 1, (i - 1) : (J - I + i + 1)],
+                + log_cond_prob[:, i - 1, (i - 1) : (J_minus_I_max + i + 1)],
                 dim=2,  # sum at the K dimension
             )
 
