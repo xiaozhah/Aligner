@@ -291,7 +291,7 @@ class MoBoAligner(nn.Module):
 
             # 1.3 Compute the log conditional probability P(B_i < j | B_{i+1}=k) based on P(B_i <= j | B_{i+1}=k)
             log_cond_prob_gt_backward = convert_geq_to_gt_and_pad_on_text_dim(
-                log_cond_prob_geq_backward, mel_mask, LOG_EPS
+                log_cond_prob_geq_backward, text_mask, mel_mask, LOG_EPS
             )
 
             # 2. Compute backward recursively in the log domain
