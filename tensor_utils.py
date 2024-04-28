@@ -152,7 +152,9 @@ def convert_geq_to_gt(log_cond_prob_geq_backward):
 
 def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask, log_eps):
     # (B, I-1, J-2, J-1) -> (B, I, J-2, J-1)
-    log_cond_prob_gt_backward = F.pad(log_cond_prob_gt_backward, (0, 0, 0, 0, 0, 1), "constant", log_eps)
+    log_cond_prob_gt_backward = F.pad(
+        log_cond_prob_gt_backward, (0, 0, 0, 0, 0, 1), "constant", log_eps
+    )
 
     # (B, I, J-2, J-1) -> (B, I, J-2, J-1)
     log_cond_prob_gt_backward = geq_pad_on_text_dim(
