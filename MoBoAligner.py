@@ -290,7 +290,7 @@ class MoBoAligner(nn.Module):
             )
             log_cond_prob_gt_backward = convert_geq_to_gt(log_cond_prob_geq_backward)
             log_cond_prob_gt_backward = gt_pad_on_text_dim(
-                log_cond_prob_gt_backward, text_mask
+                log_cond_prob_gt_backward, text_mask, LOG_EPS
             )
 
             # 2. Compute backward recursively in the log domain
