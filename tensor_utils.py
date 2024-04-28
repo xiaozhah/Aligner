@@ -47,6 +47,9 @@ def shift_tensor(x, shifts_text_dim, shifts_mel_dim):
 
 
 def one_hot(B, I, device):
+    """
+    Generate a one-hot vector of shape (I,) on the device.
+    """
     x = torch.full((I,), -float("inf"), device=device)
     x[0] = 0
     return x
@@ -114,7 +117,6 @@ def gen_i_range_mask(B, I, J, K, i_lens, j_lens):
     bool_tensor = i_lens.unsqueeze(1) > torch.arange(I, device=i_lens.device)
     bool_tensor = bool_tensor[:, :, None, None].repeat(1, 1, J, 1)
     mask = mask * bool_tensor
-    mask = mask.repeat(1, 1, 1, K)
 
     return mask
 
@@ -125,13 +127,6 @@ def gen_tri(B, I, J, K, device):
     triu = triu.repeat(B, 1, 1, I)  # (B, K, J, I)
     triu = triu.transpose(1, 3)  # (B, I, J, K)
     return triu.bool()
-
-
-def gen_most_i_mask(B, I, J, K, i_lens, j_lens, device):
-    mask = torch.ones((B, I, J, K), dtype=torch.bool, device=device)
-    for b in range(B):
-        mask[b, i_lens[b] - 1, : j_lens[b] - 1] = False
-    return mask
 
 
 def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
@@ -232,5 +227,5 @@ if __name__ == "__main__":
     B, I, J, K = 2, 5, 10, 10
     i_lens = torch.tensor([5, 2])
     j_lens = torch.tensor([10, 5])
-    masked_tensor = gen_i_range_mask(B, I, J, K, i_lens, j_lens).int()
-    print(masked_tensor.shape)
+    masked_tensor = gen_i_range_mask(B, I, J, K, i_lens, j_lens).int().squeeze(-1)
+    print(masked_tensor)
