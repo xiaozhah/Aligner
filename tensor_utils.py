@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+
 def roll_tensor(tensor, shifts, dim):
     # 获取tensor的形状
     shape = tensor.size()
@@ -140,6 +141,7 @@ def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
     tri_ijk_mask = gen_tri(B, I, J, K, device=text_mask.device)
     return (~energy_mask) | (~tri_ijk_mask)
 
+
 def convert_geq_to_gt(log_cond_prob_geq_backward):
     """
     "greater than or equal to" format to "greater than" format
@@ -147,14 +149,15 @@ def convert_geq_to_gt(log_cond_prob_geq_backward):
     # (B, I-1, J-1, J-1) -> (B, I-1, J-2, J-1)
     return log_cond_prob_geq_backward[:, :, 1:]
 
-def gt_pad_on_text_dim(
-    log_cond_prob_gt_backward, text_mask
-):
+
+def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask):
     # (B, I-1, J-2, J-1) -> (B, I, J-2, J-1)
     log_cond_prob_gt_backward = F.pad(log_cond_prob_gt_backward, (0, 0, 0, 0, 0, 1))
 
     # (B, I, J-2, J-1) -> (B, I, J-2, J-1)
-    log_cond_prob_gt_backward = geq_pad_on_text_dim(log_cond_prob_gt_backward, text_mask)
+    log_cond_prob_gt_backward = geq_pad_on_text_dim(
+        log_cond_prob_gt_backward, text_mask
+    )
 
     return log_cond_prob_gt_backward
 
@@ -162,7 +165,7 @@ def gt_pad_on_text_dim(
 def geq_pad_on_text_dim(log_cond_prob_geq_or_gt, text_mask):
     # According to prior knowledge, force some probabilities to be assigned
     B, _, J, K = log_cond_prob_geq_or_gt.shape
-    diagonal = 0 if J == K else 1 # if forward else backward
+    diagonal = 0 if J == K else 1  # if forward else backward
     pad = torch.tril(torch.ones(J, K), diagonal=diagonal)
     mask = torch.zeros_like(log_cond_prob_geq_or_gt)
     i_lens = text_mask.sum(1)

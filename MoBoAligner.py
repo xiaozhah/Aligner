@@ -9,7 +9,7 @@ from tensor_utils import (
     get_invalid_tri_mask,
     gt_pad_on_text_dim,
     geq_pad_on_text_dim,
-    convert_geq_to_gt
+    convert_geq_to_gt,
 )
 from layers import LinearNorm
 import numpy as np
@@ -289,7 +289,9 @@ class MoBoAligner(nn.Module):
                 )
             )
             log_cond_prob_gt_backward = convert_geq_to_gt(log_cond_prob_geq_backward)
-            log_cond_prob_gt_backward = gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask)
+            log_cond_prob_gt_backward = gt_pad_on_text_dim(
+                log_cond_prob_gt_backward, text_mask
+            )
 
             # 2. Compute backward recursively in the log domain
             Bij_backward = self.compute_forward_pass(
