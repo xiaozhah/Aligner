@@ -253,12 +253,12 @@ class MoBoAligner(nn.Module):
 
         if "forward" in direction:
             # 1. Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
-            log_cond_prob_forward, log_cond_prob_forward_geq = (
+            log_cond_prob_forward, log_cond_prob_geq_forward = (
                 self.compute_log_cond_prob(energy, text_mask, mel_mask)
             )
             # According to prior knowledge, force some probabilities to be assigned
-            log_cond_prob_forward_geq = geq_pad_on_text_dim(
-                log_cond_prob_forward_geq, text_mask, mel_mask
+            log_cond_prob_geq_forward = geq_pad_on_text_dim(
+                log_cond_prob_geq_forward, text_mask, mel_mask
             )
 
             # 2. Compute forward recursively in the log domain
@@ -269,7 +269,7 @@ class MoBoAligner(nn.Module):
 
             # 3. Compute the forward P(B_{i-1} < j <= B_i)
             log_boundary_forward = self.compute_interval_probability(
-                Bij_forward, log_cond_prob_forward_geq
+                Bij_forward, log_cond_prob_geq_forward
             )
             log_boundary_forward = log_boundary_forward.masked_fill(~alignment_mask, LOG_EPS)
 
