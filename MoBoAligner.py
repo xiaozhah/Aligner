@@ -219,6 +219,7 @@ class MoBoAligner(nn.Module):
         text_mask: torch.BoolTensor,
         mel_mask: torch.BoolTensor,
         direction: List[str],
+        return_hard_alignment: bool = False,
     ) -> Tuple[
         Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor
     ]:
@@ -231,6 +232,7 @@ class MoBoAligner(nn.Module):
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
             direction (List[str]): The direction of the alignment, a subset of ["forward", "backward"].
+            return_hard_alignment (bool): Whether to return the hard alignment which obtained by Viterbi decoding.
 
         Returns:
             Tuple[Optional[torch.Tensor], Optional[torch.Tensor], torch.Tensor]:
@@ -324,8 +326,8 @@ class MoBoAligner(nn.Module):
         )
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
-        hard_alignment = self.compute_hard_alignment(
-            soft_alignment, alignment_mask
-        )
+        hard_alignment = None
+        if return_hard_alignment:
+            hard_alignment = self.compute_hard_alignment(soft_alignment, alignment_mask)
 
         return soft_alignment, hard_alignment, expanded_text_embeddings
