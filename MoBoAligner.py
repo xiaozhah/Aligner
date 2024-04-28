@@ -196,22 +196,20 @@ class MoBoAligner(nn.Module):
         return log_interval_probability
 
     @torch.no_grad()
-    def compute_hard_alignment(self, log_probs, text_mask, mel_mask):
+    def compute_hard_alignment(self, log_probs, alignment_mask):
         """
         Compute the Viterbi path for the maximum alignment probabilities.
 
         This function uses `monotonic_align.maximum_path` to find the path with the maximum probabilities,
-        subject to the constraints of the text and mel masks.
+        subject to the constraints of the alignment mask.
 
         Args:
             log_probs (torch.Tensor): The log probabilities tensor of shape (B, I, J).
-            text_mask (torch.Tensor): The mask tensor of shape (B, I) indicating valid positions of text.
-            mel_mask (torch.Tensor): The mask tensor of shape (B, J) indicating valid positions of mel.
+            alignment_mask (torch.Tensor): The alignment mask of shape (B, I, J).
         Returns:
             torch.Tensor: The tensor representing the hard alignment path of shape (B, I, J).
         """
-        mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)
-        attn = monotonic_align.maximum_path(log_probs, mask)
+        attn = monotonic_align.maximum_path(log_probs, alignment_mask)
         return attn
 
     def forward(
@@ -327,7 +325,7 @@ class MoBoAligner(nn.Module):
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
         hard_alignment = self.compute_hard_alignment(
-            soft_alignment, text_mask, mel_mask
+            soft_alignment, alignment_mask
         )
 
         return soft_alignment, hard_alignment, expanded_text_embeddings
