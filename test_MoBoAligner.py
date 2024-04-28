@@ -26,7 +26,7 @@ mel_mask = torch.tensor(
 )  # Batch size: 2, Mel frames: J
 
 # Initialize the MoBoAligner model
-aligner = MoBoAligner(text_embeddings.size(-1), mel_embeddings.size(-1), 128)
+aligner = MoBoAligner(text_embeddings.size(-1), mel_embeddings.size(-1), 128).to(device)
 
 soft_alignment, hard_alignment, expanded_text_embeddings = aligner(
     text_embeddings,

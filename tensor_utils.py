@@ -168,7 +168,9 @@ def geq_pad_on_text_dim(log_cond_prob_geq_or_gt, text_mask):
     # According to prior knowledge, force some probabilities to be assigned
     B, _, J, K = log_cond_prob_geq_or_gt.shape
     diagonal = 0 if J == K else 1  # if forward else backward
-    pad = torch.tril(torch.ones(J, K), diagonal=diagonal)
+    pad = torch.tril(
+        torch.ones(J, K, device=log_cond_prob_geq_or_gt.device), diagonal=diagonal
+    )
     mask = torch.zeros_like(log_cond_prob_geq_or_gt)
     i_lens = text_mask.sum(1)
     mask[torch.arange(B), i_lens - 1, :, :] = pad
