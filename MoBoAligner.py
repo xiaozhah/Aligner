@@ -302,7 +302,7 @@ class MoBoAligner(nn.Module):
                 Bij_backward, log_cond_prob_gt_backward
             )
 
-            # 3.2 reverse the text and mel direction of log_boundary_backward, and pad first and last text dimension
+            # 3.2 reverse the text and mel direction of log_boundary_backward, and pad head and tail one-hot vector on mel dimension
             log_boundary_backward = reverse_and_pad_head_tail_on_alignment(
                 log_boundary_backward, text_mask_backward, mel_mask_backward
             )
