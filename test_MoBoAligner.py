@@ -7,8 +7,8 @@ torch.autograd.set_detect_anomaly(True)
 # Set a random seed to ensure reproducibility of the results
 torch.manual_seed(1234)
 
-I = 20
-J = 60
+I = 10
+J = 100
 device = "cpu"
 # Initialize the text and mel embedding tensors
 text_embeddings = torch.randn(
@@ -19,10 +19,10 @@ mel_embeddings = torch.randn(
 )  # Batch size: 2, Mel frames: J, Embedding dimension: 10
 # Initialize the text and mel masks
 text_mask = torch.tensor(
-    [[1] * I, [1] * I], dtype=torch.bool, device=device
+    [[1] * I, [1] * 2 + [0] * (I - 2)], dtype=torch.bool, device=device
 )  # Batch size: 2, Text tokens: I
 mel_mask = torch.tensor(
-    [[1] * J, [1] * J], dtype=torch.bool, device=device
+    [[1] * J, [1] * 70 + [0] * (J - 70)], dtype=torch.bool, device=device
 )  # Batch size: 2, Mel frames: J
 
 # Initialize the MoBoAligner model
