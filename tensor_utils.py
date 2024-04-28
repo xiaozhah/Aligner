@@ -27,6 +27,7 @@ def roll_tensor(tensor, shifts, dim):
 
     return result
 
+
 def shift_tensor(x, shifts_text_dim, shifts_mel_dim):
     """
     Shift the tensor x to the right along the text and mel dimensions.
@@ -71,7 +72,7 @@ def reverse_and_pad_alignment(
     )
     # (B, I, J-2) -> (B, I, J-1)
     log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim=2)
-    
+
     # mel index: (J-1)-(j-1)+1 = J-j+1 -> 1, means shift iter num = J-j
     # text index: I-i+1 -> 1, means shift iter num = I-i
     shifts_text_dim = compute_max_length_diff(text_mask_backward)
@@ -164,28 +165,32 @@ def convert_geq_to_gt_and_pad_on_text_dim(
     ]  # (B, I-1, J-1, J-1) -> (B, I-1, J-2, J-1)
 
     # TODO: 代码可以与下面的代码复用
-    pad = torch.full((B, 1, J-2, J-1), log_eps, device=log_cond_prob_gt_backward.device)
+    pad = torch.full(
+        (B, 1, J - 2, J - 1), log_eps, device=log_cond_prob_gt_backward.device
+    )
     log_cond_prob_gt_backward = torch.cat((log_cond_prob_gt_backward, pad), dim=1)
     # log_cond_prob_gt_backward now is (B, I, J-2, J-1)
-        
-    pad = torch.tril(torch.ones(J-2, J-1), diagonal=1)
+
+    pad = torch.tril(torch.ones(J - 2, J - 1), diagonal=1)
     mask = torch.zeros_like(log_cond_prob_gt_backward)
     i_lens = text_mask.sum(1)
-    mask[torch.arange(B), i_lens-1, :, :] = pad
+    mask[torch.arange(B), i_lens - 1, :, :] = pad
     log_cond_prob_gt_backward.masked_fill_(mask.bool(), 0)
 
     return log_cond_prob_gt_backward
 
+
 def geq_pad_on_text_dim(log_cond_prob_geq_forward, text_mask, mel_mask):
     B, J = mel_mask.shape
-        
+
     pad = torch.tril(torch.ones(J, J), diagonal=0)
     mask = torch.zeros_like(log_cond_prob_geq_forward)
     i_lens = text_mask.sum(1)
-    mask[torch.arange(B), i_lens-1, :, :] = pad
+    mask[torch.arange(B), i_lens - 1, :, :] = pad
     log_cond_prob_geq_forward.masked_fill_(mask.bool(), 0)
 
     return log_cond_prob_geq_forward
+
 
 if __name__ == "__main__":
     # 示例用法 1

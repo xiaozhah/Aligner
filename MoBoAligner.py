@@ -271,7 +271,9 @@ class MoBoAligner(nn.Module):
             log_boundary_forward = self.compute_interval_probability(
                 Bij_forward, log_cond_prob_geq_forward
             )
-            log_boundary_forward = log_boundary_forward.masked_fill(~alignment_mask, LOG_EPS)
+            log_boundary_forward = log_boundary_forward.masked_fill(
+                ~alignment_mask, LOG_EPS
+            )
 
         if "backward" in direction:
             # 1.1 Compute the energy matrix for backward direction
@@ -300,15 +302,16 @@ class MoBoAligner(nn.Module):
 
             # 3.1 Compute the backward P(B_{i-1} < j <= B_i)
             log_boundary_backward = self.compute_interval_probability(
-                Bij_backward,
-                log_cond_prob_gt_backward
+                Bij_backward, log_cond_prob_gt_backward
             )
 
             # 3.2 reverse the text and mel direction of log_boundary_backward, and pad first and last text dimension
             log_boundary_backward = reverse_and_pad_alignment(
                 log_boundary_backward, text_mask_backward, mel_mask_backward
             )
-            log_boundary_backward = log_boundary_backward.masked_fill(~alignment_mask, LOG_EPS)
+            log_boundary_backward = log_boundary_backward.masked_fill(
+                ~alignment_mask, LOG_EPS
+            )
 
         # Combine the forward and backward soft alignment
         if direction == ["forward"]:
