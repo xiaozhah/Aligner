@@ -5,7 +5,7 @@ import math
 from tensor_utils import (
     shift_tensor,
     compute_max_length_diff,
-    reverse_and_pad_alignment,
+    reverse_and_pad_head_tail_on_alignment,
     get_invalid_tri_mask,
     gt_pad_on_text_dim,
     geq_pad_on_text_dim,
@@ -117,13 +117,13 @@ class MoBoAligner(nn.Module):
             mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J) for forward, or (B, J-1) for backward.
 
         Returns (tuple): A tuple containing:
-            log_cond_prob (torch.Tensor): The log conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-1, J-1) for backward.
-            log_cond_prob_geq (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-1, J-1) for backward.
+            log_cond_prob (torch.Tensor): The log conditional probability tensor of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
+            log_cond_prob_geq (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
 
-        energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J)  # (B, I, J, K)
+        energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J)  # BIJK format
         tri_invalid = get_invalid_tri_mask(B, I, J, J, text_mask, mel_mask)
         energy_4D.masked_fill_(tri_invalid, LOG_EPS)
         log_cond_prob = energy_4D - torch.logsumexp(
@@ -168,7 +168,6 @@ class MoBoAligner(nn.Module):
         Args:
             prob (torch.Tensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I, J-1) for backward.
             log_cond_prob_geq_or_gt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-2, J-1) for backward.
-            mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J) for forward, or (B, J-1) for backward.
 
         Returns:
             torch.Tensor: The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
@@ -282,7 +281,6 @@ class MoBoAligner(nn.Module):
             )
 
             # 1.2 Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i < j | B_{i+1}=k) for backward
-            # According to prior knowledge, force some probabilities to be assigned
             log_cond_prob_backward, log_cond_prob_geq_backward = (
                 self.compute_log_cond_prob(
                     energy_backward, text_mask_backward, mel_mask_backward
@@ -305,7 +303,7 @@ class MoBoAligner(nn.Module):
             )
 
             # 3.2 reverse the text and mel direction of log_boundary_backward, and pad first and last text dimension
-            log_boundary_backward = reverse_and_pad_alignment(
+            log_boundary_backward = reverse_and_pad_head_tail_on_alignment(
                 log_boundary_backward, text_mask_backward, mel_mask_backward
             )
             log_boundary_backward = log_boundary_backward.masked_fill(

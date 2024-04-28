@@ -52,7 +52,7 @@ def one_hot(B, I, device):
     return x
 
 
-def reverse_and_pad_alignment(
+def reverse_and_pad_head_tail_on_alignment(
     log_boundary_backward, text_mask_backward, mel_mask_backward
 ):
     """
@@ -145,12 +145,25 @@ def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
 def convert_geq_to_gt(log_cond_prob_geq_backward):
     """
     "greater than or equal to" format to "greater than" format
+    Args:
+        log_cond_prob_geq_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-1, J-1).
+    Returns:
+        log_cond_prob_geq_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-2, J-1).
     """
-    # (B, I-1, J-1, J-1) -> (B, I-1, J-2, J-1)
     return log_cond_prob_geq_backward[:, :, 1:]
 
 
 def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask, log_eps):
+    """
+    pad the last text dimension which using prior knowledge for "greater than" format
+
+    Args:
+        log_cond_prob_gt_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-2, J-1).
+        text_mask (torch.Tensor): The text mask of shape (B, I).
+    Returns:
+        log_cond_prob_gt_backward (torch.Tensor): The padded log cumulative conditional probability tensor of shape (B, I, J-2, J-1).
+    """
+
     # (B, I-1, J-2, J-1) -> (B, I, J-2, J-1)
     log_cond_prob_gt_backward = F.pad(
         log_cond_prob_gt_backward, (0, 0, 0, 0, 0, 1), "constant", log_eps
@@ -165,7 +178,16 @@ def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask, log_eps):
 
 
 def geq_pad_on_text_dim(log_cond_prob_geq_or_gt, text_mask):
-    # According to prior knowledge, force some probabilities to be assigned
+    """
+    pad the last text dimension which using prior knowledge for "greater than or equal to" format
+
+    Args:
+        log_cond_prob_geq_or_gt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-2, J-1) for backward.
+        text_mask (torch.Tensor): The text mask of shape (B, I).
+
+    Returns:
+        log_cond_prob_geq_or_gt (torch.Tensor): The padded log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-2, J-1) for backward.
+    """
     B, _, J, K = log_cond_prob_geq_or_gt.shape
     diagonal = 0 if J == K else 1  # if forward else backward
     pad = torch.tril(
