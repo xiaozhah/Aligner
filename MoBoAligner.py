@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import math
 from tensor_utils import (
-    roll_tensor_1d,
     shift_tensor,
     compute_max_length_diff,
     reverse_and_pad_alignment,
@@ -13,7 +12,6 @@ from tensor_utils import (
 )
 from layers import LinearNorm
 import numpy as np
-import warnings
 import monotonic_align
 
 LOG_EPS = -1000
