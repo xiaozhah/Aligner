@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-
+import torch.nn.functional as F
 
 def roll_tensor(tensor, shifts, dim):
     # 获取tensor的形状
@@ -140,50 +140,30 @@ def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
     tri_ijk_mask = gen_tri(B, I, J, K, device=text_mask.device)
     return (~energy_mask) | (~tri_ijk_mask)
 
+def convert_geq_to_gt(log_cond_prob_geq_backward):
+    """
+    "greater than or equal to" format to "greater than" format
+    """
+    # (B, I-1, J-1, J-1) -> (B, I-1, J-2, J-1)
+    return log_cond_prob_geq_backward[:, :, 1:]
 
-def convert_geq_to_gt_and_pad_on_text_dim(
-    log_cond_prob_geq_backward, text_mask, mel_mask, log_eps
+def gt_pad_on_text_dim(
+    log_cond_prob_gt_backward, text_mask
 ):
-    """
-    Convert the log conditional probability tensor from "greater than or equal to" format to "greater than" format,
-    and pad the first and last text dimension.
+    # (B, I-1, J-2, J-1) -> (B, I, J-2, J-1)
+    log_cond_prob_gt_backward = F.pad(log_cond_prob_gt_backward, (0, 0, 0, 0, 0, 1))
 
-    Args:
-        log_cond_prob_geq_backward (torch.Tensor): The log conditional probability tensor in 'greater than or equal to' format, with a shape in the BIJK format (B, I-1, J-1, J-1).
-        text_mask (torch.Tensor): The text mask of shape (B, I).
-        mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
-        log_eps (float): The log epsilon value to use for padding.
-
-    Returns:
-        torch.Tensor: The log conditional probability tensor in "greater than" format, with padding on the first and last text dimension, of shape (B, I, J-2, J-1).
-    """
-    B, J = mel_mask.shape
-
-    # "greater than or equal to" format to "greater than" format
-    log_cond_prob_gt_backward = log_cond_prob_geq_backward[
-        :, :, 1:
-    ]  # (B, I-1, J-1, J-1) -> (B, I-1, J-2, J-1)
-
-    # TODO: 代码可以与下面的代码复用
-    pad = torch.full(
-        (B, 1, J - 2, J - 1), log_eps, device=log_cond_prob_gt_backward.device
-    )
-    log_cond_prob_gt_backward = torch.cat((log_cond_prob_gt_backward, pad), dim=1)
-    # log_cond_prob_gt_backward now is (B, I, J-2, J-1)
-
-    pad = torch.tril(torch.ones(J - 2, J - 1), diagonal=1)
-    mask = torch.zeros_like(log_cond_prob_gt_backward)
-    i_lens = text_mask.sum(1)
-    mask[torch.arange(B), i_lens - 1, :, :] = pad
-    log_cond_prob_gt_backward.masked_fill_(mask.bool(), 0)
+    # (B, I, J-2, J-1) -> (B, I, J-2, J-1)
+    log_cond_prob_gt_backward = geq_pad_on_text_dim(log_cond_prob_gt_backward, text_mask)
 
     return log_cond_prob_gt_backward
 
 
 def geq_pad_on_text_dim(log_cond_prob_geq_or_gt, text_mask):
-    # # According to prior knowledge, force some probabilities to be assigned
+    # According to prior knowledge, force some probabilities to be assigned
     B, _, J, K = log_cond_prob_geq_or_gt.shape
-    pad = torch.tril(torch.ones(J, K), diagonal=0)
+    diagonal = 0 if J == K else 1 # if forward else backward
+    pad = torch.tril(torch.ones(J, K), diagonal=diagonal)
     mask = torch.zeros_like(log_cond_prob_geq_or_gt)
     i_lens = text_mask.sum(1)
     mask[torch.arange(B), i_lens - 1, :, :] = pad
