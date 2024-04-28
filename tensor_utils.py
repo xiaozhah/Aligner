@@ -180,16 +180,15 @@ def convert_geq_to_gt_and_pad_on_text_dim(
     return log_cond_prob_gt_backward
 
 
-def geq_pad_on_text_dim(log_cond_prob_geq_forward, text_mask, mel_mask):
-    B, J = mel_mask.shape
-
-    pad = torch.tril(torch.ones(J, J), diagonal=0)
-    mask = torch.zeros_like(log_cond_prob_geq_forward)
+def geq_pad_on_text_dim(log_cond_prob_geq_or_gt, text_mask):
+    # # According to prior knowledge, force some probabilities to be assigned
+    B, _, J, K = log_cond_prob_geq_or_gt.shape
+    pad = torch.tril(torch.ones(J, K), diagonal=0)
+    mask = torch.zeros_like(log_cond_prob_geq_or_gt)
     i_lens = text_mask.sum(1)
     mask[torch.arange(B), i_lens - 1, :, :] = pad
-    log_cond_prob_geq_forward.masked_fill_(mask.bool(), 0)
-
-    return log_cond_prob_geq_forward
+    log_cond_prob_geq_or_gt.masked_fill_(mask.bool(), 0)
+    return log_cond_prob_geq_or_gt
 
 
 if __name__ == "__main__":

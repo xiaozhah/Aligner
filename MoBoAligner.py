@@ -256,9 +256,8 @@ class MoBoAligner(nn.Module):
             log_cond_prob_forward, log_cond_prob_geq_forward = (
                 self.compute_log_cond_prob(energy, text_mask, mel_mask)
             )
-            # According to prior knowledge, force some probabilities to be assigned
             log_cond_prob_geq_forward = geq_pad_on_text_dim(
-                log_cond_prob_geq_forward, text_mask, mel_mask
+                log_cond_prob_geq_forward, text_mask
             )
 
             # 2. Compute forward recursively in the log domain
