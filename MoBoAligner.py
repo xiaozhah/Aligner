@@ -8,7 +8,7 @@ from tensor_utils import (
     reverse_and_pad_head_tail_on_alignment,
     get_invalid_tri_mask,
     gt_pad_on_text_dim,
-    geq_pad_on_text_dim,
+    geq_mask_on_text_dim,
     convert_geq_to_gt,
 )
 from layers import LinearNorm
@@ -256,7 +256,7 @@ class MoBoAligner(nn.Module):
             log_cond_prob_forward, log_cond_prob_geq_forward = (
                 self.compute_log_cond_prob(energy, text_mask, mel_mask)
             )
-            log_cond_prob_geq_forward = geq_pad_on_text_dim(
+            log_cond_prob_geq_forward = geq_mask_on_text_dim(
                 log_cond_prob_geq_forward, text_mask
             )
 

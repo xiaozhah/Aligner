@@ -170,14 +170,14 @@ def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask, log_eps):
     )
 
     # (B, I, J-2, J-1) -> (B, I, J-2, J-1)
-    log_cond_prob_gt_backward = geq_pad_on_text_dim(
+    log_cond_prob_gt_backward = geq_mask_on_text_dim(
         log_cond_prob_gt_backward, text_mask
     )
 
     return log_cond_prob_gt_backward
 
 
-def geq_pad_on_text_dim(log_cond_prob_geq_or_gt, text_mask):
+def geq_mask_on_text_dim(log_cond_prob_geq_or_gt, text_mask):
     """
     pad the last text dimension which using prior knowledge for "greater than or equal to" format
 
