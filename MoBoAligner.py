@@ -1,19 +1,21 @@
-from typing import Optional, List, Tuple
+import math
+from typing import List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
-import math
+import monotonic_align
+
+from layers import LinearNorm
 from tensor_utils import (
-    shift_tensor,
     compute_max_length_diff,
-    reverse_and_pad_head_tail_on_alignment,
+    convert_geq_to_gt,
+    geq_mask_on_text_dim,
     get_invalid_tri_mask,
     gt_pad_on_text_dim,
-    geq_mask_on_text_dim,
-    convert_geq_to_gt,
+    reverse_and_pad_head_tail_on_alignment,
+    shift_tensor,
 )
-from layers import LinearNorm
-import numpy as np
-import monotonic_align
 
 # Define a very small logarithmic value to avoid division by zero or negative infinity in logarithmic calculations
 LOG_EPS = -1000
