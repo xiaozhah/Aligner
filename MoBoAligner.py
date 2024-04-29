@@ -229,18 +229,18 @@ class MoBoAligner(nn.Module):
         Compute the soft alignment and the expanded text embeddings.
 
         Args:
-            text_embeddings (torch.Tensor): The text embeddings of shape (B, I, D_text).
-            mel_embeddings (torch.Tensor): The mel spectrogram embeddings of shape (B, J, D_mel).
-            text_mask (torch.Tensor): The text mask of shape (B, I).
-            mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
+            text_embeddings (torch.FloatTensor): The text embeddings of shape (B, I, D_text).
+            mel_embeddings (torch.FloatTensor): The mel spectrogram embeddings of shape (B, J, D_mel).
+            text_mask (torch.BoolTensor): The text mask of shape (B, I).
+            mel_mask (torch.BoolTensor): The mel spectrogram mask of shape (B, J).
             direction (List[str]): The direction of the alignment, a subset of ["forward", "backward"].
             return_hard_alignment (bool): Whether to return the hard alignment which obtained by Viterbi decoding.
 
         Returns:
-            Tuple[Optional[torch.Tensor], Optional[torch.Tensor], torch.Tensor]:
-                - soft_alignment (torch.Tensor): The soft alignment tensor of shape (B, I, J) in the log domain.
-                - hard_alignment (torch.Tensor): The hard alignment tensor of shape (B, I, J).
-                - expanded_text_embeddings (torch.Tensor): The expanded text embeddings of shape (B, J, D_text).
+            Tuple[Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor]:
+                - soft_alignment (torch.FloatTensor): The soft alignment tensor of shape (B, I, J) in the log domain.
+                - hard_alignment (torch.FloatTensor): The hard alignment tensor of shape (B, I, J).
+                - expanded_text_embeddings (torch.FloatTensor): The expanded text embeddings of shape (B, J, D_text).
         """
         # Check length of text < length of mel and direction is either "forward" or "backward"
         self.check_parameter_validity(text_mask, mel_mask, direction)
@@ -248,7 +248,7 @@ class MoBoAligner(nn.Module):
         # Compute the energy matrix
         energy = self.compute_energy(text_embeddings, mel_embeddings)
 
-        # Apply Gussian noise
+        # Apply Gaussian noise
         energy = self.apply_noise(energy)
 
         alignment_mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)
@@ -322,7 +322,7 @@ class MoBoAligner(nn.Module):
                 log_boundary_forward, log_boundary_backward
             )
 
-        # Use soft_alignment to compute the expanded text embeddings
+        # Use soft_alignment to compute the expanded text_embeddings
         expanded_text_embeddings = torch.bmm(
             torch.exp(soft_alignment).transpose(1, 2), text_embeddings
         )
