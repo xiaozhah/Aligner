@@ -15,7 +15,9 @@ from layers import LinearNorm
 import numpy as np
 import monotonic_align
 
+# Define a very small logarithmic value to avoid division by zero or negative infinity in logarithmic calculations
 LOG_EPS = -1000
+# Calculate the natural logarithm of 2 and store it for repeated use to improve efficiency
 LOG_2 = math.log(2.0)
 
 
