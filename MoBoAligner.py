@@ -43,10 +43,15 @@ class MoBoAligner(nn.Module):
         self.noise_scale = noise_scale
 
     def check_parameter_validity(self, text_mask, mel_mask, direction):
-        if not (len(direction) >= 1 and set(direction).issubset(set([self.FORWARD, self.BACKWARD]))):
+        if not (
+            len(direction) >= 1
+            and set(direction).issubset(set(['forward', 'backward']))
+        ):
             raise ValueError("Direction must be a subset of 'forward' or 'backward'.")
         if not torch.all(text_mask.sum(1) < mel_mask.sum(1)):
-            raise ValueError("\033[1;31mThe dimension of text embeddings (I) is greater than or equal to the dimension of mel spectrogram embeddings (J), which is not allowed.\033[m")
+            raise ValueError(
+                "The dimension of text embeddings (I) is greater than or equal to the dimension of mel spectrogram embeddings (J), which is not allowed."
+            )
 
     def compute_energy(self, text_embeddings, mel_embeddings):
         """
