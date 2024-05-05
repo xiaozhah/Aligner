@@ -47,7 +47,7 @@ class MoBoAligner(nn.Module):
     def check_parameter_validity(self, text_mask, mel_mask, direction):
         if not (
             len(direction) >= 1
-            and set(direction).issubset(set(['forward', 'backward']))
+            and set(direction).issubset(set(["forward", "backward"]))
         ):
             raise ValueError("Direction must be a subset of 'forward' or 'backward'.")
         if not torch.all(text_mask.sum(1) < mel_mask.sum(1)):
@@ -64,7 +64,7 @@ class MoBoAligner(nn.Module):
             mel_embeddings (torch.Tensor): The mel spectrogram embeddings of shape (B, J, D_mel).
 
         Returns:
-            torch.Tensor: The energy matrix of shape (B, I, J).
+            torch.Tensor: The energy matrix of shape (B, I, J) which applied Gaussian noise.
         """
         processed_mel = self.mel_layer(mel_embeddings.unsqueeze(1))  # (B, 1, J, D_att)
         processed_text = self.text_layer(
@@ -73,20 +73,11 @@ class MoBoAligner(nn.Module):
         energy = self.v(torch.tanh(processed_mel + processed_text))  # (B, I, J, 1)
 
         energy = energy.squeeze(-1)  # (B, I, J)
-        return energy
 
-    def apply_noise(self, energy):
-        """
-        Apply gussian noise to the energy matrix.
-
-        Args:
-            energy (torch.Tensor): The energy matrix of shape (B, I, J).
-
-        Returns:
-            torch.Tensor: The energy matrix with gussian noise applied of shape (B, I, J).
-        """
         noise = torch.randn_like(energy) * self.noise_scale
-        return F.sigmoid(energy + noise)
+        energy = F.sigmoid(energy + noise)
+
+        return energy
 
     def compute_reversed_energy_and_masks(self, energy, text_mask, mel_mask):
         """
@@ -252,11 +243,8 @@ class MoBoAligner(nn.Module):
         # Check length of text < length of mel and direction is either "forward" or "backward"
         self.check_parameter_validity(text_mask, mel_mask, direction)
 
-        # Compute the energy matrix
+        # Compute the energy matrix and apply noise
         energy = self.compute_energy(text_embeddings, mel_embeddings)
-
-        # Apply Gaussian noise
-        energy = self.apply_noise(energy)
 
         alignment_mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)
 
