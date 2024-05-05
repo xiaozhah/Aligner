@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import monotonic_align
 
 from layers import LinearNorm
@@ -36,6 +37,7 @@ class MoBoAligner(nn.Module):
             attention_dim,
             1,
             bias=True,
+            w_init_gain="sigmoid",
             weight_norm=True,
             init_weight_norm=math.sqrt(1 / attention_dim),
         )
@@ -84,7 +86,7 @@ class MoBoAligner(nn.Module):
             torch.Tensor: The energy matrix with gussian noise applied of shape (B, I, J).
         """
         noise = torch.randn_like(energy) * self.noise_scale
-        return energy + noise
+        return F.sigmoid(energy + noise)
 
     def compute_reversed_energy_and_masks(self, energy, text_mask, mel_mask):
         """
