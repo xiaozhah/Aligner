@@ -10,6 +10,10 @@ torch.manual_seed(1234)
 I = 10
 J = 100
 device = "cpu"
+
+if device == 'cuda':
+    torch.cuda.reset_max_memory_allocated()  # 重置显存使用情况
+
 # Initialize the text and mel embedding tensors
 text_embeddings = torch.randn(
     2, I, 10, requires_grad=True, device=device
@@ -44,6 +48,10 @@ print("Hard alignment:")
 print(hard_alignment.shape)
 print("Expanded text embeddings:")
 print(expanded_text_embeddings.mean())
+
+if device == 'cuda':
+    # Print the memory usage
+    print(f"Memory allocated: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB")
 
 # Backward pass test
 with torch.autograd.detect_anomaly():
