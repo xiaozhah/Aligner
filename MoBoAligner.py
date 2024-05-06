@@ -243,7 +243,7 @@ class MoBoAligner(nn.Module):
         # Check length of text < length of mel and direction is either "forward" or "backward"
         self.check_parameter_validity(text_mask, mel_mask, direction)
 
-        alignment_mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1) # (B, I, J)
+        alignment_mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)  # (B, I, J)
 
         # Compute the energy matrix and apply noise
         energy = self.compute_energy(text_embeddings, mel_embeddings)
