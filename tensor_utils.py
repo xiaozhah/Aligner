@@ -95,7 +95,7 @@ def compute_max_length_diff(mask):
     return lengths.max() - lengths
 
 
-def gen_i_range_mask(B, I, J, K, i_lens, j_lens):
+def gen_i_range_mask(B, I, J, i_lens, j_lens):
     indices_i = (
         torch.arange(I, device=i_lens.device).unsqueeze(0).unsqueeze(-1).repeat(B, 1, J)
     )
@@ -132,7 +132,7 @@ def gen_tri(B, I, J, K, device):
 def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
     i_lens = text_mask.sum(1)
     j_lens = mel_mask.sum(1)
-    energy_mask = gen_i_range_mask(B, I, J, K, i_lens, j_lens)
+    energy_mask = gen_i_range_mask(B, I, J, i_lens, j_lens)
     tri_ijk_mask = gen_tri(B, I, J, K, device=text_mask.device)
     return (~energy_mask) | (~tri_ijk_mask)
 
