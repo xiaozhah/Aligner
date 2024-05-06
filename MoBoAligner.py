@@ -5,8 +5,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import monotonic_align
 
+import monotonic_align
 from layers import LinearNorm
 from tensor_utils import (
     compute_max_length_diff,
