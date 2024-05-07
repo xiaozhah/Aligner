@@ -9,7 +9,7 @@ def float_to_int_duration_batch(dur, T, mask):
         T (torch.Tensor): input int duration, shape (B,)
         mask (torch.Tensor): mask, shape (B, L)
     Returns:
-        torch.Tensor: output int duration, shape (B, L)
+        torch.LongTensor: output int duration, shape (B, L)
     """
     dur = dur.data.cpu().numpy().astype(np.float32)
     T = T.data.cpu().numpy().astype(np.int32)
