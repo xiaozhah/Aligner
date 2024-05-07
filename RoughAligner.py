@@ -40,8 +40,9 @@ class RoughAligner(nn.Module):
         x = x.transpose(0, 1) * text_mask.unsqueeze(-1)
         x = self.final_layer(x).squeeze(-1) * text_mask
 
-        durations_normalized = x / x.sum(dim=1, keepdim=True) 
+        durations_normalized = x / x.sum(dim=1, keepdim=True)
         return durations_normalized
+
 
 if __name__ == "__main__":
     # 设置随机种子以保证结果可复现
@@ -55,7 +56,9 @@ if __name__ == "__main__":
     dropout = 0.1
 
     # 创建粗略对齐器实例
-    aligner = RoughAligner(text_channels, audio_channels, attention_dim, attention_head, dropout)
+    aligner = RoughAligner(
+        text_channels, audio_channels, attention_dim, attention_head, dropout
+    )
 
     # 生成随机输入数据
     batch_size = 2
@@ -71,7 +74,8 @@ if __name__ == "__main__":
     audio_mask[0, 7:] = False
 
     # 运行粗略对齐器
-    durations_normalized = aligner(text_embeddings, audio_embeddings, text_mask, audio_mask)
+    durations_normalized = aligner(
+        text_embeddings, audio_embeddings, text_mask, audio_mask
+    )
     # 打印归一化的时长占比
     print(durations_normalized)
-
