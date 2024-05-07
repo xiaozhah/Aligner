@@ -2,24 +2,24 @@ cimport cython
 from cython.parallel import prange
 import numpy as np
 
-cdef int round_to_int(double x) nogil:
+cdef int round_to_int(float x) nogil:
     return <int>(x + 0.5)
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void float_to_int_duration_each(double[:] dur, int[:] int_dur, int T, int[:] mask) nogil:
+cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:] mask) nogil:
     """
     Convert float duration to int duration
 
     Args:
-        dur (double[:]): input float duration, shape (L,)
+        dur (float[:]): input float duration, shape (L,)
         int_dur (int[:]): output int duration, shape (L,)
         T (int): total duration
         mask (int[:]): mask, shape (L,)
     """
     cdef int L = dur.shape[0]
-    cdef double float_sum = 0
+    cdef float float_sum = 0
     cdef int int_sum = 0, j, rounded_dur, valid_count
     
     valid_count = 0
@@ -41,10 +41,10 @@ cdef void float_to_int_duration_each(double[:] dur, int[:] int_dur, int T, int[:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef void float_to_int_duration_batch_c(double[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:
+cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:
     """
     Args:
-        dur (double[:, :]): float duration, shape (B, n)
+        dur (float[:, :]): float duration, shape (B, n)
         T (int[:]): total duration, shape (B,)
         mask (int[:, :]): mask, shape (B, n)
         int_dur (int[:, :]): int duration, shape (B, n)

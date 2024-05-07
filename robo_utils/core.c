@@ -2632,7 +2632,7 @@ static int __Pyx_ValidateAndInit_memviewslice(
                 PyObject *original_obj);
 
 /* ObjectToMemviewSlice.proto */
-static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_dsds_double(PyObject *, int writable_flag);
+static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_dsds_float(PyObject *, int writable_flag);
 
 /* ObjectToMemviewSlice.proto */
 static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_int(PyObject *, int writable_flag);
@@ -2736,7 +2736,7 @@ static PyObject *contiguous = 0;
 static PyObject *indirect_contiguous = 0;
 static int __pyx_memoryview_thread_locks_used;
 static PyThread_type_lock __pyx_memoryview_thread_locks[8];
-static int __pyx_f_10robo_utils_4core_round_to_int(double); /*proto*/
+static int __pyx_f_10robo_utils_4core_round_to_int(float); /*proto*/
 static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviewslice, __Pyx_memviewslice, int, __Pyx_memviewslice); /*proto*/
 static void __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, int __pyx_skip_dispatch); /*proto*/
 static int __pyx_array_allocate_buffer(struct __pyx_array_obj *); /*proto*/
@@ -2774,7 +2774,7 @@ static void __pyx_memoryview_slice_assign_scalar(__Pyx_memviewslice *, int, size
 static void __pyx_memoryview__slice_assign_scalar(char *, Py_ssize_t *, Py_ssize_t *, int, size_t, void *); /*proto*/
 static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *, PyObject *); /*proto*/
 /* #### Code section: typeinfo ### */
-static __Pyx_TypeInfo __Pyx_TypeInfo_double = { "double", NULL, sizeof(double), { 0 }, 0, 'R', 0, 0 };
+static __Pyx_TypeInfo __Pyx_TypeInfo_float = { "float", NULL, sizeof(float), { 0 }, 0, 'R', 0, 0 };
 static __Pyx_TypeInfo __Pyx_TypeInfo_int = { "int", NULL, sizeof(int), { 0 }, 0, __PYX_IS_UNSIGNED(int) ? 'U' : 'I', __PYX_IS_UNSIGNED(int), 0 };
 /* #### Code section: before_global_var ### */
 #define __Pyx_MODULE_NAME "robo_utils.core"
@@ -17357,17 +17357,17 @@ static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *__
 /* "robo_utils/core.pyx":5
  * import numpy as np
  * 
- * cdef int round_to_int(double x) nogil:             # <<<<<<<<<<<<<<
+ * cdef int round_to_int(float x) nogil:             # <<<<<<<<<<<<<<
  *     return <int>(x + 0.5)
  * 
  */
 
-static int __pyx_f_10robo_utils_4core_round_to_int(double __pyx_v_x) {
+static int __pyx_f_10robo_utils_4core_round_to_int(float __pyx_v_x) {
   int __pyx_r;
 
   /* "robo_utils/core.pyx":6
  * 
- * cdef int round_to_int(double x) nogil:
+ * cdef int round_to_int(float x) nogil:
  *     return <int>(x + 0.5)             # <<<<<<<<<<<<<<
  * 
  * @cython.cdivision(True)
@@ -17378,7 +17378,7 @@ static int __pyx_f_10robo_utils_4core_round_to_int(double __pyx_v_x) {
   /* "robo_utils/core.pyx":5
  * import numpy as np
  * 
- * cdef int round_to_int(double x) nogil:             # <<<<<<<<<<<<<<
+ * cdef int round_to_int(float x) nogil:             # <<<<<<<<<<<<<<
  *     return <int>(x + 0.5)
  * 
  */
@@ -17391,14 +17391,14 @@ static int __pyx_f_10robo_utils_4core_round_to_int(double __pyx_v_x) {
 /* "robo_utils/core.pyx":11
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cdef void float_to_int_duration_each(double[:] dur, int[:] int_dur, int T, int[:] mask) nogil:             # <<<<<<<<<<<<<<
+ * cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:] mask) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Convert float duration to int duration
  */
 
 static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviewslice __pyx_v_dur, __Pyx_memviewslice __pyx_v_int_dur, int __pyx_v_T, __Pyx_memviewslice __pyx_v_mask) {
   int __pyx_v_L;
-  double __pyx_v_float_sum;
+  float __pyx_v_float_sum;
   int __pyx_v_int_sum;
   int __pyx_v_rounded_dur;
   int __pyx_v_valid_count;
@@ -17420,7 +17420,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  *         mask (int[:]): mask, shape (L,)
  *     """
  *     cdef int L = dur.shape[0]             # <<<<<<<<<<<<<<
- *     cdef double float_sum = 0
+ *     cdef float float_sum = 0
  *     cdef int int_sum = 0, j, rounded_dur, valid_count
  */
   __pyx_v_L = (__pyx_v_dur.shape[0]);
@@ -17428,7 +17428,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   /* "robo_utils/core.pyx":22
  *     """
  *     cdef int L = dur.shape[0]
- *     cdef double float_sum = 0             # <<<<<<<<<<<<<<
+ *     cdef float float_sum = 0             # <<<<<<<<<<<<<<
  *     cdef int int_sum = 0, j, rounded_dur, valid_count
  * 
  */
@@ -17436,7 +17436,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
 
   /* "robo_utils/core.pyx":23
  *     cdef int L = dur.shape[0]
- *     cdef double float_sum = 0
+ *     cdef float float_sum = 0
  *     cdef int int_sum = 0, j, rounded_dur, valid_count             # <<<<<<<<<<<<<<
  * 
  *     valid_count = 0
@@ -17492,7 +17492,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  * 
  */
       __pyx_t_4 = __pyx_v_i;
-      __pyx_v_float_sum = (__pyx_v_float_sum + (*((double *) ( /* dim=0 */ (__pyx_v_dur.data + __pyx_t_4 * __pyx_v_dur.strides[0]) ))));
+      __pyx_v_float_sum = (__pyx_v_float_sum + (*((float *) ( /* dim=0 */ (__pyx_v_dur.data + __pyx_t_4 * __pyx_v_dur.strides[0]) ))));
 
       /* "robo_utils/core.pyx":30
  *             valid_count += 1
@@ -17593,7 +17593,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   /* "robo_utils/core.pyx":11
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cdef void float_to_int_duration_each(double[:] dur, int[:] int_dur, int T, int[:] mask) nogil:             # <<<<<<<<<<<<<<
+ * cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:] mask) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Convert float duration to int duration
  */
@@ -17614,7 +17614,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
 /* "robo_utils/core.pyx":44
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef void float_to_int_duration_batch_c(double[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
+ * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Args:
  */
@@ -17875,7 +17875,7 @@ __pyx_f_10robo_utils_4core_float_to_int_duration_each(__pyx_t_4, __pyx_t_5, (*((
   /* "robo_utils/core.pyx":44
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef void float_to_int_duration_batch_c(double[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
+ * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Args:
  */
@@ -17905,7 +17905,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-PyDoc_STRVAR(__pyx_doc_10robo_utils_4core_float_to_int_duration_batch_c, "\n    Args:\n        dur (double[:, :]): float duration, shape (B, n)\n        T (int[:]): total duration, shape (B,)\n        mask (int[:, :]): mask, shape (B, n)\n        int_dur (int[:, :]): int duration, shape (B, n)\n    ");
+PyDoc_STRVAR(__pyx_doc_10robo_utils_4core_float_to_int_duration_batch_c, "\n    Args:\n        dur (float[:, :]): float duration, shape (B, n)\n        T (int[:]): total duration, shape (B,)\n        mask (int[:, :]): mask, shape (B, n)\n        int_dur (int[:, :]): int duration, shape (B, n)\n    ");
 static PyMethodDef __pyx_mdef_10robo_utils_4core_1float_to_int_duration_batch_c = {"float_to_int_duration_batch_c", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_10robo_utils_4core_1float_to_int_duration_batch_c, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_10robo_utils_4core_float_to_int_duration_batch_c};
 static PyObject *__pyx_pw_10robo_utils_4core_1float_to_int_duration_batch_c(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
@@ -18005,7 +18005,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
       values[3] = __Pyx_Arg_FASTCALL(__pyx_args, 3);
     }
-    __pyx_v_dur = __Pyx_PyObject_to_MemoryviewSlice_dsds_double(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_dur.memview)) __PYX_ERR(0, 44, __pyx_L3_error)
+    __pyx_v_dur = __Pyx_PyObject_to_MemoryviewSlice_dsds_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_dur.memview)) __PYX_ERR(0, 44, __pyx_L3_error)
     __pyx_v_T = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_T.memview)) __PYX_ERR(0, 44, __pyx_L3_error)
     __pyx_v_mask = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_mask.memview)) __PYX_ERR(0, 44, __pyx_L3_error)
     __pyx_v_int_dur = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[3], PyBUF_WRITABLE); if (unlikely(!__pyx_v_int_dur.memview)) __PYX_ERR(0, 44, __pyx_L3_error)
@@ -19332,7 +19332,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "robo_utils/core.pyx":44
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef void float_to_int_duration_batch_c(double[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
+ * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Args:
  */
@@ -20402,7 +20402,7 @@ if (!__Pyx_RefNanny) {
  * from cython.parallel import prange
  * import numpy as np             # <<<<<<<<<<<<<<
  * 
- * cdef int round_to_int(double x) nogil:
+ * cdef int round_to_int(float x) nogil:
  */
   __pyx_t_7 = __Pyx_ImportDottedModule(__pyx_n_s_numpy, NULL); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 3, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
@@ -20412,7 +20412,7 @@ if (!__Pyx_RefNanny) {
   /* "robo_utils/core.pyx":44
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef void float_to_int_duration_batch_c(double[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
+ * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Args:
  */
@@ -25871,7 +25871,7 @@ no_fail:
 }
 
 /* ObjectToMemviewSlice */
-  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_dsds_double(PyObject *obj, int writable_flag) {
+  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_dsds_float(PyObject *obj, int writable_flag) {
     __Pyx_memviewslice result = { 0, 0, { 0 }, { 0 }, { 0 } };
     __Pyx_BufFmt_StackElem stack[1];
     int axes_specs[] = { (__Pyx_MEMVIEW_DIRECT | __Pyx_MEMVIEW_STRIDED), (__Pyx_MEMVIEW_DIRECT | __Pyx_MEMVIEW_STRIDED) };
@@ -25882,7 +25882,7 @@ no_fail:
     }
     retcode = __Pyx_ValidateAndInit_memviewslice(axes_specs, 0,
                                                  PyBUF_RECORDS_RO | writable_flag, 2,
-                                                 &__Pyx_TypeInfo_double, stack,
+                                                 &__Pyx_TypeInfo_float, stack,
                                                  &result, obj);
     if (unlikely(retcode == -1))
         goto __pyx_fail;
