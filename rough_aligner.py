@@ -45,22 +45,18 @@ class RoughAligner(nn.Module):
 
 
 if __name__ == "__main__":
-    # 设置随机种子以保证结果可复现
     torch.manual_seed(0)
 
-    # 定义输入维度和隐藏层维度
     text_channels = 10
     audio_channels = 20
     attention_dim = 128
     attention_head = 8
     dropout = 0.1
 
-    # 创建粗略对齐器实例
     aligner = RoughAligner(
         text_channels, audio_channels, attention_dim, attention_head, dropout
     )
 
-    # 生成随机输入数据
     batch_size = 2
     text_len = 5
     audio_len = 30
@@ -73,9 +69,7 @@ if __name__ == "__main__":
     text_mask[1, 3:] = False
     audio_mask[0, 7:] = False
 
-    # 运行粗略对齐器
     durations_normalized = aligner(
         text_embeddings, audio_embeddings, text_mask, audio_mask
     )
-    # 打印归一化的时长占比
     print(durations_normalized)
