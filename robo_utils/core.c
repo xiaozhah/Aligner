@@ -17400,9 +17400,9 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   int __pyx_v_L;
   float __pyx_v_float_sum;
   int __pyx_v_int_sum;
+  int __pyx_v_i;
   int __pyx_v_rounded_dur;
   int __pyx_v_valid_count;
-  int __pyx_v_i;
   int __pyx_t_1;
   int __pyx_t_2;
   int __pyx_t_3;
@@ -17421,7 +17421,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  *     """
  *     cdef int L = dur.shape[0]             # <<<<<<<<<<<<<<
  *     cdef float float_sum = 0
- *     cdef int int_sum = 0, j, rounded_dur, valid_count
+ *     cdef int int_sum = 0, i, rounded_dur, valid_count
  */
   __pyx_v_L = (__pyx_v_dur.shape[0]);
 
@@ -17429,7 +17429,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  *     """
  *     cdef int L = dur.shape[0]
  *     cdef float float_sum = 0             # <<<<<<<<<<<<<<
- *     cdef int int_sum = 0, j, rounded_dur, valid_count
+ *     cdef int int_sum = 0, i, rounded_dur, valid_count
  * 
  */
   __pyx_v_float_sum = 0.0;
@@ -17437,14 +17437,14 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   /* "robo_utils/core.pyx":23
  *     cdef int L = dur.shape[0]
  *     cdef float float_sum = 0
- *     cdef int int_sum = 0, j, rounded_dur, valid_count             # <<<<<<<<<<<<<<
+ *     cdef int int_sum = 0, i, rounded_dur, valid_count             # <<<<<<<<<<<<<<
  * 
  *     valid_count = 0
  */
   __pyx_v_int_sum = 0;
 
   /* "robo_utils/core.pyx":25
- *     cdef int int_sum = 0, j, rounded_dur, valid_count
+ *     cdef int int_sum = 0, i, rounded_dur, valid_count
  * 
  *     valid_count = 0             # <<<<<<<<<<<<<<
  *     for i in range(L):
@@ -17566,7 +17566,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  *         else:
  *             break             # <<<<<<<<<<<<<<
  * 
- *     # Adjust the last element to match the total duration
+ *     # Adjust the last valid element, so int_dur matches the total duration
  */
     /*else*/ {
       goto __pyx_L4_break;
@@ -17577,7 +17577,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
 
   /* "robo_utils/core.pyx":41
  * 
- *     # Adjust the last element to match the total duration
+ *     # Adjust the last valid element, so int_dur matches the total duration
  *     if valid_count > 0:             # <<<<<<<<<<<<<<
  *         int_dur[valid_count - 1] += T - int_sum
  * 
@@ -17586,7 +17586,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   if (__pyx_t_5) {
 
     /* "robo_utils/core.pyx":42
- *     # Adjust the last element to match the total duration
+ *     # Adjust the last valid element, so int_dur matches the total duration
  *     if valid_count > 0:
  *         int_dur[valid_count - 1] += T - int_sum             # <<<<<<<<<<<<<<
  * 
@@ -17597,7 +17597,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
 
     /* "robo_utils/core.pyx":41
  * 
- *     # Adjust the last element to match the total duration
+ *     # Adjust the last valid element, so int_dur matches the total duration
  *     if valid_count > 0:             # <<<<<<<<<<<<<<
  *         int_dur[valid_count - 1] += T - int_sum
  * 

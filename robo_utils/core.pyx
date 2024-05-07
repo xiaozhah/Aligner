@@ -20,7 +20,7 @@ cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:]
     """
     cdef int L = dur.shape[0]
     cdef float float_sum = 0
-    cdef int int_sum = 0, j, rounded_dur, valid_count
+    cdef int int_sum = 0, i, rounded_dur, valid_count
     
     valid_count = 0
     for i in range(L):
