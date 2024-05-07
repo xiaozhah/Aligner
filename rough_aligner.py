@@ -67,7 +67,7 @@ if __name__ == "__main__":
     audio_mask = torch.ones(batch_size, audio_len).bool()
 
     text_mask[1, 3:] = False
-    audio_mask[0, 7:] = False
+    audio_mask[1, 7:] = False
 
     durations_normalized = aligner(
         text_embeddings, audio_embeddings, text_mask, audio_mask
