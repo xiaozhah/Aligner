@@ -25,8 +25,6 @@ def test_float_to_int_duration_batch():
 
     expected_output = np.array([[1, 1, 0, 0, 0],
                                 [1, 1, 1, 0, 0]])
-    
-    print(int_dur)
     assert np.array_equal(int_dur.data.cpu().numpy(), expected_output)
     
     print("All tests passed!")
