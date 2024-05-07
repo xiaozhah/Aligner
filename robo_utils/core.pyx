@@ -34,20 +34,22 @@ cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:]
             
             int_dur[i] = rounded_dur
             int_sum += rounded_dur
+        else:
+            break
     
-    # Adjust the last element to match the total duration
+    # Adjust the last valid element, so int_dur matches the total duration
     if valid_count > 0:
-        int_dur[L - 1] += T - int_sum
+        int_dur[valid_count - 1] += T - int_sum
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:
     """
     Args:
-        dur (float[:, :]): float duration, shape (B, n)
+        dur (float[:, :]): float duration, shape (B, L)
         T (int[:]): total duration, shape (B,)
-        mask (int[:, :]): mask, shape (B, n)
-        int_dur (int[:, :]): int duration, shape (B, n)
+        mask (int[:, :]): mask, shape (B, L)
+        int_dur (int[:, :]): int duration, shape (B, L)
     """
     cdef int B = dur.shape[0]
     

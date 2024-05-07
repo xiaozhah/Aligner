@@ -17537,7 +17537,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  * 
  *             int_dur[i] = rounded_dur             # <<<<<<<<<<<<<<
  *             int_sum += rounded_dur
- * 
+ *         else:
  */
       __pyx_t_4 = __pyx_v_i;
       *((int *) ( /* dim=0 */ (__pyx_v_int_dur.data + __pyx_t_4 * __pyx_v_int_dur.strides[0]) )) = __pyx_v_rounded_dur;
@@ -17546,8 +17546,8 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  * 
  *             int_dur[i] = rounded_dur
  *             int_sum += rounded_dur             # <<<<<<<<<<<<<<
- * 
- *     # Adjust the last element to match the total duration
+ *         else:
+ *             break
  */
       __pyx_v_int_sum = (__pyx_v_int_sum + __pyx_v_rounded_dur);
 
@@ -17558,34 +17558,48 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  *             valid_count += 1
  *             float_sum += dur[i]
  */
+      goto __pyx_L5;
     }
-  }
 
-  /* "robo_utils/core.pyx":39
+    /* "robo_utils/core.pyx":38
+ *             int_sum += rounded_dur
+ *         else:
+ *             break             # <<<<<<<<<<<<<<
+ * 
+ *     # Adjust the last element to match the total duration
+ */
+    /*else*/ {
+      goto __pyx_L4_break;
+    }
+    __pyx_L5:;
+  }
+  __pyx_L4_break:;
+
+  /* "robo_utils/core.pyx":41
  * 
  *     # Adjust the last element to match the total duration
  *     if valid_count > 0:             # <<<<<<<<<<<<<<
- *         int_dur[L - 1] += T - int_sum
+ *         int_dur[valid_count - 1] += T - int_sum
  * 
  */
   __pyx_t_5 = (__pyx_v_valid_count > 0);
   if (__pyx_t_5) {
 
-    /* "robo_utils/core.pyx":40
+    /* "robo_utils/core.pyx":42
  *     # Adjust the last element to match the total duration
  *     if valid_count > 0:
- *         int_dur[L - 1] += T - int_sum             # <<<<<<<<<<<<<<
+ *         int_dur[valid_count - 1] += T - int_sum             # <<<<<<<<<<<<<<
  * 
  * @cython.boundscheck(False)
  */
-    __pyx_t_4 = (__pyx_v_L - 1);
+    __pyx_t_4 = (__pyx_v_valid_count - 1);
     *((int *) ( /* dim=0 */ (__pyx_v_int_dur.data + __pyx_t_4 * __pyx_v_int_dur.strides[0]) )) += (__pyx_v_T - __pyx_v_int_sum);
 
-    /* "robo_utils/core.pyx":39
+    /* "robo_utils/core.pyx":41
  * 
  *     # Adjust the last element to match the total duration
  *     if valid_count > 0:             # <<<<<<<<<<<<<<
- *         int_dur[L - 1] += T - int_sum
+ *         int_dur[valid_count - 1] += T - int_sum
  * 
  */
   }
@@ -17611,7 +17625,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   __pyx_L0:;
 }
 
-/* "robo_utils/core.pyx":44
+/* "robo_utils/core.pyx":46
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
@@ -17645,8 +17659,8 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__Pyx_memvi
   #endif
   __Pyx_RefNannySetupContext("float_to_int_duration_batch_c", 1);
 
-  /* "robo_utils/core.pyx":52
- *         int_dur (int[:, :]): int duration, shape (B, n)
+  /* "robo_utils/core.pyx":54
+ *         int_dur (int[:, :]): int duration, shape (B, L)
  *     """
  *     cdef int B = dur.shape[0]             # <<<<<<<<<<<<<<
  * 
@@ -17654,7 +17668,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__Pyx_memvi
  */
   __pyx_v_B = (__pyx_v_dur.shape[0]);
 
-  /* "robo_utils/core.pyx":55
+  /* "robo_utils/core.pyx":57
  * 
  *     cdef int i
  *     for i in prange(B, nogil=True):             # <<<<<<<<<<<<<<
@@ -17704,7 +17718,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__Pyx_memvi
                         {
                             __pyx_v_i = (int)(0 + 1 * __pyx_t_2);
 
-                            /* "robo_utils/core.pyx":56
+                            /* "robo_utils/core.pyx":58
  *     cdef int i
  *     for i in prange(B, nogil=True):
  *         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])             # <<<<<<<<<<<<<<
@@ -17749,7 +17763,7 @@ __pyx_t_7.shape[0] = __pyx_v_mask.shape[1];
 __pyx_t_7.strides[0] = __pyx_v_mask.strides[1];
     __pyx_t_7.suboffsets[0] = -1;
 
-__pyx_f_10robo_utils_4core_float_to_int_duration_each(__pyx_t_4, __pyx_t_5, (*((int *) ( /* dim=0 */ (__pyx_v_T.data + __pyx_t_6 * __pyx_v_T.strides[0]) ))), __pyx_t_7); if (unlikely(__Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 56, __pyx_L8_error)
+__pyx_f_10robo_utils_4core_float_to_int_duration_each(__pyx_t_4, __pyx_t_5, (*((int *) ( /* dim=0 */ (__pyx_v_T.data + __pyx_t_6 * __pyx_v_T.strides[0]) ))), __pyx_t_7); if (unlikely(__Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 58, __pyx_L8_error)
                             __PYX_XCLEAR_MEMVIEW(&__pyx_t_4, 0);
                             __pyx_t_4.memview = NULL; __pyx_t_4.data = NULL;
                             __PYX_XCLEAR_MEMVIEW(&__pyx_t_5, 0);
@@ -17843,7 +17857,7 @@ __pyx_f_10robo_utils_4core_float_to_int_duration_each(__pyx_t_4, __pyx_t_5, (*((
         #endif
       }
 
-      /* "robo_utils/core.pyx":55
+      /* "robo_utils/core.pyx":57
  * 
  *     cdef int i
  *     for i in prange(B, nogil=True):             # <<<<<<<<<<<<<<
@@ -17872,7 +17886,7 @@ __pyx_f_10robo_utils_4core_float_to_int_duration_each(__pyx_t_4, __pyx_t_5, (*((
       }
   }
 
-  /* "robo_utils/core.pyx":44
+  /* "robo_utils/core.pyx":46
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
@@ -17905,7 +17919,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-PyDoc_STRVAR(__pyx_doc_10robo_utils_4core_float_to_int_duration_batch_c, "\n    Args:\n        dur (float[:, :]): float duration, shape (B, n)\n        T (int[:]): total duration, shape (B,)\n        mask (int[:, :]): mask, shape (B, n)\n        int_dur (int[:, :]): int duration, shape (B, n)\n    ");
+PyDoc_STRVAR(__pyx_doc_10robo_utils_4core_float_to_int_duration_batch_c, "\n    Args:\n        dur (float[:, :]): float duration, shape (B, L)\n        T (int[:]): total duration, shape (B,)\n        mask (int[:, :]): mask, shape (B, L)\n        int_dur (int[:, :]): int duration, shape (B, L)\n    ");
 static PyMethodDef __pyx_mdef_10robo_utils_4core_1float_to_int_duration_batch_c = {"float_to_int_duration_batch_c", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_10robo_utils_4core_1float_to_int_duration_batch_c, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_10robo_utils_4core_float_to_int_duration_batch_c};
 static PyObject *__pyx_pw_10robo_utils_4core_1float_to_int_duration_batch_c(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
@@ -17960,7 +17974,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 44, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
@@ -17968,9 +17982,9 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 44, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 1); __PYX_ERR(0, 44, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 1); __PYX_ERR(0, 46, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
@@ -17978,9 +17992,9 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[2]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 44, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 2); __PYX_ERR(0, 44, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 2); __PYX_ERR(0, 46, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
@@ -17988,14 +18002,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[3]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 44, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 3); __PYX_ERR(0, 44, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 3); __PYX_ERR(0, 46, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "float_to_int_duration_batch_c") < 0)) __PYX_ERR(0, 44, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "float_to_int_duration_batch_c") < 0)) __PYX_ERR(0, 46, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 4)) {
       goto __pyx_L5_argtuple_error;
@@ -18005,14 +18019,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
       values[3] = __Pyx_Arg_FASTCALL(__pyx_args, 3);
     }
-    __pyx_v_dur = __Pyx_PyObject_to_MemoryviewSlice_dsds_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_dur.memview)) __PYX_ERR(0, 44, __pyx_L3_error)
-    __pyx_v_T = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_T.memview)) __PYX_ERR(0, 44, __pyx_L3_error)
-    __pyx_v_mask = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_mask.memview)) __PYX_ERR(0, 44, __pyx_L3_error)
-    __pyx_v_int_dur = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[3], PyBUF_WRITABLE); if (unlikely(!__pyx_v_int_dur.memview)) __PYX_ERR(0, 44, __pyx_L3_error)
+    __pyx_v_dur = __Pyx_PyObject_to_MemoryviewSlice_dsds_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_dur.memview)) __PYX_ERR(0, 46, __pyx_L3_error)
+    __pyx_v_T = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_T.memview)) __PYX_ERR(0, 46, __pyx_L3_error)
+    __pyx_v_mask = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_mask.memview)) __PYX_ERR(0, 46, __pyx_L3_error)
+    __pyx_v_int_dur = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[3], PyBUF_WRITABLE); if (unlikely(!__pyx_v_int_dur.memview)) __PYX_ERR(0, 46, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, __pyx_nargs); __PYX_ERR(0, 44, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, __pyx_nargs); __PYX_ERR(0, 46, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -18056,12 +18070,12 @@ static PyObject *__pyx_pf_10robo_utils_4core_float_to_int_duration_batch_c(CYTHO
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("float_to_int_duration_batch_c", 1);
   __Pyx_XDECREF(__pyx_r);
-  if (unlikely(!__pyx_v_dur.memview)) { __Pyx_RaiseUnboundLocalError("dur"); __PYX_ERR(0, 44, __pyx_L1_error) }
-  if (unlikely(!__pyx_v_T.memview)) { __Pyx_RaiseUnboundLocalError("T"); __PYX_ERR(0, 44, __pyx_L1_error) }
-  if (unlikely(!__pyx_v_mask.memview)) { __Pyx_RaiseUnboundLocalError("mask"); __PYX_ERR(0, 44, __pyx_L1_error) }
-  if (unlikely(!__pyx_v_int_dur.memview)) { __Pyx_RaiseUnboundLocalError("int_dur"); __PYX_ERR(0, 44, __pyx_L1_error) }
-  __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__pyx_v_dur, __pyx_v_T, __pyx_v_mask, __pyx_v_int_dur, 0); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 44, __pyx_L1_error)
-  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 44, __pyx_L1_error)
+  if (unlikely(!__pyx_v_dur.memview)) { __Pyx_RaiseUnboundLocalError("dur"); __PYX_ERR(0, 46, __pyx_L1_error) }
+  if (unlikely(!__pyx_v_T.memview)) { __Pyx_RaiseUnboundLocalError("T"); __PYX_ERR(0, 46, __pyx_L1_error) }
+  if (unlikely(!__pyx_v_mask.memview)) { __Pyx_RaiseUnboundLocalError("mask"); __PYX_ERR(0, 46, __pyx_L1_error) }
+  if (unlikely(!__pyx_v_int_dur.memview)) { __Pyx_RaiseUnboundLocalError("int_dur"); __PYX_ERR(0, 46, __pyx_L1_error) }
+  __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__pyx_v_dur, __pyx_v_T, __pyx_v_mask, __pyx_v_int_dur, 0); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 46, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -19329,17 +19343,17 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GIVEREF(__pyx_tuple__18);
   __pyx_codeobj__19 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__18, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_stringsource, __pyx_n_s_pyx_unpickle_Enum, 1, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__19)) __PYX_ERR(1, 1, __pyx_L1_error)
 
-  /* "robo_utils/core.pyx":44
+  /* "robo_utils/core.pyx":46
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Args:
  */
-  __pyx_tuple__20 = PyTuple_Pack(4, __pyx_n_s_dur, __pyx_n_s_T, __pyx_n_s_mask, __pyx_n_s_int_dur); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_tuple__20 = PyTuple_Pack(4, __pyx_n_s_dur, __pyx_n_s_T, __pyx_n_s_mask, __pyx_n_s_int_dur); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 46, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__20);
   __Pyx_GIVEREF(__pyx_tuple__20);
-  __pyx_codeobj__21 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_core_pyx, __pyx_n_s_float_to_int_duration_batch_c, 44, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_codeobj__21 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_core_pyx, __pyx_n_s_float_to_int_duration_batch_c, 46, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 46, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -20409,16 +20423,16 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_7) < 0) __PYX_ERR(0, 3, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-  /* "robo_utils/core.pyx":44
+  /* "robo_utils/core.pyx":46
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Args:
  */
-  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_10robo_utils_4core_1float_to_int_duration_batch_c, 0, __pyx_n_s_float_to_int_duration_batch_c, NULL, __pyx_n_s_robo_utils_core, __pyx_d, ((PyObject *)__pyx_codeobj__21)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_10robo_utils_4core_1float_to_int_duration_batch_c, 0, __pyx_n_s_float_to_int_duration_batch_c, NULL, __pyx_n_s_robo_utils_core, __pyx_d, ((PyObject *)__pyx_codeobj__21)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 46, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_float_to_int_duration_batch_c, __pyx_t_7) < 0) __PYX_ERR(0, 44, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_float_to_int_duration_batch_c, __pyx_t_7) < 0) __PYX_ERR(0, 46, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
   /* "robo_utils/core.pyx":1
