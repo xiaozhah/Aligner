@@ -53,7 +53,7 @@ class RoMoAligner(nn.Module):
             text_embeddings, mel_embeddings, text_mask, mel_mask
         )
 
-        mel_embeddings_resampled = self.resample_mel_embeddings(
+        mel_embeddings_resampled = self.select_mel_embeddings(
             mel_embeddings, durations_normalized, text_mask, mel_mask
         )
 
