@@ -57,8 +57,20 @@ class RoMoAligner(nn.Module):
         return selected_mel_embeddings
 
     def get_possible_boundaries(self, durations_normalized, text_mask, mel_mask, D=3):
-        # Calculate the possible boundaries of each text token based on the results of the rough aligner
-        # if the length of text tokens is I, the number of possible boundaries is about I*(2*D+1)
+        """
+        Calculate the possible boundaries of each text token based on the results of the rough aligner.
+        If the length of text tokens is I, the number of possible boundaries is about K ≈ I*(2*D+1).
+
+        Args:
+            durations_normalized (torch.Tensor): The normalized duration sequence, with a shape of (B, I).
+            text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
+            mel_mask (torch.BoolTensor): The mask for the input mel, with a shape of (B, J).
+            D (int): The number of possible nearest boundary indices for each rough boundary.
+
+        Returns:
+            torch.Tensor: The indices of the possible boundaries, with a shape of (B, I, K).
+            torch.Tensor: The mask for the possible boundaries, with a shape of (B, I, K).
+        """
         T = mel_mask.sum(dim=1)
         float_dur = durations_normalized * T.unsqueeze(1)
         int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
@@ -70,11 +82,22 @@ class RoMoAligner(nn.Module):
     def get_map_d_f(
         self, mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
     ):
+        """
+        Calculate the map_d_f matrix based on the selected boundary indices
+        
+        Args:
+            mat_p_d (torch.Tensor): The soft alignment matrix, with a shape of (B, I, K).
+            selected_boundary_indices (torch.Tensor): The indices of the possible boundaries, with a shape of (B, K).
+            selected_boundary_indices_mask (torch.Tensor): The mask for the possible boundaries, with a shape of (B, K).
+        
+        Returns:
+            torch.Tensor: The map_d_f matrix, with a shape of (B, K, J).
+        """
         repeat_times = F.pad(
             selected_boundary_indices, (1, 0), mode="constant", value=-1
         ).diff(1)
         repeat_times = repeat_times * selected_boundary_indices_mask
-        map_d_f = get_mat_p_f(mat_p_d.transpose(1, 2), repeat_times)
+        map_d_f = get_mat_p_f(mat_p_d.transpose(1, 2), repeat_times)  # (B, K, I) -> (B, K, J)
         return map_d_f
 
     def forward(
