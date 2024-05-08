@@ -326,6 +326,7 @@ class MoBoAligner(nn.Module):
 
         return soft_alignment, hard_alignment
 
+
 if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
 
@@ -336,7 +337,7 @@ if __name__ == "__main__":
     J = 100
     device = "cpu"
 
-    if device == 'cuda':
+    if device == "cuda":
         torch.cuda.reset_max_memory_allocated()  # 重置显存使用情况
 
     # Initialize the text and mel embedding tensors
@@ -355,7 +356,9 @@ if __name__ == "__main__":
     )  # Batch size: 2, Mel frames: J
 
     # Initialize the MoBoAligner model
-    aligner = MoBoAligner(text_embeddings.size(-1), mel_embeddings.size(-1), 128).to(device)
+    aligner = MoBoAligner(text_embeddings.size(-1), mel_embeddings.size(-1), 128).to(
+        device
+    )
 
     soft_alignment, hard_alignment = aligner(
         text_embeddings,
@@ -374,9 +377,11 @@ if __name__ == "__main__":
     print("Expanded text embeddings:")
     print(soft_alignment.mean())
 
-    if device == 'cuda':
+    if device == "cuda":
         # Print the memory usage
-        print(f"Memory allocated: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB")
+        print(
+            f"Memory allocated: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
+        )
 
     # Backward pass test
     with torch.autograd.detect_anomaly():

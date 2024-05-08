@@ -28,7 +28,6 @@ class RoMoAligner(nn.Module):
             text_channels, mel_channels, attention_dim, noise_scale
         )
 
-    
     def get_nearest_boundaries(self, int_dur, text_mask, D=3):
         """
         Calculate the possible boundaries of each text token based on the results of the rough aligner.
@@ -47,7 +46,11 @@ class RoMoAligner(nn.Module):
         batch_size = int_dur.shape[0]
 
         boundary_index = (int_dur.cumsum(1) - 1) * text_mask
-        offsets = torch.arange(-D, D + 1).unsqueeze(0).unsqueeze(-1)
+        offsets = (
+            torch.arange(-D, D + 1, device=boundary_index.device)
+            .unsqueeze(0)
+            .unsqueeze(-1)
+        )
         indices = boundary_index.unsqueeze(1) + offsets
 
         min_indices, max_indices = get_valid_max(boundary_index, text_mask)
@@ -66,7 +69,6 @@ class RoMoAligner(nn.Module):
         unique_indices = unique_indices * unique_indices_mask
 
         return unique_indices, unique_indices_mask
-
 
     def select_mel_embeddings(
         self, mel_embeddings, selected_boundary_indices, selected_boundary_indices_mask
@@ -207,13 +209,18 @@ if __name__ == "__main__":
     batch_size = 2
     text_len = 5
     mel_len = 30
+    device = "cpu"
+
+    aligner = aligner.to(device)
 
     text_embeddings = torch.randn(
-        batch_size, text_len, text_channels, requires_grad=True
+        batch_size, text_len, text_channels, requires_grad=True, device=device
     )
-    mel_embeddings = torch.randn(batch_size, mel_len, mel_channels, requires_grad=True)
-    text_mask = torch.ones(batch_size, text_len).bool()
-    mel_mask = torch.ones(batch_size, mel_len).bool()
+    mel_embeddings = torch.randn(
+        batch_size, mel_len, mel_channels, requires_grad=True, device=device
+    )
+    text_mask = torch.ones(batch_size, text_len, device=device).bool()
+    mel_mask = torch.ones(batch_size, mel_len, device=device).bool()
     text_mask[1, 3:] = False
     mel_mask[1, 7:] = False
 
