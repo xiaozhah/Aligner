@@ -68,6 +68,7 @@ class RoMoAligner(nn.Module):
             D (int): The number of possible nearest boundary indices for each rough boundary.
 
         Returns:
+            torch.Tensor: The float duration sequence, with a shape of (B, I).
             torch.Tensor: The indices of the possible boundaries, with a shape of (B, I, K).
             torch.Tensor: The mask for the possible boundaries, with a shape of (B, I, K).
         """
@@ -77,7 +78,7 @@ class RoMoAligner(nn.Module):
         selected_boundary_indices, selected_boundary_indices_mask = (
             get_nearest_boundaries(int_dur, text_mask, D)
         )
-        return selected_boundary_indices, selected_boundary_indices_mask
+        return float_dur, selected_boundary_indices, selected_boundary_indices_mask
 
     def get_map_d_f(
         self, mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
@@ -123,12 +124,14 @@ class RoMoAligner(nn.Module):
             torch.FloatTensor: The soft alignment matrix, with a shape of (B, I, J).
             torch.FloatTensor: The hard alignment matrix, with a shape of (B, I, J).
             torch.FloatTensor: The expanded text embeddings, with a shape of (B, J, C1).
+            torch.FloatTensor: The duration predicted by the rough aligner, with a shape of (B, I).
+            torch.FloatTensor: The duration searched by the MoBo aligner (hard alignment mode), with a shape of (B, I).
         """
         durations_normalized = self.rough_aligner(
             text_embeddings, mel_embeddings, text_mask, mel_mask
         )
 
-        selected_boundary_indices, selected_boundary_indices_mask = (
+        dur_by_rough, selected_boundary_indices, selected_boundary_indices_mask = (
             self.get_possible_boundaries(durations_normalized, text_mask, mel_mask, D=3)
         )
 
@@ -159,7 +162,9 @@ class RoMoAligner(nn.Module):
         )
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
-        return mat_p_f, hard_mat_p_f, expanded_text_embeddings
+        dur_by_mobo = hard_mat_p_f.sum(2)
+
+        return mat_p_f, hard_mat_p_f, expanded_text_embeddings, dur_by_rough, dur_by_mobo
 
 
 if __name__ == "__main__":
@@ -187,7 +192,7 @@ if __name__ == "__main__":
     text_mask[1, 3:] = False
     mel_mask[1, 7:] = False
 
-    soft_alignment, hard_alignment, expanded_text_embeddings = aligner(
+    soft_alignment, hard_alignment, expanded_text_embeddings, dur_by_rough, dur_by_mobo = aligner(
         text_embeddings,
         mel_embeddings,
         text_mask,
@@ -200,8 +205,11 @@ if __name__ == "__main__":
     print("Expanded text embeddings shape:", expanded_text_embeddings.shape)
 
     # Backward pass test
+    dur_GT = (dur_by_mobo + 1).log() # computed by hard alignment, no gradient
+    dur_loss = F.mse_loss(dur_by_rough, dur_GT, reduction="mean")
+    loss = dur_loss + expanded_text_embeddings.mean()
     with torch.autograd.detect_anomaly():
-        expanded_text_embeddings.mean().backward()
+        loss.backward()
 
     print("Gradient for text_embeddings:")
     print(text_embeddings.grad.mean())
