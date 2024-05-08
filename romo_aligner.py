@@ -7,6 +7,19 @@ from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
 import robo_utils
 
+def get_indices(int_dur, text_mask, offsets_win_size=3):
+    boundry_index = (int_dur.cumsum(1)-1) * text_mask
+
+    batch_size = boundry_index.shape[0]
+    offsets = torch.arange(-offsets_win_size, offsets_win_size+1).unsqueeze(0).unsqueeze(-1)
+    indices = boundry_index.unsqueeze(1) + offsets
+
+    min_indices = torch.tensor([0] * batch_size).long().unsqueeze(1).unsqueeze(2)
+    max_indices = (int_dur.sum(1)-1).unsqueeze(1).unsqueeze(2)
+    clamped_indices = torch.clamp(indices, min=min_indices, max=max_indices)
+    clamped_indices = clamped_indices.view(batch_size, -1)
+    return clamped_indices
+
 class RoMoAligner(nn.Module):
     def __init__(
         self,
@@ -55,48 +68,30 @@ class RoMoAligner(nn.Module):
 
         return soft_alignment, hard_alignment, expanded_text_embeddings
 
-    def resample_mel_embeddings(
+    def select_mel_embeddings(
         self, mel_embeddings, durations_normalized, text_mask, mel_mask
     ):
         """
-        根据粗略对齐器预测的归一化时长,对mel_embeddings进行重采样。
+        Select several boundary indices of mel_embeddings according to the normalized duration predicted by the rough aligner.
 
         Args:
-            mel_embeddings (torch.Tensor): 原始的mel特征序列,shape为(B, J, C)。
-            durations_normalized (torch.Tensor): 归一化的每个文本token的时长占比,shape为(B, I)。
-            text_mask (torch.Tensor): 文本序列的mask,shape为(B, I)。
-            mel_mask (torch.Tensor): 原始mel特征序列的mask,shape为(B, J)。
+            mel_embeddings (torch.Tensor): The original mel feature sequence, shape is (B, J, C).
+            durations_normalized (torch.Tensor): The normalized duration proportion of each text token, shape is (B, I).
+            text_mask (torch.Tensor): The mask of the text sequence, shape is (B, I).
+            mel_mask (torch.Tensor): The mask of the original mel feature sequence, shape is (B, J).
 
         Returns:
-            torch.Tensor: 重采样后的mel特征序列,shape为(B, I, C)。
+            torch.Tensor: The selected mel feature sequence, shape is (B, I, C).
         """
-        # 根据durations_normalized和text_mask计算每个文本token对应的帧数
+        # Calculate the number of frames corresponding to each text token
         T = mel_mask.sum(dim=1)
-        dur = durations_normalized * T.unsqueeze(1)
+        float_dur = durations_normalized * T.unsqueeze(1)
+        int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
 
-        int_dur = robo_utils.float_to_int_duration(dur, T, text_mask)
+        selected_boundry_indices = get_indices(int_dur, text_mask)
 
-        # 根据mel_lengths对mel_embeddings进行重采样
-        mel_embeddings_resampled = []
-        for i in range(mel_embeddings.size(0)):
-            mel_embedding = mel_embeddings[i, : int_dur[i].max()]
-            mel_embedding_resampled = (
-                F.interpolate(
-                    mel_embedding.transpose(0, 1).unsqueeze(0),
-                    size=int_dur[i],
-                    mode="linear",
-                    align_corners=False,
-                )
-                .squeeze(0)
-                .transpose(0, 1)
-            )
-            mel_embeddings_resampled.append(mel_embedding_resampled)
 
-        mel_embeddings_resampled = torch.nn.utils.rnn.pad_sequence(
-            mel_embeddings_resampled, batch_first=True
-        )
-
-        return mel_embeddings_resampled
+        return mel_embeddings_selected
 
 
 if __name__ == "__main__":

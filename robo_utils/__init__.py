@@ -3,7 +3,8 @@ import torch
 from .robo_utils.core import float_to_int_duration_batch_c
 
 def float_to_int_duration(dur, T, mask):  
-    """ Cython optimised version.
+    """ Cython optimised version of converting float duration to int duration.
+    
     Args:
         dur (torch.Tensor): input float duration, shape (B, L)
         T (torch.Tensor): input int duration, shape (B,)
