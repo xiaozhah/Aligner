@@ -317,17 +317,11 @@ class MoBoAligner(nn.Module):
                 log_boundary_forward, log_boundary_backward
             )
 
-        # Use soft_alignment to compute the expanded text_embeddings
-        expanded_text_embeddings = torch.bmm(
-            torch.exp(soft_alignment).transpose(1, 2), text_embeddings
-        )
-        expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
-
         hard_alignment = None
         if return_hard_alignment:
             hard_alignment = self.compute_hard_alignment(soft_alignment, alignment_mask)
 
-        return soft_alignment, hard_alignment, expanded_text_embeddings
+        return soft_alignment, hard_alignment
 
 if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
@@ -360,7 +354,7 @@ if __name__ == "__main__":
     # Initialize the MoBoAligner model
     aligner = MoBoAligner(text_embeddings.size(-1), mel_embeddings.size(-1), 128).to(device)
 
-    soft_alignment, hard_alignment, expanded_text_embeddings = aligner(
+    soft_alignment, hard_alignment = aligner(
         text_embeddings,
         mel_embeddings,
         text_mask,
@@ -375,7 +369,7 @@ if __name__ == "__main__":
     print("Hard alignment:")
     print(hard_alignment.shape)
     print("Expanded text embeddings:")
-    print(expanded_text_embeddings.mean())
+    print(soft_alignment.mean())
 
     if device == 'cuda':
         # Print the memory usage
@@ -383,7 +377,7 @@ if __name__ == "__main__":
 
     # Backward pass test
     with torch.autograd.detect_anomaly():
-        expanded_text_embeddings.mean().backward()
+        soft_alignment.mean().backward()
 
     print("Gradient for text_embeddings:")
     print(text_embeddings.grad.mean())
