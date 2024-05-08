@@ -32,7 +32,7 @@ class RoMoAligner(nn.Module):
         self, mel_embeddings, selected_boundary_indices, selected_boundary_indices_mask
     ):
         """
-        Selects the corresponding mel_embeddings according to the boundary indices predicted by the rough aligner.
+        Selects the corresponding mel_embeddings according to the possible boundary indices predicted by the rough aligner.
 
         Args:
             mel_embeddings (torch.Tensor): The original mel feature sequence, with a shape of (B, J, C).
@@ -41,12 +41,12 @@ class RoMoAligner(nn.Module):
         Returns:
             torch.Tensor: The selected mel feature sequence, with a shape of (B, K, C).
         """
-        hidden_size = mel_embeddings.shape[2]
+        channels = mel_embeddings.shape[2]
 
         selected_mel_embeddings = torch.gather(
             mel_embeddings,
             1,
-            selected_boundary_indices.unsqueeze(-1).expand(-1, -1, hidden_size),
+            selected_boundary_indices.unsqueeze(-1).expand(-1, -1, channels),
         )
 
         selected_mel_embeddings = (
@@ -119,10 +119,8 @@ class RoMoAligner(nn.Module):
 
 
 if __name__ == "__main__":
-    # 设置随机种子以保证结果可复现
     torch.manual_seed(0)
 
-    # 定义输入维度和隐藏层维度
     text_channels = 10
     mel_channels = 20
     attention_dim = 128
@@ -130,12 +128,10 @@ if __name__ == "__main__":
     dropout = 0.1
     noise_scale = 2.0
 
-    # 创建RoMoAligner实例
     aligner = RoMoAligner(
         text_channels, mel_channels, attention_dim, attention_head, dropout, noise_scale
     )
 
-    # 生成随机输入数据
     batch_size = 2
     text_len = 5
     mel_len = 30
@@ -147,7 +143,6 @@ if __name__ == "__main__":
     text_mask[1, 3:] = False
     mel_mask[1, 7:] = False
 
-    # 运行RoMoAligner
     soft_alignment, hard_alignment, expanded_text_embeddings = aligner(
         text_embeddings,
         mel_embeddings,
@@ -156,7 +151,6 @@ if __name__ == "__main__":
         direction=["forward", "backward"],
     )
 
-    # 打印结果
     print("Soft alignment shape:", soft_alignment.shape)
     print("Hard alignment shape:", hard_alignment.shape)
     print("Expanded text embeddings shape:", expanded_text_embeddings.shape)
