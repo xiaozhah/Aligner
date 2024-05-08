@@ -6,8 +6,9 @@ import torch.nn.functional as F
 
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
-from tensor_utils import get_mat_p_f, get_indices
+from tensor_utils import get_mat_p_f, get_nearest_boundaries
 import robo_utils
+
 
 class RoMoAligner(nn.Module):
     def __init__(
@@ -61,8 +62,8 @@ class RoMoAligner(nn.Module):
         T = mel_mask.sum(dim=1)
         float_dur = durations_normalized * T.unsqueeze(1)
         int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
-        selected_boundary_indices, selected_boundary_indices_mask = get_indices(
-            int_dur, text_mask, D
+        selected_boundary_indices, selected_boundary_indices_mask = (
+            get_nearest_boundaries(int_dur, text_mask, D)
         )
         return selected_boundary_indices, selected_boundary_indices_mask
 
@@ -73,7 +74,6 @@ class RoMoAligner(nn.Module):
             selected_boundary_indices, (1, 0), mode="constant", value=-1
         ).diff(1)
         repeat_times = repeat_times * selected_boundary_indices_mask
-
         map_d_f = get_mat_p_f(mat_p_d.transpose(1, 2), repeat_times)
         return map_d_f
 
@@ -84,9 +84,23 @@ class RoMoAligner(nn.Module):
         text_mask: torch.BoolTensor,
         mel_mask: torch.BoolTensor,
         direction: List[str],
+        D: int = 3,
     ) -> Tuple[
         Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor
     ]:
+        """
+        Args:
+            text_embeddings (torch.FloatTensor): The input text embeddings, with a shape of (B, I, C1).
+            mel_embeddings (torch.FloatTensor): The input mel embeddings, with a shape of (B, J, C2).
+            text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
+            mel_mask (torch.BoolTensor): The mask for the input mel, with a shape of (B, J).
+            direction (List[str]): The direction of the alignment, can be "forward" or "backward".
+            D (int): The number of possible nearest boundary indices for each rough boundary.
+        Returns:
+            torch.FloatTensor: The soft alignment matrix, with a shape of (B, I, J).
+            torch.FloatTensor: The hard alignment matrix, with a shape of (B, I, J).
+            torch.FloatTensor: The expanded text embeddings, with a shape of (B, J, C1).
+        """
         durations_normalized = self.rough_aligner(
             text_embeddings, mel_embeddings, text_mask, mel_mask
         )
@@ -101,7 +115,7 @@ class RoMoAligner(nn.Module):
         )
 
         # Run a fine-grained MoBoAligner
-        mat_p_d, hard_alignment, expanded_text_embeddings = self.mobo_aligner(
+        mat_p_d, hard_mat_p_d = self.mobo_aligner(
             text_embeddings,
             selected_mel_embeddings,
             text_mask,
@@ -114,8 +128,15 @@ class RoMoAligner(nn.Module):
             mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
         )
         mat_p_f = torch.bmm(mat_p_d, map_d_f)
+        hard_mat_p_f = torch.bmm(hard_mat_p_d, map_d_f)
 
-        return mat_p_f, hard_alignment, expanded_text_embeddings
+        # Use mat_p_f to compute the expanded text_embeddings
+        expanded_text_embeddings = torch.bmm(
+            torch.exp(mat_p_f).transpose(1, 2), text_embeddings
+        )
+        expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
+
+        return mat_p_f, hard_mat_p_f, expanded_text_embeddings
 
 
 if __name__ == "__main__":
