@@ -180,8 +180,8 @@ if __name__ == "__main__":
     text_len = 5
     mel_len = 30
 
-    text_embeddings = torch.randn(batch_size, text_len, text_channels)
-    mel_embeddings = torch.randn(batch_size, mel_len, mel_channels)
+    text_embeddings = torch.randn(batch_size, text_len, text_channels, requires_grad=True)
+    mel_embeddings = torch.randn(batch_size, mel_len, mel_channels, requires_grad=True)
     text_mask = torch.ones(batch_size, text_len).bool()
     mel_mask = torch.ones(batch_size, mel_len).bool()
     text_mask[1, 3:] = False
@@ -198,3 +198,12 @@ if __name__ == "__main__":
     print("Soft alignment shape:", soft_alignment.shape)
     print("Hard alignment shape:", hard_alignment.shape)
     print("Expanded text embeddings shape:", expanded_text_embeddings.shape)
+
+    # Backward pass test
+    with torch.autograd.detect_anomaly():
+        expanded_text_embeddings.mean().backward()
+
+    print("Gradient for text_embeddings:")
+    print(text_embeddings.grad.mean())
+    print("Gradient for mel_embeddings:")
+    print(mel_embeddings.grad.mean())
