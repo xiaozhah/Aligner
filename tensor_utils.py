@@ -194,6 +194,26 @@ def geq_mask_on_text_dim(log_cond_prob_geq_or_gt, text_mask):
     log_cond_prob_geq_or_gt.masked_fill_(mask.bool(), 0)
     return log_cond_prob_geq_or_gt
 
+def get_valid_max(tensor, mask, inf_value=1e6):
+    """
+    Calculate the minimum and maximum values of the valid elements in the given 2D tensor.
+
+    Args:
+    - tensor: 2D tensor, shape (batch_size, seq_len)
+    - mask: 2D mask tensor, shape (batch_size, seq_len), valid elements are 1, invalid elements are 0
+    - inf_value: The value to use for masking invalid elements.
+    
+    Returns:
+    - min_values: The minimum value of the valid elements in each sample, shape (batch_size,)
+    - max_values: The maximum value of the valid elements in each sample, shape (batch_size,)
+    """
+    masked_tensor = tensor.masked_fill(~mask, inf_value)
+    min_values, _ = torch.min(masked_tensor, dim=1)
+
+    masked_tensor = tensor.masked_fill(~mask, -inf_value)
+    max_values, _ = torch.max(masked_tensor, dim=1)
+
+    return min_values, max_values
 
 if __name__ == "__main__":
     # 示例用法 1
