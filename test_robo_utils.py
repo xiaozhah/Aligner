@@ -9,7 +9,7 @@ def test_float_to_int_duration_batch():
     T = torch.LongTensor([6, 5])
     mask = torch.BoolTensor([[1, 1, 1, 1],
                              [1, 1, 1, 1]])
-    int_dur = robo_utils.float_to_int_duration_batch(dur, T, mask)
+    int_dur = robo_utils.float_to_int_duration(dur, T, mask)
 
     expected_output = np.array([[1, 1, 2, 2],
                                 [1, 1, 1, 2]])
@@ -21,7 +21,7 @@ def test_float_to_int_duration_batch():
     T = torch.LongTensor([2, 3])
     mask = torch.BoolTensor([[1, 1, 0, 0, 0],
                              [1, 1, 1, 0, 0]])
-    int_dur = robo_utils.float_to_int_duration_batch(dur, T, mask)
+    int_dur = robo_utils.float_to_int_duration(dur, T, mask)
 
     expected_output = np.array([[1, 1, 0, 0, 0],
                                 [1, 1, 1, 0, 0]])

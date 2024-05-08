@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
-
+import robo_utils
 
 class RoMoAligner(nn.Module):
     def __init__(
@@ -72,18 +72,18 @@ class RoMoAligner(nn.Module):
         """
         # 根据durations_normalized和text_mask计算每个文本token对应的帧数
         T = mel_mask.sum(dim=1)
-        text_durations = durations_normalized * T.unsqueeze(1)
+        dur = durations_normalized * T.unsqueeze(1)
 
-        text_durations = text_durations.round().long()  # TODO: Fix this in the future
+        int_dur = robo_utils.float_to_int_duration(dur, T, text_mask)
 
         # 根据mel_lengths对mel_embeddings进行重采样
         mel_embeddings_resampled = []
         for i in range(mel_embeddings.size(0)):
-            mel_embedding = mel_embeddings[i, : text_durations[i].max()]
+            mel_embedding = mel_embeddings[i, : int_dur[i].max()]
             mel_embedding_resampled = (
                 F.interpolate(
                     mel_embedding.transpose(0, 1).unsqueeze(0),
-                    size=text_durations[i],
+                    size=int_dur[i],
                     mode="linear",
                     align_corners=False,
                 )
