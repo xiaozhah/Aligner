@@ -28,6 +28,7 @@ class RoMoAligner(nn.Module):
             text_channels, mel_channels, attention_dim, noise_scale
         )
 
+    @torch.no_grad()
     def get_nearest_boundaries(self, int_dur, text_mask, D=3):
         """
         Calculate the possible boundaries of each text token based on the results of the rough aligner.
