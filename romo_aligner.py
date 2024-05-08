@@ -85,12 +85,12 @@ class RoMoAligner(nn.Module):
     ):
         """
         Calculate the map_d_f matrix based on the selected boundary indices
-        
+
         Args:
             mat_p_d (torch.Tensor): The soft alignment matrix, with a shape of (B, I, K).
             selected_boundary_indices (torch.Tensor): The indices of the possible boundaries, with a shape of (B, K).
             selected_boundary_indices_mask (torch.Tensor): The mask for the possible boundaries, with a shape of (B, K).
-        
+
         Returns:
             torch.Tensor: The map_d_f matrix, with a shape of (B, K, J).
         """
@@ -98,7 +98,9 @@ class RoMoAligner(nn.Module):
             selected_boundary_indices, (1, 0), mode="constant", value=-1
         ).diff(1)
         repeat_times = repeat_times * selected_boundary_indices_mask
-        map_d_f = get_mat_p_f(mat_p_d.transpose(1, 2), repeat_times)  # (B, K, I) -> (B, K, J)
+        map_d_f = get_mat_p_f(
+            mat_p_d.transpose(1, 2), repeat_times
+        )  # (B, K, I) -> (B, K, J)
         return map_d_f
 
     def forward(
@@ -164,7 +166,13 @@ class RoMoAligner(nn.Module):
 
         dur_by_mobo = hard_mat_p_f.sum(2)
 
-        return mat_p_f, hard_mat_p_f, expanded_text_embeddings, dur_by_rough, dur_by_mobo
+        return (
+            mat_p_f,
+            hard_mat_p_f,
+            expanded_text_embeddings,
+            dur_by_rough,
+            dur_by_mobo,
+        )
 
 
 if __name__ == "__main__":
@@ -185,14 +193,22 @@ if __name__ == "__main__":
     text_len = 5
     mel_len = 30
 
-    text_embeddings = torch.randn(batch_size, text_len, text_channels, requires_grad=True)
+    text_embeddings = torch.randn(
+        batch_size, text_len, text_channels, requires_grad=True
+    )
     mel_embeddings = torch.randn(batch_size, mel_len, mel_channels, requires_grad=True)
     text_mask = torch.ones(batch_size, text_len).bool()
     mel_mask = torch.ones(batch_size, mel_len).bool()
     text_mask[1, 3:] = False
     mel_mask[1, 7:] = False
 
-    soft_alignment, hard_alignment, expanded_text_embeddings, dur_by_rough, dur_by_mobo = aligner(
+    (
+        soft_alignment,
+        hard_alignment,
+        expanded_text_embeddings,
+        dur_by_rough,
+        dur_by_mobo,
+    ) = aligner(
         text_embeddings,
         mel_embeddings,
         text_mask,
@@ -205,7 +221,7 @@ if __name__ == "__main__":
     print("Expanded text embeddings shape:", expanded_text_embeddings.shape)
 
     # Backward pass test
-    dur_GT = (dur_by_mobo + 1).log() # computed by hard alignment, no gradient
+    dur_GT = (dur_by_mobo + 1).log()  # computed by hard alignment, no gradient
     dur_loss = F.mse_loss(dur_by_rough, dur_GT, reduction="mean")
     loss = dur_loss + expanded_text_embeddings.mean()
     with torch.autograd.detect_anomaly():
