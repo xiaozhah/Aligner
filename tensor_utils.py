@@ -247,7 +247,7 @@ def get_mat_p_f(src_tokens, durations):
     return mat_p_f
 
 
-def get_indices(int_dur, text_mask, D=3):
+def get_nearest_boundaries(int_dur, text_mask, D=3):
     batch_size = int_dur.shape[0]
 
     boundary_index = (int_dur.cumsum(1) - 1) * text_mask
