@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
-from tensor_utils import get_mat_p_f, get_nearest_boundaries
+from tensor_utils import get_mat_p_f, get_valid_max
 
 
 class RoMoAligner(nn.Module):
@@ -27,6 +27,46 @@ class RoMoAligner(nn.Module):
         self.mobo_aligner = MoBoAligner(
             text_channels, mel_channels, attention_dim, noise_scale
         )
+
+    
+    def get_nearest_boundaries(self, int_dur, text_mask, D=3):
+        """
+        Calculate the possible boundaries of each text token based on the results of the rough aligner.
+        If the length of text tokens is I, the number of possible boundaries is about K ≈ I*(2*D+1).
+
+        Args:
+            int_dur (torch.Tensor): The integer duration sequence, with a shape of (B, I).
+            text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
+            D (int): The number of possible nearest boundary indices for each rough boundary.
+
+        Returns:
+            torch.Tensor: The indices of the possible boundaries, with a shape of (B, I, K).
+            torch.Tensor: The mask for the possible boundaries, with a shape of (B, I, K).
+        """
+
+        batch_size = int_dur.shape[0]
+
+        boundary_index = (int_dur.cumsum(1) - 1) * text_mask
+        offsets = torch.arange(-D, D + 1).unsqueeze(0).unsqueeze(-1)
+        indices = boundary_index.unsqueeze(1) + offsets
+
+        min_indices, max_indices = get_valid_max(boundary_index, text_mask)
+        min_indices = min_indices.unsqueeze(1).unsqueeze(2)
+        max_indices = max_indices.unsqueeze(1).unsqueeze(2)
+
+        indices = torch.clamp(indices, min=min_indices, max=max_indices)
+        indices = indices.view(batch_size, -1)
+
+        unique_indices = (torch.unique(i) for i in indices)
+        unique_indices = torch.nn.utils.rnn.pad_sequence(
+            unique_indices, batch_first=True, padding_value=-1
+        )
+
+        unique_indices_mask = unique_indices != -1
+        unique_indices = unique_indices * unique_indices_mask
+
+        return unique_indices, unique_indices_mask
+
 
     def select_mel_embeddings(
         self, mel_embeddings, selected_boundary_indices, selected_boundary_indices_mask
@@ -109,7 +149,7 @@ class RoMoAligner(nn.Module):
         )
 
         selected_boundary_indices, selected_boundary_indices_mask = (
-            get_nearest_boundaries(int_dur_by_rough, text_mask, D=D)
+            self.get_nearest_boundaries(int_dur_by_rough, text_mask, D=D)
         )
 
         # Select the corresponding mel_embeddings based on the possible boundary indices

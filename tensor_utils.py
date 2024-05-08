@@ -92,6 +92,7 @@ def reverse_and_pad_head_tail_on_alignment(
 
 
 def compute_max_length_diff(mask):
+    # returned value is always >= 0
     lengths = mask.sum(1)
     return lengths.max() - lengths
 
@@ -245,45 +246,6 @@ def get_mat_p_f(src_tokens, durations):
     mask0 = lengths_to_mask(cumsum_dur_0.flatten(), T).reshape(B, U, T)
     mat_p_f = (mask1 & ~mask0).float()
     return mat_p_f
-
-
-def get_nearest_boundaries(int_dur, text_mask, D=3):
-    """
-    Calculate the possible boundaries of each text token based on the results of the rough aligner.
-    If the length of text tokens is I, the number of possible boundaries is about K ≈ I*(2*D+1).
-
-    Args:
-        int_dur (torch.Tensor): The integer duration sequence, with a shape of (B, I).
-        text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
-        D (int): The number of possible nearest boundary indices for each rough boundary.
-
-    Returns:
-        torch.Tensor: The indices of the possible boundaries, with a shape of (B, I, K).
-        torch.Tensor: The mask for the possible boundaries, with a shape of (B, I, K).
-    """
-
-    batch_size = int_dur.shape[0]
-
-    boundary_index = (int_dur.cumsum(1) - 1) * text_mask
-    offsets = torch.arange(-D, D + 1).unsqueeze(0).unsqueeze(-1)
-    indices = boundary_index.unsqueeze(1) + offsets
-
-    min_indices, max_indices = get_valid_max(boundary_index, text_mask)
-    min_indices = min_indices.unsqueeze(1).unsqueeze(2)
-    max_indices = max_indices.unsqueeze(1).unsqueeze(2)
-
-    indices = torch.clamp(indices, min=min_indices, max=max_indices)
-    indices = indices.view(batch_size, -1)
-
-    unique_indices = (torch.unique(i) for i in indices)
-    unique_indices = torch.nn.utils.rnn.pad_sequence(
-        unique_indices, batch_first=True, padding_value=-1
-    )
-
-    unique_indices_mask = unique_indices != -1
-    unique_indices = unique_indices * unique_indices_mask
-
-    return unique_indices, unique_indices_mask
 
 
 if __name__ == "__main__":

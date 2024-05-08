@@ -45,6 +45,9 @@ class MoBoAligner(nn.Module):
         self.noise_scale = noise_scale
 
     def check_parameter_validity(self, text_mask, mel_mask, direction):
+        """
+        Check if the parameters are valid for the alignment.
+        """
         if not (
             len(direction) >= 1
             and set(direction).issubset(set(["forward", "backward"]))
