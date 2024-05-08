@@ -3,42 +3,11 @@ from typing import List, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.utils.rnn import pad_sequence
 
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
+from tensor_utils import get_mat_p_f, get_indices
 import robo_utils
-from tensor_utils import get_valid_max, get_mat_p_f
-
-
-def get_indices(int_dur, text_mask, num_context_frames=3):
-    batch_size = int_dur.shape[0]
-
-    boundary_index = (int_dur.cumsum(1) - 1) * text_mask
-    offsets = (
-        torch.arange(-num_context_frames, num_context_frames + 1)
-        .unsqueeze(0)
-        .unsqueeze(-1)
-    )
-    indices = boundary_index.unsqueeze(1) + offsets
-
-    min_indices, max_indices = get_valid_max(boundary_index, text_mask)
-    min_indices = min_indices.unsqueeze(1).unsqueeze(2)
-    max_indices = max_indices.unsqueeze(1).unsqueeze(2)
-
-    indices = torch.clamp(indices, min=min_indices, max=max_indices)
-    indices = indices.view(batch_size, -1)
-
-    unique_indices = (torch.unique(i) for i in indices)
-    unique_indices = torch.nn.utils.rnn.pad_sequence(
-        unique_indices, batch_first=True, padding_value=-1
-    )
-
-    unique_indices_mask = unique_indices != -1
-    unique_indices = unique_indices * unique_indices_mask
-
-    return unique_indices, unique_indices_mask
-
 
 class RoMoAligner(nn.Module):
     def __init__(
@@ -86,9 +55,7 @@ class RoMoAligner(nn.Module):
 
         return selected_mel_embeddings
 
-    def get_possible_boundaries(
-        self, durations_normalized, text_mask, mel_mask, D=3
-    ):
+    def get_possible_boundaries(self, durations_normalized, text_mask, mel_mask, D=3):
         # Calculate the possible boundaries of each text token based on the results of the rough aligner
         # if the length of text tokens is I, the number of possible boundaries is about I*(2*D+1)
         T = mel_mask.sum(dim=1)
@@ -125,9 +92,7 @@ class RoMoAligner(nn.Module):
         )
 
         selected_boundary_indices, selected_boundary_indices_mask = (
-            self.get_possible_boundaries(
-                durations_normalized, text_mask, mel_mask, D=3
-            )
+            self.get_possible_boundaries(durations_normalized, text_mask, mel_mask, D=3)
         )
 
         # Select the corresponding mel_embeddings based on the possible boundary indices

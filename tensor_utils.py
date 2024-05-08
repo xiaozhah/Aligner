@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+from torch.nn.utils.rnn import pad_sequence
 
 
 def roll_tensor(tensor, shifts, dim):
@@ -244,6 +245,31 @@ def get_mat_p_f(src_tokens, durations):
     mask0 = lengths_to_mask(cumsum_dur_0.flatten(), T).reshape(B, U, T)
     mat_p_f = (mask1 & ~mask0).float()
     return mat_p_f
+
+
+def get_indices(int_dur, text_mask, D=3):
+    batch_size = int_dur.shape[0]
+
+    boundary_index = (int_dur.cumsum(1) - 1) * text_mask
+    offsets = torch.arange(-D, D + 1).unsqueeze(0).unsqueeze(-1)
+    indices = boundary_index.unsqueeze(1) + offsets
+
+    min_indices, max_indices = get_valid_max(boundary_index, text_mask)
+    min_indices = min_indices.unsqueeze(1).unsqueeze(2)
+    max_indices = max_indices.unsqueeze(1).unsqueeze(2)
+
+    indices = torch.clamp(indices, min=min_indices, max=max_indices)
+    indices = indices.view(batch_size, -1)
+
+    unique_indices = (torch.unique(i) for i in indices)
+    unique_indices = torch.nn.utils.rnn.pad_sequence(
+        unique_indices, batch_first=True, padding_value=-1
+    )
+
+    unique_indices_mask = unique_indices != -1
+    unique_indices = unique_indices * unique_indices_mask
+
+    return unique_indices, unique_indices_mask
 
 
 if __name__ == "__main__":
