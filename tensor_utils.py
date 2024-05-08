@@ -248,6 +248,20 @@ def get_mat_p_f(src_tokens, durations):
 
 
 def get_nearest_boundaries(int_dur, text_mask, D=3):
+    """
+    Calculate the possible boundaries of each text token based on the results of the rough aligner.
+    If the length of text tokens is I, the number of possible boundaries is about K ≈ I*(2*D+1).
+
+    Args:
+        int_dur (torch.Tensor): The integer duration sequence, with a shape of (B, I).
+        text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
+        D (int): The number of possible nearest boundary indices for each rough boundary.
+
+    Returns:
+        torch.Tensor: The indices of the possible boundaries, with a shape of (B, I, K).
+        torch.Tensor: The mask for the possible boundaries, with a shape of (B, I, K).
+    """
+
     batch_size = int_dur.shape[0]
 
     boundary_index = (int_dur.cumsum(1) - 1) * text_mask

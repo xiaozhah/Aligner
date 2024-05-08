@@ -7,7 +7,6 @@ import torch.nn.functional as F
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
 from tensor_utils import get_mat_p_f, get_nearest_boundaries
-import robo_utils
 
 
 class RoMoAligner(nn.Module):
@@ -55,30 +54,6 @@ class RoMoAligner(nn.Module):
         )
 
         return selected_mel_embeddings
-
-    def get_possible_boundaries(self, durations_normalized, text_mask, mel_mask, D=3):
-        """
-        Calculate the possible boundaries of each text token based on the results of the rough aligner.
-        If the length of text tokens is I, the number of possible boundaries is about K ≈ I*(2*D+1).
-
-        Args:
-            durations_normalized (torch.Tensor): The normalized duration sequence, with a shape of (B, I).
-            text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
-            mel_mask (torch.BoolTensor): The mask for the input mel, with a shape of (B, J).
-            D (int): The number of possible nearest boundary indices for each rough boundary.
-
-        Returns:
-            torch.Tensor: The float duration sequence, with a shape of (B, I).
-            torch.Tensor: The indices of the possible boundaries, with a shape of (B, I, K).
-            torch.Tensor: The mask for the possible boundaries, with a shape of (B, I, K).
-        """
-        T = mel_mask.sum(dim=1)
-        float_dur = durations_normalized * T.unsqueeze(1)
-        int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
-        selected_boundary_indices, selected_boundary_indices_mask = (
-            get_nearest_boundaries(int_dur, text_mask, D)
-        )
-        return float_dur, selected_boundary_indices, selected_boundary_indices_mask
 
     def get_map_d_f(
         self, mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
@@ -129,12 +104,12 @@ class RoMoAligner(nn.Module):
             torch.FloatTensor: The duration predicted by the rough aligner, with a shape of (B, I).
             torch.FloatTensor: The duration searched by the MoBo aligner (hard alignment mode), with a shape of (B, I).
         """
-        durations_normalized = self.rough_aligner(
+        dur_by_rough, int_dur_by_rough = self.rough_aligner(
             text_embeddings, mel_embeddings, text_mask, mel_mask
         )
 
-        dur_by_rough, selected_boundary_indices, selected_boundary_indices_mask = (
-            self.get_possible_boundaries(durations_normalized, text_mask, mel_mask, D=3)
+        selected_boundary_indices, selected_boundary_indices_mask = (
+            get_nearest_boundaries(int_dur_by_rough, text_mask, D=D)
         )
 
         # Select the corresponding mel_embeddings based on the possible boundary indices
@@ -221,8 +196,9 @@ if __name__ == "__main__":
     print("Expanded text embeddings shape:", expanded_text_embeddings.shape)
 
     # Backward pass test
-    dur_GT = (dur_by_mobo + 1).log()  # computed by hard alignment, no gradient
-    dur_loss = F.mse_loss(dur_by_rough, dur_GT, reduction="mean")
+    dur_by_mobo = (dur_by_mobo + 1).log()  # computed by hard alignment, no gradient
+    dur_by_rough = (dur_by_rough + 1).log()
+    dur_loss = F.mse_loss(dur_by_rough, dur_by_mobo, reduction="mean")
     loss = dur_loss + expanded_text_embeddings.mean()
     with torch.autograd.detect_anomaly():
         loss.backward()

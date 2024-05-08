@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from fairseq.modules.espnet_multihead_attention import ESPNETMultiHeadedAttention
 
 from layers import LinearNorm
+import robo_utils
 
 
 class RoughAligner(nn.Module):
@@ -39,8 +40,13 @@ class RoughAligner(nn.Module):
         x, _ = self.cross_attention(text_hidden, mel_hidden, mel_hidden, ~mel_mask)
         x = x.transpose(0, 1) * text_mask.unsqueeze(-1)
         x = F.sigmoid(self.final_layer(x)).squeeze(-1) * text_mask
-        x = x / x.sum(dim=1, keepdim=True)
-        return x
+        dur_norm = x / x.sum(dim=1, keepdim=True)
+
+        T = mel_mask.sum(dim=1)
+        float_dur = dur_norm * T.unsqueeze(1)
+        int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
+
+        return float_dur, int_dur
 
 
 if __name__ == "__main__":
