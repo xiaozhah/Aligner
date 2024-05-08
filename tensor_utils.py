@@ -194,6 +194,7 @@ def geq_mask_on_text_dim(log_cond_prob_geq_or_gt, text_mask):
     log_cond_prob_geq_or_gt.masked_fill_(mask.bool(), 0)
     return log_cond_prob_geq_or_gt
 
+
 def get_valid_max(tensor, mask, inf_value=1e6):
     """
     Calculate the minimum and maximum values of the valid elements in the given 2D tensor.
@@ -202,7 +203,7 @@ def get_valid_max(tensor, mask, inf_value=1e6):
     - tensor: 2D tensor, shape (batch_size, seq_len)
     - mask: 2D mask tensor, shape (batch_size, seq_len), valid elements are 1, invalid elements are 0
     - inf_value: The value to use for masking invalid elements.
-    
+
     Returns:
     - min_values: The minimum value of the valid elements in each sample, shape (batch_size,)
     - max_values: The maximum value of the valid elements in each sample, shape (batch_size,)
@@ -214,6 +215,36 @@ def get_valid_max(tensor, mask, inf_value=1e6):
     max_values, _ = torch.max(masked_tensor, dim=1)
 
     return min_values, max_values
+
+
+# lens: torch.LongTensor
+# returns: torch.BoolTensor
+def lengths_to_padding_mask(lens, max_lens=None):
+    bsz = lens.size(0)
+    if max_lens is None:
+        max_lens = torch.max(lens).item()
+    mask = torch.arange(max_lens).to(lens.device).view(1, max_lens)
+    mask = mask.expand(bsz, -1) >= lens.view(bsz, 1).expand(-1, max_lens)
+    return mask
+
+
+# lens: torch.LongTensor
+# returns: torch.BoolTensor
+def lengths_to_mask(lens, max_lens=None):
+    return ~lengths_to_padding_mask(lens, max_lens)
+
+
+def get_mat_p_f(src_tokens, durations):
+    B, U, _ = src_tokens.shape
+    T = durations.sum(axis=-1).max()
+    cumsum_dur_1 = torch.cumsum(durations, dim=-1)  # [B, U]
+    cumsum_dur_0 = cumsum_dur_1 - durations  # [B, U]
+
+    mask1 = lengths_to_mask(cumsum_dur_1.flatten(), T).reshape(B, U, T)
+    mask0 = lengths_to_mask(cumsum_dur_0.flatten(), T).reshape(B, U, T)
+    mat_p_f = (mask1 & ~mask0).float()
+    return mat_p_f
+
 
 if __name__ == "__main__":
     # 示例用法 1
