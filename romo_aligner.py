@@ -15,19 +15,25 @@ def get_indices(int_dur, text_mask, num_context_frames=3):
     batch_size = int_dur.shape[0]
 
     boundary_index = (int_dur.cumsum(1) - 1) * text_mask
-    offsets = torch.arange(-num_context_frames, num_context_frames + 1).unsqueeze(0).unsqueeze(-1)
+    offsets = (
+        torch.arange(-num_context_frames, num_context_frames + 1)
+        .unsqueeze(0)
+        .unsqueeze(-1)
+    )
     indices = boundary_index.unsqueeze(1) + offsets
 
     min_indices, max_indices = get_valid_max(boundary_index, text_mask)
-    min_indices = min_indices.unsqueeze(1).unsqueeze(2) 
+    min_indices = min_indices.unsqueeze(1).unsqueeze(2)
     max_indices = max_indices.unsqueeze(1).unsqueeze(2)
 
     indices = torch.clamp(indices, min=min_indices, max=max_indices)
     indices = indices.view(batch_size, -1)
 
     unique_indices = (torch.unique(i) for i in indices)
-    unique_indices = torch.nn.utils.rnn.pad_sequence(unique_indices, batch_first=True, padding_value=-1)
-    
+    unique_indices = torch.nn.utils.rnn.pad_sequence(
+        unique_indices, batch_first=True, padding_value=-1
+    )
+
     unique_indices_mask = unique_indices != -1
     unique_indices = unique_indices * unique_indices_mask
 
@@ -53,43 +59,6 @@ class RoMoAligner(nn.Module):
             text_channels, mel_channels, attention_dim, noise_scale
         )
 
-    def forward(
-        self,
-        text_embeddings: torch.FloatTensor,
-        mel_embeddings: torch.FloatTensor,
-        text_mask: torch.BoolTensor,
-        mel_mask: torch.BoolTensor,
-        direction: List[str],
-    ) -> Tuple[
-        Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor
-    ]:
-        durations_normalized = self.rough_aligner(
-            text_embeddings, mel_embeddings, text_mask, mel_mask
-        )
-
-        # Calculate the possible boundaries of each text token based on the results of the rough aligner
-        T = mel_mask.sum(dim=1)
-        float_dur = durations_normalized * T.unsqueeze(1)
-        int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
-        selected_boundary_indices, selected_boundary_indices_mask = get_indices(int_dur, text_mask, num_context_frames=1)
-
-        # Select the corresponding mel_embeddings based on the possible boundary indices
-        selected_mel_embeddings = self.select_mel_embeddings(
-            mel_embeddings, selected_boundary_indices, selected_boundary_indices_mask
-        )
-
-        # Run a fine-grained MoBoAligner
-        soft_alignment, hard_alignment, expanded_text_embeddings = self.mobo_aligner(
-            text_embeddings,
-            selected_mel_embeddings,
-            text_mask,
-            selected_boundary_indices_mask,
-            direction,
-            return_hard_alignment=True,
-        )
-
-        return soft_alignment, hard_alignment, expanded_text_embeddings
-
     def select_mel_embeddings(
         self, mel_embeddings, selected_boundary_indices, selected_boundary_indices_mask
     ):
@@ -111,9 +80,50 @@ class RoMoAligner(nn.Module):
             selected_boundary_indices.unsqueeze(-1).expand(-1, -1, hidden_size),
         )
 
-        selected_mel_embeddings =  selected_mel_embeddings * selected_boundary_indices_mask.unsqueeze(-1)
+        selected_mel_embeddings = (
+            selected_mel_embeddings * selected_boundary_indices_mask.unsqueeze(-1)
+        )
 
         return selected_mel_embeddings
+
+    def forward(
+        self,
+        text_embeddings: torch.FloatTensor,
+        mel_embeddings: torch.FloatTensor,
+        text_mask: torch.BoolTensor,
+        mel_mask: torch.BoolTensor,
+        direction: List[str],
+    ) -> Tuple[
+        Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor
+    ]:
+        durations_normalized = self.rough_aligner(
+            text_embeddings, mel_embeddings, text_mask, mel_mask
+        )
+
+        # Calculate the possible boundaries of each text token based on the results of the rough aligner
+        T = mel_mask.sum(dim=1)
+        float_dur = durations_normalized * T.unsqueeze(1)
+        int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
+        selected_boundary_indices, selected_boundary_indices_mask = get_indices(
+            int_dur, text_mask, num_context_frames=1
+        )
+
+        # Select the corresponding mel_embeddings based on the possible boundary indices
+        selected_mel_embeddings = self.select_mel_embeddings(
+            mel_embeddings, selected_boundary_indices, selected_boundary_indices_mask
+        )
+
+        # Run a fine-grained MoBoAligner
+        soft_alignment, hard_alignment, expanded_text_embeddings = self.mobo_aligner(
+            text_embeddings,
+            selected_mel_embeddings,
+            text_mask,
+            selected_boundary_indices_mask,
+            direction,
+            return_hard_alignment=True,
+        )
+
+        return soft_alignment, hard_alignment, expanded_text_embeddings
 
 
 if __name__ == "__main__":
