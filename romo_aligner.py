@@ -44,7 +44,7 @@ class RoMoAligner(nn.Module):
             torch.Tensor: The mask for the possible boundaries, with a shape of (B, I, K).
         """
 
-        batch_size = int_dur.shape[0]
+        B = int_dur.shape[0]
 
         boundary_index = (int_dur.cumsum(1) - 1) * text_mask
         offsets = (
@@ -59,7 +59,7 @@ class RoMoAligner(nn.Module):
         max_indices = max_indices.unsqueeze(1).unsqueeze(2)
 
         indices = torch.clamp(indices, min=min_indices, max=max_indices)
-        indices = indices.view(batch_size, -1)
+        indices = indices.view(B, -1)
 
         unique_indices = (torch.unique(i) for i in indices)
         unique_indices = torch.nn.utils.rnn.pad_sequence(
