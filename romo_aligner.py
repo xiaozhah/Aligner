@@ -1,24 +1,38 @@
+from typing import List, Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import List, Optional, Tuple
+from torch.nn.utils.rnn import pad_sequence
 
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
 import robo_utils
+from tensor_utils import get_valid_max
 
-def get_indices(int_dur, text_mask, offsets_win_size=3):
-    boundry_index = (int_dur.cumsum(1)-1) * text_mask
 
-    batch_size = boundry_index.shape[0]
-    offsets = torch.arange(-offsets_win_size, offsets_win_size+1).unsqueeze(0).unsqueeze(-1)
-    indices = boundry_index.unsqueeze(1) + offsets
+def get_indices(int_dur, text_mask, num_context_frames=3):
+    batch_size = int_dur.shape[0]
 
-    min_indices = torch.tensor([0] * batch_size).long().unsqueeze(1).unsqueeze(2)
-    max_indices = (int_dur.sum(1)-1).unsqueeze(1).unsqueeze(2)
-    clamped_indices = torch.clamp(indices, min=min_indices, max=max_indices)
-    clamped_indices = clamped_indices.view(batch_size, -1)
-    return clamped_indices
+    boundary_index = (int_dur.cumsum(1) - 1) * text_mask
+    offsets = torch.arange(-num_context_frames, num_context_frames + 1).unsqueeze(0).unsqueeze(-1)
+    indices = boundary_index.unsqueeze(1) + offsets
+
+    min_indices, max_indices = get_valid_max(boundary_index, text_mask)
+    min_indices = min_indices.unsqueeze(1).unsqueeze(2) 
+    max_indices = max_indices.unsqueeze(1).unsqueeze(2)
+
+    indices = torch.clamp(indices, min=min_indices, max=max_indices)
+    indices = indices.view(batch_size, -1)
+
+    unique_indices = (torch.unique(i) for i in indices)
+    unique_indices = torch.nn.utils.rnn.pad_sequence(unique_indices, batch_first=True, padding_value=-1)
+    
+    unique_indices_mask = unique_indices != -1
+    unique_indices = unique_indices * unique_indices_mask
+
+    return unique_indices, unique_indices_mask
+
 
 class RoMoAligner(nn.Module):
     def __init__(
@@ -53,15 +67,23 @@ class RoMoAligner(nn.Module):
             text_embeddings, mel_embeddings, text_mask, mel_mask
         )
 
-        mel_embeddings_resampled = self.select_mel_embeddings(
-            mel_embeddings, durations_normalized, text_mask, mel_mask
+        # Calculate the possible boundaries of each text token based on the results of the rough aligner
+        T = mel_mask.sum(dim=1)
+        float_dur = durations_normalized * T.unsqueeze(1)
+        int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
+        selected_boundary_indices, selected_boundary_indices_mask = get_indices(int_dur, text_mask, num_context_frames=1)
+
+        # Select the corresponding mel_embeddings based on the possible boundary indices
+        selected_mel_embeddings = self.select_mel_embeddings(
+            mel_embeddings, selected_boundary_indices, selected_boundary_indices_mask
         )
 
+        # Run a fine-grained MoBoAligner
         soft_alignment, hard_alignment, expanded_text_embeddings = self.mobo_aligner(
             text_embeddings,
-            mel_embeddings_resampled,
+            selected_mel_embeddings,
             text_mask,
-            mel_mask,
+            selected_boundary_indices_mask,
             direction,
             return_hard_alignment=True,
         )
@@ -69,29 +91,29 @@ class RoMoAligner(nn.Module):
         return soft_alignment, hard_alignment, expanded_text_embeddings
 
     def select_mel_embeddings(
-        self, mel_embeddings, durations_normalized, text_mask, mel_mask
+        self, mel_embeddings, selected_boundary_indices, selected_boundary_indices_mask
     ):
         """
-        Select several boundary indices of mel_embeddings according to the normalized duration predicted by the rough aligner.
+        Selects the corresponding mel_embeddings according to the boundary indices predicted by the rough aligner.
 
         Args:
-            mel_embeddings (torch.Tensor): The original mel feature sequence, shape is (B, J, C).
-            durations_normalized (torch.Tensor): The normalized duration proportion of each text token, shape is (B, I).
-            text_mask (torch.Tensor): The mask of the text sequence, shape is (B, I).
-            mel_mask (torch.Tensor): The mask of the original mel feature sequence, shape is (B, J).
+            mel_embeddings (torch.Tensor): The original mel feature sequence, with a shape of (B, J, C).
+            selected_boundary_indices (torch.Tensor): The indices near the boundaries predicted by the rough aligner, with a shape of (B, K).
 
         Returns:
-            torch.Tensor: The selected mel feature sequence, shape is (B, I, C).
+            torch.Tensor: The selected mel feature sequence, with a shape of (B, K, C).
         """
-        # Calculate the number of frames corresponding to each text token
-        T = mel_mask.sum(dim=1)
-        float_dur = durations_normalized * T.unsqueeze(1)
-        int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
+        hidden_size = mel_embeddings.shape[2]
 
-        selected_boundry_indices = get_indices(int_dur, text_mask)
+        selected_mel_embeddings = torch.gather(
+            mel_embeddings,
+            1,
+            selected_boundary_indices.unsqueeze(-1).expand(-1, -1, hidden_size),
+        )
 
+        selected_mel_embeddings =  selected_mel_embeddings * selected_boundary_indices_mask.unsqueeze(-1)
 
-        return mel_embeddings_selected
+        return selected_mel_embeddings
 
 
 if __name__ == "__main__":
