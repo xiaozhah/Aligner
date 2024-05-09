@@ -9,6 +9,7 @@ from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
 from tensor_utils import get_mat_p_f, get_valid_max
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
+import warnings
 
 
 class RoMoAligner(nn.Module):
@@ -26,6 +27,7 @@ class RoMoAligner(nn.Module):
         skip_mel_conformer=False,
         dropout=0.1,
         noise_scale=2.0,
+        num_boundary_candidates=3,
     ):
         super(RoMoAligner, self).__init__()
 
@@ -82,8 +84,13 @@ class RoMoAligner(nn.Module):
             attention_dim, attention_dim, attention_dim, noise_scale
         )
 
+        if skip_text_conformer or skip_mel_conformer:
+            warnings.warn(
+                "Beacause alignment need positional information, please ensure that the input to the RoMoAligner contains positional information along the time dimension."
+            )
         self.skip_text_conformer = skip_text_conformer
         self.skip_mel_conformer = skip_mel_conformer
+        self.num_boundary_candidates = num_boundary_candidates
 
     @torch.no_grad()
     def get_nearest_boundaries(self, int_dur, text_mask, num_boundary_candidates=3):
@@ -125,7 +132,9 @@ class RoMoAligner(nn.Module):
         # unique_indices = (torch.unique(i) for i in indices)
         # unique_indices = torch.nn.utils.rnn.pad_sequence(unique_indices, batch_first=True, padding_value=-1)
 
-        unique_nested_indices = torch.nested.nested_tensor([torch.unique(i) for i in indices])
+        unique_nested_indices = torch.nested.nested_tensor(
+            [torch.unique(i) for i in indices]
+        )
         unique_indices = torch.nested.to_padded_tensor(unique_nested_indices, -1)
 
         unique_indices_mask = unique_indices != -1
@@ -190,7 +199,6 @@ class RoMoAligner(nn.Module):
         text_mask: torch.BoolTensor,
         mel_mask: torch.BoolTensor,
         direction: List[str],
-        num_boundary_candidates: int = 3,
     ) -> Tuple[
         Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor
     ]:
@@ -201,7 +209,6 @@ class RoMoAligner(nn.Module):
             text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
             mel_mask (torch.BoolTensor): The mask for the input mel, with a shape of (B, J).
             direction (List[str]): The direction of the alignment, can be "forward" or "backward".
-            num_boundary_candidates (int): The number of possible nearest boundary indices for each rough boundary.
         Returns:
             torch.FloatTensor: The soft alignment matrix, with a shape of (B, I, J).
             torch.FloatTensor: The hard alignment matrix, with a shape of (B, I, J).
@@ -229,7 +236,7 @@ class RoMoAligner(nn.Module):
 
         selected_boundary_indices, selected_boundary_indices_mask = (
             self.get_nearest_boundaries(
-                int_dur_by_rough, text_mask, num_boundary_candidates
+                int_dur_by_rough, text_mask, self.num_boundary_candidates
             )
         )
 
