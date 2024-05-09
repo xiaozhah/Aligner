@@ -6,11 +6,11 @@ def float_to_int_duration(dur, T, mask):
     """ Cython optimised version of converting float duration to int duration.
     
     Args:
-        dur (torch.Tensor): input float duration, shape (B, L)
+        dur (torch.Tensor): input float duration, shape (B, I)
         T (torch.Tensor): input int duration, shape (B,)
-        mask (torch.Tensor): mask, shape (B, L)
+        mask (torch.Tensor): mask, shape (B, I)
     Returns:
-        torch.LongTensor: output int duration, shape (B, L)
+        torch.LongTensor: output int duration, shape (B, I)
     """
     dur = dur * mask
     device = dur.device

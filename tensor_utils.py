@@ -237,6 +237,7 @@ def lengths_to_mask(lens, max_lens=None):
 
 
 def get_mat_p_f(src_tokens, durations):
+    assert src_tokens.shape[:2] == durations.shape, "src_tokens and durations should have the same batch size and length"
     B, U, _ = src_tokens.shape
     T = durations.sum(axis=-1).max()
     cumsum_dur_1 = torch.cumsum(durations, dim=-1)  # [B, U]

@@ -39,7 +39,8 @@ class RoughAligner(nn.Module):
 
         x, _ = self.cross_attention(text_hidden, mel_hidden, mel_hidden, ~mel_mask)
         x = x.transpose(0, 1) * text_mask.unsqueeze(-1)
-        x = F.sigmoid(self.final_layer(x)).squeeze(-1) * text_mask
+        x = self.final_layer(x).squeeze(-1)
+        x = F.sigmoid(x) * text_mask
         dur_norm = x / x.sum(dim=1, keepdim=True)
 
         T = mel_mask.sum(dim=1)

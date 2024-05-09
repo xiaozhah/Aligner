@@ -13,17 +13,17 @@ cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:]
     Convert float duration to int duration
 
     Args:
-        dur (float[:]): input float duration, shape (L,)
-        int_dur (int[:]): output int duration, shape (L,)
+        dur (float[:]): input float duration, shape (I,)
+        int_dur (int[:]): output int duration, shape (I,)
         T (int): total duration
-        mask (int[:]): mask, shape (L,)
+        mask (int[:]): mask, shape (I,)
     """
-    cdef int L = dur.shape[0]
+    cdef int I = dur.shape[0]
     cdef float float_sum = 0
     cdef int int_sum = 0, i, rounded_dur, valid_count
     
     valid_count = 0
-    for i in range(L):
+    for i in range(I):
         if mask[i] == 1:
             valid_count += 1
             float_sum += dur[i]
@@ -46,10 +46,10 @@ cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:]
 cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:
     """
     Args:
-        dur (float[:, :]): float duration, shape (B, L)
+        dur (float[:, :]): float duration, shape (B, I)
         T (int[:]): total duration, shape (B,)
-        mask (int[:, :]): mask, shape (B, L)
-        int_dur (int[:, :]): int duration, shape (B, L)
+        mask (int[:, :]): mask, shape (B, I)
+        int_dur (int[:, :]): int duration, shape (B, I)
     """
     cdef int B = dur.shape[0]
     
