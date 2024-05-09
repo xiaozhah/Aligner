@@ -258,7 +258,7 @@ def calculate_tensor_memory_size(shape, dtype):
     memory_size_in_mb = memory_size_in_bytes / (1024 * 1024)
     return memory_size_in_mb
 
-def cal_mono_aligner_hidden_state_memory_size(selected_boundary_indices, text_mask):
+def cal_max_hidden_memory_size(selected_boundary_indices, text_mask):
     B, K = selected_boundary_indices.shape
     _, I = text_mask.shape
     shape = (B, I, K, K)

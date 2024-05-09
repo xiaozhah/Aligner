@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from layers import LinearNorm
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
-from tensor_utils import get_mat_p_f, get_valid_max, cal_mono_aligner_hidden_state_memory_size
+from tensor_utils import get_mat_p_f, get_valid_max, cal_max_hidden_memory_size
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
 import warnings
 
@@ -273,7 +273,7 @@ class RoMoAligner(nn.Module):
         ) = self.select_mel_hiddens(mel_hiddens, int_dur_by_rough, text_mask)
 
         if self.verbose:
-            cal_mono_aligner_hidden_state_memory_size(selected_boundary_indices, text_mask)
+            cal_max_hidden_memory_size(selected_boundary_indices, text_mask)
 
         # Run a fine-grained MoBoAligner
         mat_p_d, hard_mat_p_d = self.mobo_aligner(
