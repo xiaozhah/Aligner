@@ -41,10 +41,10 @@ class RoughAligner(nn.Module):
         x = x.transpose(0, 1) * text_mask.unsqueeze(-1)
         x = self.final_layer(x).squeeze(-1)
         x = F.sigmoid(x) * text_mask
-        dur_norm = x / x.sum(dim=1, keepdim=True)
+        norm_dur = x / x.sum(dim=1, keepdim=True)
 
         T = mel_mask.sum(dim=1)
-        float_dur = dur_norm * T.unsqueeze(1)
+        float_dur = norm_dur * T.unsqueeze(1)
         int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
 
         return float_dur, int_dur
