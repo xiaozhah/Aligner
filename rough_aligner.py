@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq.modules.espnet_multihead_attention import ESPNETMultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 
 from layers import LinearNorm
 import robo_utils
@@ -15,8 +15,8 @@ class RoughAligner(nn.Module):
 
         self.text_layer = LinearNorm(text_channels, attention_dim)
         self.mel_layer = LinearNorm(mel_channels, attention_dim)
-        self.cross_attention = ESPNETMultiHeadedAttention(
-            attention_dim, attention_head, dropout
+        self.cross_attention = MultiHeadedAttention(
+            attention_head, attention_dim, dropout
         )
         self.final_layer = LinearNorm(attention_dim, 1)
 
@@ -34,11 +34,11 @@ class RoughAligner(nn.Module):
             torch.Tensor: The normalized durations of each text token of shape (B, I).
         """
 
-        text_hidden = self.text_layer(text_embeddings).transpose(0, 1)  # (I, B, H)
-        mel_hidden = self.mel_layer(mel_embeddings).transpose(0, 1)  # (J, B, H)
+        text_hidden = self.text_layer(text_embeddings)  # (B, I, H)
+        mel_hidden = self.mel_layer(mel_embeddings)  # (B, J, H)
 
-        x, _ = self.cross_attention(text_hidden, mel_hidden, mel_hidden, ~mel_mask)
-        x = x.transpose(0, 1) * text_mask.unsqueeze(-1)
+        x = self.cross_attention(text_hidden, mel_hidden, mel_hidden, ~mel_mask.unsqueeze(1))
+        x = x * text_mask.unsqueeze(-1)
         x = self.final_layer(x).squeeze(-1)
         x = F.sigmoid(x) * text_mask
         norm_dur = x / x.sum(dim=1, keepdim=True)
