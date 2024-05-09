@@ -19,8 +19,8 @@ class RoMoAligner(nn.Module):
         mel_embeddings,
         attention_dim,
         attention_head,
-        linear_units,
-        num_blocks,
+        conformer_linear_units,
+        conformer_num_blocks,
         conformer_enc_kernel_size,
         conformer_dec_kernel_size,
         skip_text_conformer=False,
@@ -42,8 +42,8 @@ class RoMoAligner(nn.Module):
                 idim=0,
                 attention_dim=attention_dim,
                 attention_heads=attention_head,
-                linear_units=linear_units,
-                num_blocks=num_blocks,
+                linear_units=conformer_linear_units,
+                num_blocks=conformer_num_blocks,
                 input_layer=None,
                 dropout_rate=dropout,
                 positional_dropout_rate=dropout,
@@ -66,8 +66,8 @@ class RoMoAligner(nn.Module):
                 idim=0,
                 attention_dim=attention_dim,
                 attention_heads=attention_head,
-                linear_units=linear_units,
-                num_blocks=num_blocks,
+                linear_units=conformer_linear_units,
+                num_blocks=conformer_num_blocks,
                 input_layer=None,
                 dropout_rate=dropout,
                 positional_dropout_rate=dropout,
@@ -280,6 +280,7 @@ class RoMoAligner(nn.Module):
             return_hard_alignment=True,
         )
 
+        # mat_p_d * mat_d_f = mat_p_f
         map_d_f = self.get_map_d_f(
             mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
         )
@@ -316,8 +317,8 @@ if __name__ == "__main__":
         mel_embeddings=mel_channels,
         attention_dim=128,
         attention_head=2,
-        linear_units=256,
-        num_blocks=2,
+        conformer_linear_units=256,
+        conformer_num_blocks=2,
         conformer_enc_kernel_size=7,
         conformer_dec_kernel_size=31,
         skip_text_conformer=False,
