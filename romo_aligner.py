@@ -96,6 +96,18 @@ class RoMoAligner(nn.Module):
         self.num_boundary_candidates = num_boundary_candidates
 
     def encoder(self, text_embeddings, mel_embeddings, text_mask, mel_mask):
+        """
+        Encode the input text and mel embeddings using the Conformer.
+
+        Args:
+            text_embeddings (torch.FloatTensor): The input text embeddings, with a shape of (B, I, C1).
+            mel_embeddings (torch.FloatTensor): The input mel embeddings, with a shape of (B, J, C2).
+            text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
+            mel_mask (torch.BoolTensor): The mask for the input mel, with a shape of (B, J).
+        Returns:
+            torch.FloatTensor: The hidden sequence of the input text, with a shape of (B, I, H).
+            torch.FloatTensor: The hidden sequence of the input mel, with a shape of (B, J, H).
+        """
         text_hiddens = self.text_fc(text_embeddings) * text_mask.unsqueeze(2)
         mel_hiddens = self.mel_fc(mel_embeddings) * mel_mask.unsqueeze(2)
 
