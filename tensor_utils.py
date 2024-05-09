@@ -248,6 +248,23 @@ def get_mat_p_f(src_tokens, durations):
     mat_p_f = (mask1 & ~mask0).float()
     return mat_p_f
 
+def calculate_tensor_memory_size(shape, dtype):
+    total_elements = 1
+    for dim in shape:
+        total_elements *= dim
+
+    dtype_size = torch.tensor([], dtype=dtype, device="cpu").element_size()
+    memory_size_in_bytes = total_elements * dtype_size
+    memory_size_in_mb = memory_size_in_bytes / (1024 * 1024)
+    return memory_size_in_mb
+
+def cal_mono_aligner_hidden_state_memory_size(selected_boundary_indices, text_mask):
+    B, K = selected_boundary_indices.shape
+    _, I = text_mask.shape
+    shape = (B, I, K, K)
+    dtype = torch.float32
+    memory_size_mb = calculate_tensor_memory_size(shape, dtype)
+    print(f"Memory size for tensor with shape {shape} and dtype {dtype}: {memory_size_mb:.2f} MB")
 
 if __name__ == "__main__":
     # 示例用法 1

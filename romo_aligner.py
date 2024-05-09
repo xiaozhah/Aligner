@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from layers import LinearNorm
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
-from tensor_utils import get_mat_p_f, get_valid_max
+from tensor_utils import get_mat_p_f, get_valid_max, cal_mono_aligner_hidden_state_memory_size
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
 import warnings
 
@@ -28,6 +28,7 @@ class RoMoAligner(nn.Module):
         dropout=0.1,
         noise_scale=2.0,
         num_boundary_candidates=3,
+        verbose=False,
     ):
         super(RoMoAligner, self).__init__()
 
@@ -96,6 +97,7 @@ class RoMoAligner(nn.Module):
         self.skip_text_conformer = skip_text_conformer
         self.skip_mel_conformer = skip_mel_conformer
         self.num_boundary_candidates = num_boundary_candidates
+        self.verbose = verbose
 
     def encoder(self, text_embeddings, mel_embeddings, text_mask, mel_mask):
         """
@@ -270,6 +272,9 @@ class RoMoAligner(nn.Module):
             selected_mel_hiddens,
         ) = self.select_mel_hiddens(mel_hiddens, int_dur_by_rough, text_mask)
 
+        if self.verbose:
+            cal_mono_aligner_hidden_state_memory_size(selected_boundary_indices, text_mask)
+
         # Run a fine-grained MoBoAligner
         mat_p_d, hard_mat_p_d = self.mobo_aligner(
             text_hiddens,
@@ -305,16 +310,16 @@ class RoMoAligner(nn.Module):
 if __name__ == "__main__":
     torch.manual_seed(0)
 
-    text_channels = 10
-    mel_channels = 20
+    text_embeddings = 10
+    mel_embeddings = 20
     attention_dim = 128
     attention_head = 8
     dropout = 0.1
     noise_scale = 2.0
 
     aligner = RoMoAligner(
-        text_embeddings=text_channels,
-        mel_embeddings=mel_channels,
+        text_embeddings=text_embeddings,
+        mel_embeddings=mel_embeddings,
         attention_dim=128,
         attention_head=2,
         conformer_linear_units=256,
@@ -323,6 +328,7 @@ if __name__ == "__main__":
         conformer_dec_kernel_size=31,
         skip_text_conformer=False,
         skip_mel_conformer=False,
+        verbose=True,
     )
 
     batch_size = 2
@@ -333,10 +339,10 @@ if __name__ == "__main__":
     aligner = aligner.to(device)
 
     text_embeddings = torch.randn(
-        batch_size, text_len, text_channels, requires_grad=True, device=device
+        batch_size, text_len, text_embeddings, requires_grad=True, device=device
     )
     mel_embeddings = torch.randn(
-        batch_size, mel_len, mel_channels, requires_grad=True, device=device
+        batch_size, mel_len, mel_embeddings, requires_grad=True, device=device
     )
     text_mask = torch.ones(batch_size, text_len, device=device).bool()
     mel_mask = torch.ones(batch_size, mel_len, device=device).bool()
