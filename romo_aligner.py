@@ -32,7 +32,9 @@ class RoMoAligner(nn.Module):
         super(RoMoAligner, self).__init__()
 
         if num_boundary_candidates <= 0:
-            raise ValueError("The number of boundary candidates must be greater than 0.")
+            raise ValueError(
+                "The number of boundary candidates must be greater than 0."
+            )
 
         self.text_fc = LinearNorm(text_embeddings, attention_dim)
         if not skip_text_conformer:
@@ -112,17 +114,13 @@ class RoMoAligner(nn.Module):
         mel_hiddens = self.mel_fc(mel_embeddings) * mel_mask.unsqueeze(2)
 
         if not self.skip_text_conformer:
-            text_hiddens, _ = self.text_conformer(
-                text_hiddens, text_mask.unsqueeze(1)
-            )
+            text_hiddens, _ = self.text_conformer(text_hiddens, text_mask.unsqueeze(1))
             text_hiddens = text_hiddens * text_mask.unsqueeze(2)
-        
+
         if not self.skip_mel_conformer:
-            mel_hiddens, _ = self.mel_conformer(
-                mel_hiddens, mel_mask.unsqueeze(1)
-            )
+            mel_hiddens, _ = self.mel_conformer(mel_hiddens, mel_mask.unsqueeze(1))
             mel_hiddens = mel_hiddens * mel_mask.unsqueeze(2)
-        
+
         return text_hiddens, mel_hiddens
 
     @torch.no_grad()
@@ -162,13 +160,10 @@ class RoMoAligner(nn.Module):
         indices = torch.clamp(indices, min=min_indices, max=max_indices)
         indices = indices.view(B, -1)
 
-        # unique_indices = (torch.unique(i) for i in indices)
-        # unique_indices = torch.nn.utils.rnn.pad_sequence(unique_indices, batch_first=True, padding_value=-1)
-
-        unique_nested_indices = torch.nested.nested_tensor(
-            [torch.unique(i) for i in indices]
+        unique_indices = (torch.unique(i) for i in indices)
+        unique_indices = torch.nn.utils.rnn.pad_sequence(
+            unique_indices, batch_first=True, padding_value=-1
         )
-        unique_indices = torch.nested.to_padded_tensor(unique_nested_indices, -1)
 
         unique_indices_mask = unique_indices != -1
         unique_indices = unique_indices * unique_indices_mask
@@ -249,8 +244,10 @@ class RoMoAligner(nn.Module):
             torch.FloatTensor: The duration predicted by the rough aligner, with a shape of (B, I).
             torch.FloatTensor: The duration searched by the MoBo aligner (hard alignment mode), with a shape of (B, I).
         """
-        text_hiddens, mel_hiddens = self.encoder(text_embeddings, mel_embeddings, text_mask, mel_mask)
-        
+        text_hiddens, mel_hiddens = self.encoder(
+            text_embeddings, mel_embeddings, text_mask, mel_mask
+        )
+
         dur_by_rough, int_dur_by_rough = self.rough_aligner(
             text_hiddens, mel_hiddens, text_mask, mel_mask
         )
