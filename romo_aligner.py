@@ -122,10 +122,11 @@ class RoMoAligner(nn.Module):
         indices = torch.clamp(indices, min=min_indices, max=max_indices)
         indices = indices.view(B, -1)
 
-        unique_indices = (torch.unique(i) for i in indices)
-        unique_indices = torch.nn.utils.rnn.pad_sequence(
-            unique_indices, batch_first=True, padding_value=-1
-        )
+        # unique_indices = (torch.unique(i) for i in indices)
+        # unique_indices = torch.nn.utils.rnn.pad_sequence(unique_indices, batch_first=True, padding_value=-1)
+
+        unique_nested_indices = torch.nested.nested_tensor([torch.unique(i) for i in indices])
+        unique_indices = torch.nested.to_padded_tensor(unique_nested_indices, -1)
 
         unique_indices_mask = unique_indices != -1
         unique_indices = unique_indices * unique_indices_mask
