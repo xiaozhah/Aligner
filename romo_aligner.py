@@ -170,32 +170,43 @@ class RoMoAligner(nn.Module):
 
         return unique_indices, unique_indices_mask
 
-    def select_mel_hiddens(
-        self, mel_hiddens, selected_boundary_indices, selected_boundary_indices_mask
-    ):
+    def select_mel_hiddens(self, mel_hiddens, int_dur_by_rough, text_mask):
         """
         Selects the corresponding mel_hiddens according to the possible boundary indices predicted by the rough aligner.
 
         Args:
             mel_hiddens (torch.Tensor): The original mel feature sequence, with a shape of (B, J, C).
-            selected_boundary_indices (torch.Tensor): The indices near the boundaries predicted by the rough aligner, with a shape of (B, K).
+            int_dur_by_rough (torch.Tensor): The integer duration sequence predicted by the rough aligner, with a shape of (B, I).
+            text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
 
         Returns:
+            torch.Tensor: The selected boundary indices, with a shape of (B, K).
+            torch.Tensor: The mask for the selected boundary indices, with a shape of (B, K).
             torch.Tensor: The selected mel hidden sequence, with a shape of (B, K, C).
         """
-        channels = mel_hiddens.shape[2]
+        selected_boundary_indices, selected_boundary_indices_mask = (
+            self.get_nearest_boundaries(
+                int_dur_by_rough, text_mask, self.num_boundary_candidates
+            )
+        )
+
+        mel_dim = mel_hiddens.shape[2]
 
         selected_mel_hiddens = torch.gather(
             mel_hiddens,
             1,
-            selected_boundary_indices.unsqueeze(-1).expand(-1, -1, channels),
+            selected_boundary_indices.unsqueeze(-1).expand(-1, -1, mel_dim),
         )
 
         selected_mel_hiddens = (
             selected_mel_hiddens * selected_boundary_indices_mask.unsqueeze(-1)
         )
 
-        return selected_mel_hiddens
+        return (
+            selected_boundary_indices,
+            selected_boundary_indices_mask,
+            selected_mel_hiddens,
+        )
 
     def get_map_d_f(
         self, mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
@@ -252,16 +263,12 @@ class RoMoAligner(nn.Module):
             text_hiddens, mel_hiddens, text_mask, mel_mask
         )
 
-        selected_boundary_indices, selected_boundary_indices_mask = (
-            self.get_nearest_boundaries(
-                int_dur_by_rough, text_mask, self.num_boundary_candidates
-            )
-        )
-
         # Select the corresponding mel_hiddens based on the possible boundary indices
-        selected_mel_hiddens = self.select_mel_hiddens(
-            mel_hiddens, selected_boundary_indices, selected_boundary_indices_mask
-        )
+        (
+            selected_boundary_indices,
+            selected_boundary_indices_mask,
+            selected_mel_hiddens,
+        ) = self.select_mel_hiddens(mel_hiddens, int_dur_by_rough, text_mask)
 
         # Run a fine-grained MoBoAligner
         mat_p_d, hard_mat_p_d = self.mobo_aligner(
