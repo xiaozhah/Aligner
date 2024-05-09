@@ -8,13 +8,9 @@ import robo_utils
 
 
 class RoughAligner(nn.Module):
-    def __init__(
-        self, text_channels, mel_channels, attention_dim, attention_head, dropout
-    ):
+    def __init__(self, attention_dim, attention_head, dropout):
         super(RoughAligner, self).__init__()
 
-        self.text_layer = LinearNorm(text_channels, attention_dim)
-        self.mel_layer = LinearNorm(mel_channels, attention_dim)
         self.cross_attention = MultiHeadedAttention(
             attention_head, attention_dim, dropout
         )
@@ -25,8 +21,8 @@ class RoughAligner(nn.Module):
         Compute the normalized durations of each text token based on the cross-attention of the text and mel embeddings.
 
         Args:
-            text_embeddings (torch.Tensor): The text embeddings of shape (B, I, C1).
-            mel_embeddings (torch.Tensor): The mel embeddings of shape (B, J, C2).
+            text_embeddings (torch.Tensor): The text embeddings of shape (B, I, H).
+            mel_embeddings (torch.Tensor): The mel embeddings of shape (B, J, H).
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel mask of shape (B, J).
 
@@ -34,10 +30,9 @@ class RoughAligner(nn.Module):
             torch.Tensor: The normalized durations of each text token of shape (B, I).
         """
 
-        text_hidden = self.text_layer(text_embeddings)  # (B, I, H)
-        mel_hidden = self.mel_layer(mel_embeddings)  # (B, J, H)
-
-        x = self.cross_attention(text_hidden, mel_hidden, mel_hidden, ~mel_mask.unsqueeze(1))
+        x = self.cross_attention(
+            text_embeddings, mel_embeddings, mel_embeddings, ~mel_mask.unsqueeze(1)
+        )
         x = x * text_mask.unsqueeze(-1)
         x = self.final_layer(x).squeeze(-1)
         x = F.sigmoid(x) * text_mask

@@ -4,29 +4,86 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from layers import LinearNorm
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
 from tensor_utils import get_mat_p_f, get_valid_max
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
 
+
 class RoMoAligner(nn.Module):
     def __init__(
         self,
-        text_channels,
-        mel_channels,
+        text_embeddings,
+        mel_embeddings,
         attention_dim,
         attention_head,
-        dropout,
+        linear_units,
+        num_blocks,
+        conformer_enc_kernel_size,
+        conformer_dec_kernel_size,
+        skip_text_conformer=False,
+        skip_mel_conformer=False,
+        dropout=0.1,
         noise_scale=2.0,
     ):
         super(RoMoAligner, self).__init__()
 
-        self.rough_aligner = RoughAligner(
-            text_channels, mel_channels, attention_dim, attention_head, dropout
-        )
+        self.text_fc = LinearNorm(text_embeddings, attention_dim)
+        if not skip_text_conformer:
+            self.text_conformer = ConformerEncoder(
+                idim=0,
+                attention_dim=attention_dim,
+                attention_heads=attention_head,
+                linear_units=linear_units,
+                num_blocks=num_blocks,
+                input_layer=None,
+                dropout_rate=dropout,
+                positional_dropout_rate=dropout,
+                attention_dropout_rate=dropout,
+                normalize_before=True,
+                concat_after=False,
+                positionwise_layer_type="conv1d",
+                positionwise_conv_kernel_size=3,
+                macaron_style=True,
+                pos_enc_layer_type="rel_pos",
+                selfattention_layer_type="rel_selfattn",
+                activation_type="swish",
+                use_cnn_module=True,
+                cnn_module_kernel=conformer_enc_kernel_size,
+            )
+
+        self.mel_fc = LinearNorm(mel_embeddings, attention_dim)
+        if not skip_mel_conformer:
+            self.mel_conformer = ConformerEncoder(
+                idim=0,
+                attention_dim=attention_dim,
+                attention_heads=attention_head,
+                linear_units=linear_units,
+                num_blocks=num_blocks,
+                input_layer=None,
+                dropout_rate=dropout,
+                positional_dropout_rate=dropout,
+                attention_dropout_rate=dropout,
+                normalize_before=True,
+                concat_after=False,
+                positionwise_layer_type="conv1d",
+                positionwise_conv_kernel_size=3,
+                macaron_style=True,
+                pos_enc_layer_type="rel_pos",
+                selfattention_layer_type="rel_selfattn",
+                activation_type="swish",
+                use_cnn_module=True,
+                cnn_module_kernel=conformer_dec_kernel_size,
+            )
+
+        self.rough_aligner = RoughAligner(attention_dim, attention_head, dropout)
         self.mobo_aligner = MoBoAligner(
-            text_channels, mel_channels, attention_dim, noise_scale
+            attention_dim, attention_dim, attention_dim, noise_scale
         )
+
+        self.skip_text_conformer = skip_text_conformer
+        self.skip_mel_conformer = skip_mel_conformer
 
     @torch.no_grad()
     def get_nearest_boundaries(self, int_dur, text_mask, num_boundary_candidates=3):
@@ -151,6 +208,20 @@ class RoMoAligner(nn.Module):
             torch.FloatTensor: The duration predicted by the rough aligner, with a shape of (B, I).
             torch.FloatTensor: The duration searched by the MoBo aligner (hard alignment mode), with a shape of (B, I).
         """
+        text_embeddings = self.text_fc(text_embeddings) * text_mask.unsqueeze(2)
+        mel_embeddings = self.mel_fc(mel_embeddings) * mel_mask.unsqueeze(2)
+
+        if not self.skip_text_conformer:
+            text_embeddings, _ = self.text_conformer(
+                text_embeddings, text_mask.unsqueeze(1)
+            )
+            text_embeddings = text_embeddings * text_mask.unsqueeze(2)
+        if not self.skip_mel_conformer:
+            mel_embeddings, _ = self.mel_conformer(
+                mel_embeddings, mel_mask.unsqueeze(1)
+            )
+            mel_embeddings = mel_embeddings * mel_mask.unsqueeze(2)
+
         dur_by_rough, int_dur_by_rough = self.rough_aligner(
             text_embeddings, mel_embeddings, text_mask, mel_mask
         )
@@ -210,7 +281,16 @@ if __name__ == "__main__":
     noise_scale = 2.0
 
     aligner = RoMoAligner(
-        text_channels, mel_channels, attention_dim, attention_head, dropout, noise_scale
+        text_embeddings=text_channels,
+        mel_embeddings=mel_channels,
+        attention_dim=128,
+        attention_head=2,
+        linear_units=256,
+        num_blocks=2,
+        conformer_enc_kernel_size=7,
+        conformer_dec_kernel_size=31,
+        skip_text_conformer=False,
+        skip_mel_conformer=False,
     )
 
     batch_size = 2
