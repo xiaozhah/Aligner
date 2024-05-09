@@ -26,9 +26,9 @@ class RoMoAligner(nn.Module):
         skip_text_conformer=False,
         skip_mel_conformer=False,
         dropout=0.1,
-        noise_scale=2.0,
-        num_boundary_candidates=3,
-        verbose=False,
+        noise_scale=2.0, # the scale of the noise used in the MoBo aligner
+        num_boundary_candidates=3, # number of boundary candidates of each text token
+        verbose=False, # whether to print the memory size of the hidden state
     ):
         super(RoMoAligner, self).__init__()
 
