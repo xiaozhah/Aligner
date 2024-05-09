@@ -17397,7 +17397,7 @@ static int __pyx_f_10robo_utils_4core_round_to_int(float __pyx_v_x) {
  */
 
 static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviewslice __pyx_v_dur, __Pyx_memviewslice __pyx_v_int_dur, int __pyx_v_T, __Pyx_memviewslice __pyx_v_mask) {
-  int __pyx_v_L;
+  int __pyx_v_I;
   float __pyx_v_float_sum;
   int __pyx_v_int_sum;
   int __pyx_v_i;
@@ -17417,17 +17417,17 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   #endif
 
   /* "robo_utils/core.pyx":21
- *         mask (int[:]): mask, shape (L,)
+ *         mask (int[:]): mask, shape (I,)
  *     """
- *     cdef int L = dur.shape[0]             # <<<<<<<<<<<<<<
+ *     cdef int I = dur.shape[0]             # <<<<<<<<<<<<<<
  *     cdef float float_sum = 0
  *     cdef int int_sum = 0, i, rounded_dur, valid_count
  */
-  __pyx_v_L = (__pyx_v_dur.shape[0]);
+  __pyx_v_I = (__pyx_v_dur.shape[0]);
 
   /* "robo_utils/core.pyx":22
  *     """
- *     cdef int L = dur.shape[0]
+ *     cdef int I = dur.shape[0]
  *     cdef float float_sum = 0             # <<<<<<<<<<<<<<
  *     cdef int int_sum = 0, i, rounded_dur, valid_count
  * 
@@ -17435,7 +17435,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   __pyx_v_float_sum = 0.0;
 
   /* "robo_utils/core.pyx":23
- *     cdef int L = dur.shape[0]
+ *     cdef int I = dur.shape[0]
  *     cdef float float_sum = 0
  *     cdef int int_sum = 0, i, rounded_dur, valid_count             # <<<<<<<<<<<<<<
  * 
@@ -17447,7 +17447,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  *     cdef int int_sum = 0, i, rounded_dur, valid_count
  * 
  *     valid_count = 0             # <<<<<<<<<<<<<<
- *     for i in range(L):
+ *     for i in range(I):
  *         if mask[i] == 1:
  */
   __pyx_v_valid_count = 0;
@@ -17455,18 +17455,18 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   /* "robo_utils/core.pyx":26
  * 
  *     valid_count = 0
- *     for i in range(L):             # <<<<<<<<<<<<<<
+ *     for i in range(I):             # <<<<<<<<<<<<<<
  *         if mask[i] == 1:
  *             valid_count += 1
  */
-  __pyx_t_1 = __pyx_v_L;
+  __pyx_t_1 = __pyx_v_I;
   __pyx_t_2 = __pyx_t_1;
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_i = __pyx_t_3;
 
     /* "robo_utils/core.pyx":27
  *     valid_count = 0
- *     for i in range(L):
+ *     for i in range(I):
  *         if mask[i] == 1:             # <<<<<<<<<<<<<<
  *             valid_count += 1
  *             float_sum += dur[i]
@@ -17476,7 +17476,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
     if (__pyx_t_5) {
 
       /* "robo_utils/core.pyx":28
- *     for i in range(L):
+ *     for i in range(I):
  *         if mask[i] == 1:
  *             valid_count += 1             # <<<<<<<<<<<<<<
  *             float_sum += dur[i]
@@ -17553,7 +17553,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
 
       /* "robo_utils/core.pyx":27
  *     valid_count = 0
- *     for i in range(L):
+ *     for i in range(I):
  *         if mask[i] == 1:             # <<<<<<<<<<<<<<
  *             valid_count += 1
  *             float_sum += dur[i]
@@ -17660,7 +17660,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__Pyx_memvi
   __Pyx_RefNannySetupContext("float_to_int_duration_batch_c", 1);
 
   /* "robo_utils/core.pyx":54
- *         int_dur (int[:, :]): int duration, shape (B, L)
+ *         int_dur (int[:, :]): int duration, shape (B, I)
  *     """
  *     cdef int B = dur.shape[0]             # <<<<<<<<<<<<<<
  * 
@@ -17919,7 +17919,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-PyDoc_STRVAR(__pyx_doc_10robo_utils_4core_float_to_int_duration_batch_c, "\n    Args:\n        dur (float[:, :]): float duration, shape (B, L)\n        T (int[:]): total duration, shape (B,)\n        mask (int[:, :]): mask, shape (B, L)\n        int_dur (int[:, :]): int duration, shape (B, L)\n    ");
+PyDoc_STRVAR(__pyx_doc_10robo_utils_4core_float_to_int_duration_batch_c, "\n    Args:\n        dur (float[:, :]): float duration, shape (B, I)\n        T (int[:]): total duration, shape (B,)\n        mask (int[:, :]): mask, shape (B, I)\n        int_dur (int[:, :]): int duration, shape (B, I)\n    ");
 static PyMethodDef __pyx_mdef_10robo_utils_4core_1float_to_int_duration_batch_c = {"float_to_int_duration_batch_c", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_10robo_utils_4core_1float_to_int_duration_batch_c, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_10robo_utils_4core_float_to_int_duration_batch_c};
 static PyObject *__pyx_pw_10robo_utils_4core_1float_to_int_duration_batch_c(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL

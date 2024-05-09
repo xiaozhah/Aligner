@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
 from tensor_utils import get_mat_p_f, get_valid_max
-
+from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
 
 class RoMoAligner(nn.Module):
     def __init__(
