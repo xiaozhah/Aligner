@@ -61,6 +61,7 @@ class MoBoAligner(nn.Module):
     def compute_energy(self, text_embeddings, mel_embeddings):
         """
         Compute the energy matrix between text embeddings and mel embeddings.
+        The text embeddings and mel embeddings must be contains positional information.
 
         Args:
             text_embeddings (torch.Tensor): The text embeddings of shape (B, I, D_text).
