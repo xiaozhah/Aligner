@@ -29,7 +29,7 @@ class RoMoAligner(nn.Module):
         )
 
     @torch.no_grad()
-    def get_nearest_boundaries(self, int_dur, text_mask, D=3):
+    def get_nearest_boundaries(self, int_dur, text_mask, num_boundary_candidates=3):
         """
         Calculate the possible boundaries of each text token based on the results of the rough aligner.
         If the length of text tokens is I, the number of possible boundaries is about K ≈ I*(2*D+1).
@@ -37,7 +37,7 @@ class RoMoAligner(nn.Module):
         Args:
             int_dur (torch.Tensor): The integer duration sequence, with a shape of (B, I).
             text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
-            D (int): The number of possible nearest boundary indices for each rough boundary.
+            num_boundary_candidates (int): The number of possible nearest boundary indices for each rough boundary.
 
         Returns:
             torch.Tensor: The indices of the possible boundaries, with a shape of (B, I, K).
@@ -48,7 +48,11 @@ class RoMoAligner(nn.Module):
 
         boundary_index = (int_dur.cumsum(1) - 1) * text_mask
         offsets = (
-            torch.arange(-D, D + 1, device=boundary_index.device)
+            torch.arange(
+                -num_boundary_candidates,
+                num_boundary_candidates + 1,
+                device=boundary_index.device,
+            )
             .unsqueeze(0)
             .unsqueeze(-1)
         )
@@ -128,7 +132,7 @@ class RoMoAligner(nn.Module):
         text_mask: torch.BoolTensor,
         mel_mask: torch.BoolTensor,
         direction: List[str],
-        D: int = 3,
+        num_boundary_candidates: int = 3,
     ) -> Tuple[
         Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor
     ]:
@@ -139,7 +143,7 @@ class RoMoAligner(nn.Module):
             text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
             mel_mask (torch.BoolTensor): The mask for the input mel, with a shape of (B, J).
             direction (List[str]): The direction of the alignment, can be "forward" or "backward".
-            D (int): The number of possible nearest boundary indices for each rough boundary.
+            num_boundary_candidates (int): The number of possible nearest boundary indices for each rough boundary.
         Returns:
             torch.FloatTensor: The soft alignment matrix, with a shape of (B, I, J).
             torch.FloatTensor: The hard alignment matrix, with a shape of (B, I, J).
@@ -152,7 +156,9 @@ class RoMoAligner(nn.Module):
         )
 
         selected_boundary_indices, selected_boundary_indices_mask = (
-            self.get_nearest_boundaries(int_dur_by_rough, text_mask, D=D)
+            self.get_nearest_boundaries(
+                int_dur_by_rough, text_mask, num_boundary_candidates
+            )
         )
 
         # Select the corresponding mel_embeddings based on the possible boundary indices
