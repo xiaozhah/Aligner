@@ -285,14 +285,13 @@ class RoMoAligner(nn.Module):
         )
         mat_p_f = torch.bmm(mat_p_d, map_d_f)
         hard_mat_p_f = torch.bmm(hard_mat_p_d, map_d_f)
+        dur_by_mobo = hard_mat_p_f.sum(2)
 
         # Use mat_p_f to compute the expanded text_embeddings
         expanded_text_embeddings = torch.bmm(
             torch.exp(mat_p_f).transpose(1, 2), text_embeddings
         )
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
-
-        dur_by_mobo = hard_mat_p_f.sum(2)
 
         return (
             mat_p_f,
