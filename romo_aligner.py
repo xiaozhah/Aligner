@@ -95,6 +95,24 @@ class RoMoAligner(nn.Module):
         self.skip_mel_conformer = skip_mel_conformer
         self.num_boundary_candidates = num_boundary_candidates
 
+    def encoder(self, text_embeddings, mel_embeddings, text_mask, mel_mask):
+        text_hiddens = self.text_fc(text_embeddings) * text_mask.unsqueeze(2)
+        mel_hiddens = self.mel_fc(mel_embeddings) * mel_mask.unsqueeze(2)
+
+        if not self.skip_text_conformer:
+            text_hiddens, _ = self.text_conformer(
+                text_hiddens, text_mask.unsqueeze(1)
+            )
+            text_hiddens = text_hiddens * text_mask.unsqueeze(2)
+        
+        if not self.skip_mel_conformer:
+            mel_hiddens, _ = self.mel_conformer(
+                mel_hiddens, mel_mask.unsqueeze(1)
+            )
+            mel_hiddens = mel_hiddens * mel_mask.unsqueeze(2)
+        
+        return text_hiddens, mel_hiddens
+
     @torch.no_grad()
     def get_nearest_boundaries(self, int_dur, text_mask, num_boundary_candidates=3):
         """
@@ -219,20 +237,8 @@ class RoMoAligner(nn.Module):
             torch.FloatTensor: The duration predicted by the rough aligner, with a shape of (B, I).
             torch.FloatTensor: The duration searched by the MoBo aligner (hard alignment mode), with a shape of (B, I).
         """
-        text_hiddens = self.text_fc(text_embeddings) * text_mask.unsqueeze(2)
-        mel_hiddens = self.mel_fc(mel_embeddings) * mel_mask.unsqueeze(2)
-
-        if not self.skip_text_conformer:
-            text_hiddens, _ = self.text_conformer(
-                text_hiddens, text_mask.unsqueeze(1)
-            )
-            text_hiddens = text_hiddens * text_mask.unsqueeze(2)
-        if not self.skip_mel_conformer:
-            mel_hiddens, _ = self.mel_conformer(
-                mel_hiddens, mel_mask.unsqueeze(1)
-            )
-            mel_hiddens = mel_hiddens * mel_mask.unsqueeze(2)
-
+        text_hiddens, mel_hiddens = self.encoder(text_embeddings, mel_embeddings, text_mask, mel_mask)
+        
         dur_by_rough, int_dur_by_rough = self.rough_aligner(
             text_hiddens, mel_hiddens, text_mask, mel_mask
         )
