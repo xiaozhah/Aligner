@@ -1,15 +1,15 @@
+import warnings
 from typing import List, Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
 
 from layers import LinearNorm
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
 from tensor_utils import get_mat_p_f, get_valid_max, cal_max_hidden_memory_size
-from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
-import warnings
 
 
 class RoMoAligner(nn.Module):
@@ -26,9 +26,9 @@ class RoMoAligner(nn.Module):
         skip_text_conformer=False,
         skip_mel_conformer=False,
         dropout=0.1,
-        noise_scale=2.0, # the scale of the noise used in the MoBo aligner
-        num_boundary_candidates=3, # number of boundary candidates of each text token
-        verbose=False, # whether to print the memory size of the hidden state
+        noise_scale=2.0,  # the scale of the noise used in the MoBo aligner
+        num_boundary_candidates=3,  # number of boundary candidates of each text token
+        verbose=False,  # whether to print the memory size of the hidden state
     ):
         super(RoMoAligner, self).__init__()
 
