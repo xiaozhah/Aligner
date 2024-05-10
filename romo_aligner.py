@@ -212,7 +212,11 @@ class RoMoAligner(nn.Module):
         )
 
     def get_mat_p_f(
-        self, mat_p_d, hard_mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
+        self,
+        mat_p_d,
+        hard_mat_p_d,
+        selected_boundary_indices,
+        selected_boundary_indices_mask,
     ):
         """
         Calculate the mat_d_f matrix (a hard alignment) based on the selected boundary indices
@@ -239,7 +243,7 @@ class RoMoAligner(nn.Module):
         mat_p_f = torch.bmm(mat_p_d, mat_d_f)
         hard_mat_p_f = torch.bmm(hard_mat_p_d, mat_d_f)
         dur_by_mobo = hard_mat_p_f.sum(2)
-        
+
         return mat_p_f, hard_mat_p_f, dur_by_mobo
 
     def forward(
@@ -300,18 +304,21 @@ class RoMoAligner(nn.Module):
 
         # mat_p_d * mat_d_f (computed by selected_boundary_indices) = mat_p_f
         mat_p_f, hard_mat_p_f, dur_by_mobo = self.get_mat_p_f(
-            mat_p_d, hard_mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
+            mat_p_d,
+            hard_mat_p_d,
+            selected_boundary_indices,
+            selected_boundary_indices_mask,
         )
-        
+
         # Use mat_p_f to compute the expanded text_embeddings
         expanded_text_embeddings = mat_p_f.transpose(1, 2) @ text_embeddings
 
         return (
-            mat_p_f, # has grad
-            hard_mat_p_f, # no grad
-            expanded_text_embeddings, # has grad
-            dur_by_rough, # has grad
-            dur_by_mobo, # no grad
+            mat_p_f,  # has grad
+            hard_mat_p_f,  # no grad
+            expanded_text_embeddings,  # has grad
+            dur_by_rough,  # has grad
+            dur_by_mobo,  # no grad
         )
 
 
