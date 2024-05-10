@@ -1,6 +1,7 @@
 import warnings
 from typing import List, Optional, Tuple
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -215,7 +216,7 @@ class RoMoAligner(nn.Module):
         self, mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
     ):
         """
-        Calculate the map_d_f matrix based on the selected boundary indices
+        Calculate the map_d_f matrix (a hard alignment) based on the selected boundary indices
 
         Args:
             mat_p_d (torch.Tensor): The soft alignment matrix, with a shape of (B, I, K).
@@ -287,11 +288,11 @@ class RoMoAligner(nn.Module):
         )
 
         # mat_p_d * mat_d_f = mat_p_f
-        map_d_f = self.get_map_d_f(
+        hard_map_d_f = self.get_map_d_f(
             mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
         )
-        mat_p_f = torch.bmm(mat_p_d, map_d_f)
-        hard_mat_p_f = torch.bmm(hard_mat_p_d, map_d_f)
+        mat_p_f = torch.bmm(mat_p_d, hard_map_d_f)
+        hard_mat_p_f = torch.bmm(hard_mat_p_d, hard_map_d_f)
         dur_by_mobo = hard_mat_p_f.sum(2)
 
         # Use mat_p_f to compute the expanded text_embeddings
