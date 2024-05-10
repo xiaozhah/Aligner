@@ -224,9 +224,7 @@ class MoBoAligner(nn.Module):
         mel_mask: torch.BoolTensor,
         direction: List[str],
         return_hard_alignment: bool = False,
-    ) -> Tuple[
-        Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor
-    ]:
+    ) -> Tuple[torch.FloatTensor, Optional[torch.FloatTensor]]:
         """
         Compute the soft alignment and the expanded text embeddings.
 
@@ -323,7 +321,9 @@ class MoBoAligner(nn.Module):
 
         hard_alignment = None
         if return_hard_alignment:
-            hard_alignment = self.compute_hard_alignment(log_soft_alignment, alignment_mask)
+            hard_alignment = self.compute_hard_alignment(
+                log_soft_alignment, alignment_mask
+            )
 
         return soft_alignment, hard_alignment
 

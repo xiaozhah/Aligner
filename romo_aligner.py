@@ -291,6 +291,7 @@ class RoMoAligner(nn.Module):
         )
 
         # mat_p_d * mat_d_f = mat_p_f
+        # only mat_p_f has grad, hard_mat_d_f, hard_mat_p_f and dur_by_mobo have no grad
         hard_mat_d_f = self.get_mat_d_f(
             mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
         )
