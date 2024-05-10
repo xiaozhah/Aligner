@@ -193,12 +193,12 @@ class RoMoAligner(nn.Module):
             )
         )
 
-        mel_dim = mel_hiddens.shape[2]
+        mel_channels = mel_hiddens.shape[2]
 
         selected_mel_hiddens = torch.gather(
             mel_hiddens,
             1,
-            selected_boundary_indices.unsqueeze(-1).expand(-1, -1, mel_dim),
+            selected_boundary_indices.unsqueeze(-1).expand(-1, -1, mel_channels),
         )
 
         selected_mel_hiddens = (
