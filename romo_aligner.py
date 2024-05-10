@@ -130,8 +130,7 @@ class RoMoAligner(nn.Module):
     def get_nearest_boundaries(self, int_dur, text_mask, num_boundary_candidates=3):
         """
         Calculate the possible boundaries of each text token based on the results of the rough aligner.
-        If the length of text tokens is I, the number of possible boundaries is about K ≈ I*(2*D+1).
-
+        If the length of text tokens is I, the number of possible boundaries is approximately K ≈ I*(2*D+1), where 2D+1 represents last, current, and next.
         Args:
             int_dur (torch.Tensor): The integer duration sequence, with a shape of (B, I).
             text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
