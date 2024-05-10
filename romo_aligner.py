@@ -211,19 +211,22 @@ class RoMoAligner(nn.Module):
             selected_mel_hiddens,
         )
 
-    def get_mat_d_f(
-        self, mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
+    def get_mat_p_f(
+        self, mat_p_d, hard_mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
     ):
         """
         Calculate the mat_d_f matrix (a hard alignment) based on the selected boundary indices
 
         Args:
             mat_p_d (torch.FloatTensor): The soft alignment matrix, with a shape of (B, I, K).
+            hard_mat_p_d (torch.FloatTensor): The hard alignment matrix, with a shape of (B, I, K).
             selected_boundary_indices (torch.LongTensor): The indices of the possible boundaries, with a shape of (B, K).
             selected_boundary_indices_mask (torch.BoolTensor): The mask for the possible boundaries, with a shape of (B, K).
 
         Returns:
-            mat_d_f (torch.FloatTensor): The hard alignment matrix, with a shape of (B, K, J).
+            mat_p_f (torch.FloatTensor): The hard alignment matrix, with a shape of (B, I, J).
+            hard_mat_p_f (torch.FloatTensor): The hard alignment matrix, with a shape of (B, I, J).
+            dur_by_mobo (torch.FloatTensor): The duration computed by the MoBo aligner based on the rough alignment, with a shape of (B, I).
         """
         repeat_times = F.pad(
             selected_boundary_indices, (1, 0), mode="constant", value=-1
@@ -232,7 +235,12 @@ class RoMoAligner(nn.Module):
         mat_d_f = get_mat_p_f(
             mat_p_d.transpose(1, 2), repeat_times
         )  # (B, K, I) -> (B, K, J)
-        return mat_d_f
+
+        mat_p_f = torch.bmm(mat_p_d, mat_d_f)
+        hard_mat_p_f = torch.bmm(hard_mat_p_d, mat_d_f)
+        dur_by_mobo = hard_mat_p_f.sum(2)
+        
+        return mat_p_f, hard_mat_p_f, dur_by_mobo
 
     def forward(
         self,
@@ -291,14 +299,11 @@ class RoMoAligner(nn.Module):
         )
 
         # mat_p_d * mat_d_f = mat_p_f
-        # only mat_p_f has grad, hard_mat_d_f, hard_mat_p_f and dur_by_mobo have no grad
-        hard_mat_d_f = self.get_mat_d_f(
-            mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
+        # only mat_p_f has grad, hard_mat_p_f and dur_by_mobo have no grad
+        mat_p_f, hard_mat_p_f, dur_by_mobo = self.get_mat_p_f(
+            mat_p_d, hard_mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
         )
-        mat_p_f = torch.bmm(mat_p_d, hard_mat_d_f)
-        hard_mat_p_f = torch.bmm(hard_mat_p_d, hard_mat_d_f)
-        dur_by_mobo = hard_mat_p_f.sum(2)
-
+        
         # Use mat_p_f to compute the expanded text_embeddings
         expanded_text_embeddings = mat_p_f.transpose(1, 2) @ text_embeddings
 
