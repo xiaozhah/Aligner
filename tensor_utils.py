@@ -1,7 +1,5 @@
 import torch
-from torch import nn
 import torch.nn.functional as F
-from torch.nn.utils.rnn import pad_sequence
 
 
 def roll_tensor(tensor, shifts, dim):
