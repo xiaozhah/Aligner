@@ -64,11 +64,11 @@ class MoBoAligner(nn.Module):
         The text embeddings and mel embeddings must be contains positional information.
 
         Args:
-            text_embeddings (torch.Tensor): The text embeddings of shape (B, I, D_text).
-            mel_embeddings (torch.Tensor): The mel spectrogram embeddings of shape (B, J, D_mel).
+            text_embeddings (torch.FloatTensor): The text embeddings of shape (B, I, D_text).
+            mel_embeddings (torch.FloatTensor): The mel spectrogram embeddings of shape (B, J, D_mel).
 
         Returns:
-            torch.Tensor: The energy matrix of shape (B, I, J) which applied Gaussian noise.
+            energy (torch.FloatTensor): The energy matrix of shape (B, I, J) which applied Gaussian noise.
         """
         processed_mel = self.mel_layer(mel_embeddings.unsqueeze(1))  # (B, 1, J, D_att)
         processed_text = self.text_layer(
@@ -88,14 +88,14 @@ class MoBoAligner(nn.Module):
         Compute the backward energy matrix and the corresponding text and mel masks.
 
         Args:
-            energy (torch.Tensor): The energy matrix of shape (B, I, J).
-            text_mask (torch.Tensor): The text mask of shape (B, I).
-            mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J).
+            energy (torch.FloatTensor): The energy matrix of shape (B, I, J).
+            text_mask (torch.BoolTensor): The text mask of shape (B, I).
+            mel_mask (torch.BoolTensor): The mel spectrogram mask of shape (B, J).
 
-        Returns (tuple): A tuple containing:
-            energy_backward (torch.Tensor): The backward energy matrix of shape (B, I-1, J-1).
-            text_mask_backward (torch.Tensor): The backward text mask of shape (B, I-1).
-            mel_mask_backward (torch.Tensor): The backward mel spectrogram mask of shape (B, J-1).
+        Returns:
+            energy_backward (torch.FloatTensor): The backward energy matrix of shape (B, I-1, J-1).
+            text_mask_backward (torch.BoolTensor): The backward text mask of shape (B, I-1).
+            mel_mask_backward (torch.BoolTensor): The backward mel spectrogram mask of shape (B, J-1).
         """
         shifts_text_dim = compute_max_length_diff(text_mask)
         shifts_mel_dim = compute_max_length_diff(mel_mask)
@@ -116,13 +116,13 @@ class MoBoAligner(nn.Module):
         Compute the log conditional probability of the alignment in the specified direction.
 
         Args:
-            energy (torch.Tensor): The energy matrix of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
-            text_mask (torch.Tensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
-            mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J) for forward, or (B, J-1) for backward.
+            energy (torch.FloatTensor): The energy matrix of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
+            text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
+            mel_mask (torch.BoolTensor): The mel spectrogram mask of shape (B, J) for forward, or (B, J-1) for backward.
 
-        Returns (tuple): A tuple containing:
-            log_cond_prob (torch.Tensor): The log conditional probability tensor of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
-            log_cond_prob_geq (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
+        Returns:
+            log_cond_prob (torch.FloatTensor): The log conditional probability tensor of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
+            log_cond_prob_geq (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
@@ -143,12 +143,12 @@ class MoBoAligner(nn.Module):
         Compute forward recursively in the log domain.
 
         Args:
-            log_cond_prob (torch.Tensor): The log conditional probability tensor for forward of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
-            text_mask (torch.Tensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
-            mel_mask (torch.Tensor): The mel spectrogram mask of shape (B, J) for forward, or (B, J-1) for backward.
+            log_cond_prob (torch.FloatTensor): The log conditional probability tensor for forward of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
+            text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
+            mel_mask (torch.BoolTensor): The mel spectrogram mask of shape (B, J) for forward, or (B, J-1) for backward.
 
         Returns:
-            torch.Tensor: The forward tensor of shape (B, I+1, J+1) for forward, or (B, I, J) for backward.
+            B_ij (torch.FloatTensor): The forward tensor of shape (B, I+1, J+1) for forward, or (B, I, J) for backward.
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
@@ -170,34 +170,34 @@ class MoBoAligner(nn.Module):
         Compute the log interval probability, which is the log of the probability P(B_{i-1} < j <= B_i), the sum of P(B_{i-1} < j <= B_i) over i is 1.
 
         Args:
-            prob (torch.Tensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I, J-1) for backward.
-            log_cond_prob_geq_or_gt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-2, J-1) for backward.
+            prob (torch.FloatTensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I, J-1) for backward.
+            log_cond_prob_geq_or_gt (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-2, J-1) for backward.
 
         Returns:
-            torch.Tensor: The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
+            log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
         """
         K = log_cond_prob_geq_or_gt.shape[2]
         x = prob.unsqueeze(-1).repeat(1, 1, 1, K) + log_cond_prob_geq_or_gt.transpose(
             2, 3
         )  # (B, I, K, J)
-        x = torch.logsumexp(x, dim=2)
-        return x
+        log_interval_prob = torch.logsumexp(x, dim=2)
+        return log_interval_prob
 
     def combine_alignments(self, log_boundary_forward, log_boundary_backward):
         """
         Combine the log probabilities from forward and backward boundary calculations.
 
         Args:
-            log_boundary_forward (torch.Tensor): The log probabilities from the forward boundary calculation of shape (B, I, J).
-            log_boundary_backward (torch.Tensor): The log probabilities from the backward boundary calculation of shape (B, I, J).
+            log_boundary_forward (torch.FloatTensor): The log probabilities from the forward boundary calculation of shape (B, I, J).
+            log_boundary_backward (torch.FloatTensor): The log probabilities from the backward boundary calculation of shape (B, I, J).
 
         Returns:
-            torch.Tensor: The combined log probabilities of shape (B, I, J).
+            log_interval_prob (torch.FloatTensor): The combined log probabilities of shape (B, I, J).
         """
-        log_interval_probability = torch.logaddexp(
+        log_interval_prob = torch.logaddexp(
             log_boundary_forward - LOG_2, log_boundary_backward - LOG_2
         )
-        return log_interval_probability
+        return log_interval_prob
 
     @torch.no_grad()
     def compute_hard_alignment(self, log_probs, alignment_mask):
@@ -208,13 +208,13 @@ class MoBoAligner(nn.Module):
         subject to the constraints of the alignment mask.
 
         Args:
-            log_probs (torch.Tensor): The log probabilities tensor of shape (B, I, J).
-            alignment_mask (torch.Tensor): The alignment mask of shape (B, I, J).
+            log_probs (torch.FloatTensor): The log probabilities tensor of shape (B, I, J).
+            alignment_mask (torch.BoolTensor): The alignment mask of shape (B, I, J).
         Returns:
-            torch.Tensor: The tensor representing the hard alignment path of shape (B, I, J).
+            hard_alignment (torch.FloatTensor): The tensor representing the hard alignment path of shape (B, I, J).
         """
-        attn = monotonic_align.maximum_path(log_probs, alignment_mask)
-        return attn
+        hard_alignment = monotonic_align.maximum_path(log_probs, alignment_mask)
+        return hard_alignment
 
     def forward(
         self,
@@ -239,10 +239,8 @@ class MoBoAligner(nn.Module):
             return_hard_alignment (bool): Whether to return the hard alignment which obtained by Viterbi decoding.
 
         Returns:
-            Tuple[Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor]:
-                - soft_alignment (torch.FloatTensor): The soft alignment tensor of shape (B, I, J) in the log domain.
-                - hard_alignment (torch.FloatTensor): The hard alignment tensor of shape (B, I, J).
-                - expanded_text_embeddings (torch.FloatTensor): The expanded text embeddings of shape (B, J, D_text).
+            soft_alignment (torch.FloatTensor): The soft alignment tensor of shape (B, I, J) in the log domain.
+            hard_alignment (torch.FloatTensor): The hard alignment tensor of shape (B, I, J).
         """
         # Check length of text < length of mel and direction is either "forward" or "backward"
         self.check_parameter_validity(text_mask, mel_mask, direction)

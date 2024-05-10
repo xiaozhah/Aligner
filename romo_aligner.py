@@ -110,8 +110,8 @@ class RoMoAligner(nn.Module):
             text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
             mel_mask (torch.BoolTensor): The mask for the input mel, with a shape of (B, J).
         Returns:
-            torch.FloatTensor: The hidden sequence of the input text, with a shape of (B, I, H).
-            torch.FloatTensor: The hidden sequence of the input mel, with a shape of (B, J, H).
+            text_hiddens (torch.FloatTensor): The hidden sequence of the input text, with a shape of (B, I, H).
+            mel_hiddens (torch.FloatTensor): The hidden sequence of the input mel, with a shape of (B, J, H).
         """
         text_hiddens = self.text_fc(text_embeddings) * text_mask.unsqueeze(2)
         mel_hiddens = self.mel_fc(mel_embeddings) * mel_mask.unsqueeze(2)
@@ -132,13 +132,13 @@ class RoMoAligner(nn.Module):
         Calculate the possible boundaries of each text token based on the results of the rough aligner.
         If the length of text tokens is I, the number of possible boundaries is approximately K ≈ I*(2*D+1), where 2D+1 represents last, current, and next.
         Args:
-            int_dur (torch.Tensor): The integer duration sequence, with a shape of (B, I).
+            int_dur (torch.LongTensor): The integer duration sequence, with a shape of (B, I).
             text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
             num_boundary_candidates (int): The number of possible nearest boundary indices for each rough boundary.
 
         Returns:
-            torch.Tensor: The indices of the possible boundaries, with a shape of (B, I, K).
-            torch.Tensor: The mask for the possible boundaries, with a shape of (B, I, K).
+            unique_indices (torch.LongTensor): The indices of the possible boundaries, with a shape of (B, I, K).
+            unique_indices_mask (torch.BoolTensor): The mask for the possible boundaries, with a shape of (B, I, K).
         """
 
         B = int_dur.shape[0]
@@ -178,14 +178,14 @@ class RoMoAligner(nn.Module):
         Selects the corresponding mel_hiddens according to the possible boundary indices predicted by the rough aligner.
 
         Args:
-            mel_hiddens (torch.Tensor): The original mel feature sequence, with a shape of (B, J, C).
-            int_dur_by_rough (torch.Tensor): The integer duration sequence predicted by the rough aligner, with a shape of (B, I).
+            mel_hiddens (torch.FloatTensor): The original mel feature sequence, with a shape of (B, J, C).
+            int_dur_by_rough (torch.LongTensor): The integer duration sequence predicted by the rough aligner, with a shape of (B, I).
             text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
 
         Returns:
-            torch.Tensor: The selected boundary indices, with a shape of (B, K).
-            torch.Tensor: The mask for the selected boundary indices, with a shape of (B, K).
-            torch.Tensor: The selected mel hidden sequence, with a shape of (B, K, C).
+            selected_boundary_indices (torch.LongTensor): The selected boundary indices, with a shape of (B, K).
+            selected_boundary_indices_mask (torch.BoolTensor): The mask for the selected boundary indices, with a shape of (B, K).
+            selected_mel_hiddens (torch.FloatTensor): The selected mel hidden sequence, with a shape of (B, K, C).
         """
         selected_boundary_indices, selected_boundary_indices_mask = (
             self.get_nearest_boundaries(
@@ -218,12 +218,12 @@ class RoMoAligner(nn.Module):
         Calculate the mat_d_f matrix (a hard alignment) based on the selected boundary indices
 
         Args:
-            mat_p_d (torch.Tensor): The soft alignment matrix, with a shape of (B, I, K).
-            selected_boundary_indices (torch.Tensor): The indices of the possible boundaries, with a shape of (B, K).
-            selected_boundary_indices_mask (torch.Tensor): The mask for the possible boundaries, with a shape of (B, K).
+            mat_p_d (torch.FloatTensor): The soft alignment matrix, with a shape of (B, I, K).
+            selected_boundary_indices (torch.LongTensor): The indices of the possible boundaries, with a shape of (B, K).
+            selected_boundary_indices_mask (torch.BoolTensor): The mask for the possible boundaries, with a shape of (B, K).
 
         Returns:
-            torch.Tensor: The mat_d_f matrix, with a shape of (B, K, J).
+            mat_d_f (torch.FloatTensor): The hard alignment matrix, with a shape of (B, K, J).
         """
         repeat_times = F.pad(
             selected_boundary_indices, (1, 0), mode="constant", value=-1
@@ -242,7 +242,11 @@ class RoMoAligner(nn.Module):
         mel_mask: torch.BoolTensor,
         direction: List[str],
     ) -> Tuple[
-        Optional[torch.FloatTensor], Optional[torch.FloatTensor], torch.FloatTensor
+        torch.FloatTensor,
+        torch.FloatTensor,
+        torch.FloatTensor,
+        torch.FloatTensor,
+        torch.FloatTensor,
     ]:
         """
         Args:
@@ -252,11 +256,11 @@ class RoMoAligner(nn.Module):
             mel_mask (torch.BoolTensor): The mask for the input mel, with a shape of (B, J).
             direction (List[str]): The direction of the alignment, can be "forward" or "backward".
         Returns:
-            torch.FloatTensor: The soft alignment matrix, with a shape of (B, I, J).
-            torch.FloatTensor: The hard alignment matrix, with a shape of (B, I, J).
-            torch.FloatTensor: The expanded text embeddings, with a shape of (B, J, C1).
-            torch.FloatTensor: The duration predicted by the rough aligner, with a shape of (B, I).
-            torch.FloatTensor: The duration searched by the MoBo aligner (hard alignment mode), with a shape of (B, I).
+            mat_p_f (torch.FloatTensor): The soft alignment matrix, with a shape of (B, I, J).
+            hard_mat_p_f (torch.FloatTensor): The hard alignment matrix, with a shape of (B, I, J).
+            expanded_text_embeddings (torch.FloatTensor): The expanded text embeddings, with a shape of (B, J, C1).
+            dur_by_rough (torch.FloatTensor): The duration predicted by the rough aligner, with a shape of (B, I).
+            dur_by_mobo (torch.FloatTensor): The duration searched by the MoBo aligner (hard alignment mode), with a shape of (B, I).
         """
         text_hiddens, mel_hiddens = self.encoder(
             text_embeddings, mel_embeddings, text_mask, mel_mask

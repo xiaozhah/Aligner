@@ -27,7 +27,8 @@ class RoughAligner(nn.Module):
             mel_mask (torch.Tensor): The mel mask of shape (B, J).
 
         Returns:
-            torch.Tensor: The normalized durations of each text token of shape (B, I).
+            float_dur (torch.Tensor): The float durations of each text token, with shape (B, I), which the sum of each row is equal to the corresponding mel length.
+            int_dur (torch.Tensor): The integer durations of each text token, with shape (B, I), which the sum of each row is equal to the corresponding mel length.
         """
 
         x = self.cross_attention(
