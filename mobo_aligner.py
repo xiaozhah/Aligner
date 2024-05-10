@@ -313,17 +313,19 @@ class MoBoAligner(nn.Module):
 
         # Combine the forward and backward soft alignment
         if direction == ["forward"]:
-            soft_alignment = log_boundary_forward
+            log_soft_alignment = log_boundary_forward
         elif direction == ["backward"]:
-            soft_alignment = log_boundary_backward
+            log_soft_alignment = log_boundary_backward
         else:
-            soft_alignment = self.combine_alignments(
+            log_soft_alignment = self.combine_alignments(
                 log_boundary_forward, log_boundary_backward
             )
 
+        soft_alignment = torch.exp(log_soft_alignment) * alignment_mask
+
         hard_alignment = None
         if return_hard_alignment:
-            hard_alignment = self.compute_hard_alignment(soft_alignment, alignment_mask)
+            hard_alignment = self.compute_hard_alignment(log_soft_alignment, alignment_mask)
 
         return soft_alignment, hard_alignment
 

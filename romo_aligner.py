@@ -294,7 +294,7 @@ class RoMoAligner(nn.Module):
         dur_by_mobo = hard_mat_p_f.sum(2)
 
         # Use mat_p_f to compute the expanded text_embeddings
-        expanded_text_embeddings = torch.exp(mat_p_f).transpose(1, 2) @ text_embeddings
+        expanded_text_embeddings = mat_p_f.transpose(1, 2) @ text_embeddings
         expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
         return (
