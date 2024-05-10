@@ -226,7 +226,7 @@ class RoMoAligner(nn.Module):
         Returns:
             mat_p_f (torch.FloatTensor): The hard alignment matrix, with a shape of (B, I, J).
             hard_mat_p_f (torch.FloatTensor): The hard alignment matrix, with a shape of (B, I, J).
-            dur_by_mobo (torch.FloatTensor): The duration computed by the MoBo aligner based on the rough alignment, with a shape of (B, I).
+            dur_by_mobo (torch.FloatTensor): The duration searched by the MoBo aligner (hard alignment mode), with a shape of (B, I).
         """
         repeat_times = F.pad(
             selected_boundary_indices, (1, 0), mode="constant", value=-1
