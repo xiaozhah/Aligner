@@ -49,22 +49,20 @@ class RoughAligner(nn.Module):
 if __name__ == "__main__":
     torch.manual_seed(0)
 
-    text_channels = 10
-    audio_channels = 20
     attention_dim = 128
     attention_head = 8
     dropout = 0.1
 
     aligner = RoughAligner(
-        text_channels, audio_channels, attention_dim, attention_head, dropout
+        attention_dim, attention_head, dropout
     )
 
     batch_size = 2
     text_len = 5
     audio_len = 30
 
-    text_embeddings = torch.randn(batch_size, text_len, text_channels)
-    audio_embeddings = torch.randn(batch_size, audio_len, audio_channels)
+    text_embeddings = torch.randn(batch_size, text_len, attention_dim)
+    audio_embeddings = torch.randn(batch_size, audio_len, attention_dim)
     text_mask = torch.ones(batch_size, text_len).bool()
     audio_mask = torch.ones(batch_size, audio_len).bool()
 
