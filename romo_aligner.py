@@ -33,10 +33,13 @@ class RoMoAligner(nn.Module):
     ):
         super(RoMoAligner, self).__init__()
 
-        if num_boundary_candidates <= 0:
+        if num_boundary_candidates < 3:
             raise ValueError(
-                "The number of boundary candidates must be greater than 0."
+                "The number of boundary candidates must be greater than 2."
             )
+
+        if num_boundary_candidates % 2 != 1:
+            raise ValueError("The number of boundary candidates must be an odd number.")
 
         self.text_fc = LinearNorm(text_embeddings, attention_dim)
         if not skip_text_conformer:
@@ -97,7 +100,9 @@ class RoMoAligner(nn.Module):
             )
         self.skip_text_conformer = skip_text_conformer
         self.skip_mel_conformer = skip_mel_conformer
-        self.num_boundary_candidates = num_boundary_candidates
+        self.num_boundary_candidates_one_side = (
+            num_boundary_candidates - 1
+        ) // 2  # the number of boundary candidates on each side of the current boundary
         self.verbose = verbose
 
     def encoder(self, text_embeddings, mel_embeddings, text_mask, mel_mask):
@@ -146,8 +151,8 @@ class RoMoAligner(nn.Module):
         boundary_index = (int_dur.cumsum(1) - 1) * text_mask
         offsets = (
             torch.arange(
-                -num_boundary_candidates,
-                num_boundary_candidates + 1,
+                -self.num_boundary_candidates_one_side,
+                self.num_boundary_candidates_one_side + 1,
                 device=boundary_index.device,
             )
             .unsqueeze(0)
@@ -189,7 +194,7 @@ class RoMoAligner(nn.Module):
         """
         selected_boundary_indices, selected_boundary_indices_mask = (
             self.get_nearest_boundaries(
-                int_dur_by_rough, text_mask, self.num_boundary_candidates
+                int_dur_by_rough, text_mask, self.num_boundary_candidates_one_side
             )
         )
 
@@ -343,7 +348,7 @@ if __name__ == "__main__":
         conformer_dec_kernel_size=31,
         skip_text_conformer=False,
         skip_mel_conformer=False,
-        num_boundary_candidates=1,  # number of boundary candidates of each text token
+        num_boundary_candidates=3,  # number of boundary candidates of each text token
         verbose=True,
     )
 
