@@ -328,6 +328,7 @@ if __name__ == "__main__":
         conformer_dec_kernel_size=31,
         skip_text_conformer=False,
         skip_mel_conformer=False,
+        num_boundary_candidates=1,  # number of boundary candidates of each text token
         verbose=True,
     )
 
