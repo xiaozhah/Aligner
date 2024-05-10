@@ -297,7 +297,6 @@ class RoMoAligner(nn.Module):
 
         # Use mat_p_f to compute the expanded text_embeddings
         expanded_text_embeddings = mat_p_f.transpose(1, 2) @ text_embeddings
-        expanded_text_embeddings = expanded_text_embeddings * mel_mask.unsqueeze(2)
 
         return (
             mat_p_f,
