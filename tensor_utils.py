@@ -237,14 +237,22 @@ def lengths_to_mask(lens, max_lens=None):
 
 
 def get_mat_p_f(src_tokens, durations):
+    """
+    Calculate the mapping matrix (mat_p_f) from the text tokens, e.g. phone, to the mel spectrograms.
+    Args:
+        src_tokens (torch.Tensor): The input tensor of shape (B, L, C).
+        durations (torch.Tensor): The duration tensor of shape (B, L).
+    Returns:
+        torch.Tensor: The mapping matrix of shape (B, L, T).
+    """
     assert src_tokens.shape[:2] == durations.shape, "src_tokens and durations should have the same batch size and length"
-    B, U, _ = src_tokens.shape
+    B, L, _ = src_tokens.shape
     T = durations.sum(axis=-1).max()
-    cumsum_dur_1 = torch.cumsum(durations, dim=-1)  # [B, U]
-    cumsum_dur_0 = cumsum_dur_1 - durations  # [B, U]
+    cumsum_dur_1 = torch.cumsum(durations, dim=-1)  # [B, L]
+    cumsum_dur_0 = cumsum_dur_1 - durations  # [B, L]
 
-    mask1 = lengths_to_mask(cumsum_dur_1.flatten(), T).reshape(B, U, T)
-    mask0 = lengths_to_mask(cumsum_dur_0.flatten(), T).reshape(B, U, T)
+    mask1 = lengths_to_mask(cumsum_dur_1.flatten(), T).reshape(B, L, T)
+    mask0 = lengths_to_mask(cumsum_dur_0.flatten(), T).reshape(B, L, T)
     mat_p_f = (mask1 & ~mask0).float()
     return mat_p_f
 
