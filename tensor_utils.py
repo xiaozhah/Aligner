@@ -40,7 +40,7 @@ def shift_tensor(x, shifts_text_dim, shifts_mel_dim):
         shifts_mel_dim (torch.Tensor): The shift amounts along the mel dimension of shape (B,).
 
     Returns:
-        torch.Tensor: The right-shifted tensor of shape (B, I, J, K).
+        x (torch.Tensor): The right-shifted tensor of shape (B, I, J, K).
     """
     x = roll_tensor(x, shifts=shifts_text_dim, dim=1)
     x = roll_tensor(x, shifts=shifts_mel_dim, dim=2)
@@ -68,7 +68,7 @@ def reverse_and_pad_head_tail_on_alignment(
         mel_mask_backward (torch.Tensor): The mel spectrogram mask of shape (B, J-1).
 
     Returns:
-        torch.Tensor: The reversed and padded alignment matrix of shape (B, I, J).
+        log_boundary_backward (torch.Tensor): The reversed and padded alignment matrix of shape (B, I, J).
     """
     B, I, _ = log_boundary_backward.shape
 
@@ -142,8 +142,10 @@ def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
 def convert_geq_to_gt(log_cond_prob_geq_backward):
     """
     "greater than or equal to" format to "greater than" format
+
     Args:
         log_cond_prob_geq_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-1, J-1).
+    
     Returns:
         log_cond_prob_geq_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-2, J-1).
     """
@@ -157,6 +159,7 @@ def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask, log_eps):
     Args:
         log_cond_prob_gt_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-2, J-1).
         text_mask (torch.Tensor): The text mask of shape (B, I).
+    
     Returns:
         log_cond_prob_gt_backward (torch.Tensor): The padded log cumulative conditional probability tensor of shape (B, I, J-2, J-1).
     """
@@ -202,13 +205,13 @@ def get_valid_max(tensor, mask, inf_value=1e6):
     Calculate the minimum and maximum values of the valid elements in the given 2D tensor.
 
     Args:
-    - tensor: 2D tensor, shape (B, L)
-    - mask: 2D mask tensor, shape (B, L), valid elements are 1, invalid elements are 0
-    - inf_value: The value to use for masking invalid elements.
+        tensor: 2D tensor, shape (B, L)
+        mask: 2D mask tensor, shape (B, L), valid elements are 1, invalid elements are 0
+        inf_value: The value to use for masking invalid elements.
 
     Returns:
-    - min_values: The minimum value of the valid elements in each sample, shape (B,)
-    - max_values: The maximum value of the valid elements in each sample, shape (B,)
+        min_values: The minimum value of the valid elements in each sample, shape (B,)
+        max_values: The maximum value of the valid elements in each sample, shape (B,)
     """
     masked_tensor = tensor.masked_fill(~mask, inf_value)
     min_values, _ = torch.min(masked_tensor, dim=1)
@@ -239,11 +242,13 @@ def lengths_to_mask(lens, max_lens=None):
 def get_mat_p_f(src_tokens, durations):
     """
     Calculate the mapping matrix (mat_p_f) from the text tokens, e.g. phone, to the mel spectrograms.
+    
     Args:
         src_tokens (torch.Tensor): The input tensor of shape (B, L, C).
         durations (torch.Tensor): The duration tensor of shape (B, L).
+    
     Returns:
-        torch.Tensor: The mapping matrix of shape (B, L, T).
+        mat_p_f (torch.Tensor): The mapping matrix of shape (B, L, T).
     """
     assert src_tokens.shape[:2] == durations.shape, "src_tokens and durations should have the same batch size and length"
     B, L, _ = src_tokens.shape
