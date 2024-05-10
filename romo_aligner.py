@@ -153,6 +153,7 @@ class RoMoAligner(nn.Module):
             .unsqueeze(0)
             .unsqueeze(-1)
         )
+        # TODO can decrease the number of boundary candidates by selecting the offsets
         indices = boundary_index.unsqueeze(1) + offsets
 
         min_indices, max_indices = get_valid_max(boundary_index, text_mask)
