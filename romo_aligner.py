@@ -132,14 +132,13 @@ class RoMoAligner(nn.Module):
         return text_hiddens, mel_hiddens
 
     @torch.no_grad()
-    def get_nearest_boundaries(self, int_dur, text_mask, num_boundary_candidates=3):
+    def get_nearest_boundaries(self, int_dur, text_mask):
         """
         Calculate the possible boundaries of each text token based on the results of the rough aligner.
         If the length of text tokens is I, the number of possible boundaries is approximately K ≈ I*(2*D+1), where 2D+1 represents last, current, and next.
         Args:
             int_dur (torch.LongTensor): The integer duration sequence, with a shape of (B, I).
             text_mask (torch.BoolTensor): The mask for the input text, with a shape of (B, I).
-            num_boundary_candidates (int): The number of possible nearest boundary indices for each rough boundary.
 
         Returns:
             unique_indices (torch.LongTensor): The indices of the possible boundaries, with a shape of (B, I, K).
@@ -194,7 +193,7 @@ class RoMoAligner(nn.Module):
         """
         selected_boundary_indices, selected_boundary_indices_mask = (
             self.get_nearest_boundaries(
-                int_dur_by_rough, text_mask, self.num_boundary_candidates_one_side
+                int_dur_by_rough, text_mask
             )
         )
 
