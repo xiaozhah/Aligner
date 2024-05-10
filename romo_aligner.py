@@ -298,8 +298,7 @@ class RoMoAligner(nn.Module):
             return_hard_alignment=True,
         )
 
-        # mat_p_d * mat_d_f = mat_p_f
-        # only mat_p_f has grad, hard_mat_p_f and dur_by_mobo have no grad
+        # mat_p_d * mat_d_f (computed by selected_boundary_indices) = mat_p_f
         mat_p_f, hard_mat_p_f, dur_by_mobo = self.get_mat_p_f(
             mat_p_d, hard_mat_p_d, selected_boundary_indices, selected_boundary_indices_mask
         )
@@ -308,11 +307,11 @@ class RoMoAligner(nn.Module):
         expanded_text_embeddings = mat_p_f.transpose(1, 2) @ text_embeddings
 
         return (
-            mat_p_f,
-            hard_mat_p_f,
-            expanded_text_embeddings,
-            dur_by_rough,
-            dur_by_mobo,
+            mat_p_f, # has grad
+            hard_mat_p_f, # no grad
+            expanded_text_embeddings, # has grad
+            dur_by_rough, # has grad
+            dur_by_mobo, # no grad
         )
 
 
