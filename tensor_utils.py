@@ -319,7 +319,7 @@ if __name__ == "__main__":
             [[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]],
             [[[13, 14, 15], [16, 17, 18]], [[19, 20, 21], [22, 23, 24]]],
         ]
-    ) # shape is (2, 2, 2, 3)
+    )  # shape is (2, 2, 2, 3)
     shifts1 = torch.tensor([1, 2])  # 每个sample在最后一个维度上的右移量
     dim1 = 3  # 在最后一个维度上进行移位
     result1 = roll_tensor(tensor1, shifts1, dim1)
@@ -333,28 +333,28 @@ if __name__ == "__main__":
             [[7, 8], [9, 10], [11, 12]],
             [[13, 14], [15, 16], [17, 18]],
         ]
-    ) # shape is (3, 3, 2)
+    )  # shape is (3, 3, 2)
     shifts2 = torch.tensor([1, 2, 3])  # 每个sample在第二个维度上的左移量
     dim2 = 1  # 在第二个维度上进行移位
     result2 = roll_tensor(tensor2, shifts2, dim2)
     print("示例 2 - 在第二个维度上移位:")
     print(result2)
 
-    # 示例用法 2 (2D tensor)
+    # 示例用法 3 (2D tensor)
     tensor3 = torch.tensor(
         [
             [1, 2, 3],
             [4, 5, 6],
             [7, 8, 9],
         ]
-    ) # shape is (3, 3)
+    )  # shape is (3, 3)
     shifts3 = torch.tensor([1, 2, 3])
     dim3 = 1
     result3 = roll_tensor(tensor3, shifts3, dim3)
     print("示例 3 - 在第一个维度上移位:")
     print(result3)
 
-    # 测试用例1
+    # 测试用例 4
     B, I, J = 2, 5, 10
     i_lens = torch.tensor([5, 2])
     j_lens = torch.tensor([10, 5])
