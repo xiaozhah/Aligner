@@ -111,7 +111,7 @@ def compute_max_length_diff(mask):
 @torch.no_grad()
 def gen_i_range_mask(B, I, J, i_lens, j_lens):
     """
-    Generate a mask which limit the perception field of mel.
+    Generate a mask which limit the boundary index range of mel.
 
     Args:
         B (int): The batch size.
