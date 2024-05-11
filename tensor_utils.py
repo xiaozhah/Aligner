@@ -98,6 +98,19 @@ def compute_max_length_diff(mask):
 
 @torch.no_grad()
 def gen_i_range_mask(B, I, J, i_lens, j_lens):
+    """
+    Generate a mask which limit the perception field of mel.
+
+    Args:
+        B (int): The batch size.
+        I (int): The number of text hiddens.
+        J (int): The number of mel hiddens.
+        i_lens (torch.Tensor): The text lengths of shape (B,).
+        j_lens (torch.Tensor): The mel lengths of shape (B,).
+
+    Returns:
+        mask (torch.Tensor): The mask of shape (B, I, J).
+    """
     indices_i = (
         torch.arange(I, device=i_lens.device).unsqueeze(0).unsqueeze(-1).repeat(B, 1, J)
     )
@@ -317,8 +330,8 @@ if __name__ == "__main__":
     print(result2)
 
     # 测试用例1
-    B, I, J, K = 2, 5, 10, 10
+    B, I, J = 2, 5, 10
     i_lens = torch.tensor([5, 2])
     j_lens = torch.tensor([10, 5])
-    masked_tensor = gen_i_range_mask(B, I, J, K, i_lens, j_lens).int().squeeze(-1)
+    masked_tensor = gen_i_range_mask(B, I, J, i_lens, j_lens).int().squeeze(-1)
     print(masked_tensor)
