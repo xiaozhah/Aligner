@@ -7,7 +7,7 @@ def roll_tensor(tensor, shifts, dim):
     shape = tensor.size()
 
     # 确保dim在有效范围内
-    assert dim >= 0 and dim < len(shape), "Invalid dimension"
+    assert dim >= 0 and dim < len(shape), "Invalid hidden"
 
     # 生成一个索引tensor
     indices = (
@@ -30,12 +30,12 @@ def roll_tensor(tensor, shifts, dim):
 
 def shift_tensor(x, shifts_text_dim, shifts_mel_dim):
     """
-    Shift the tensor x to the right along the text and mel dimensions.
+    Shift the tensor x to the right along the text and mel hiddens.
 
     Args:
         x (torch.Tensor): The input tensor of shape (B, I, J, K).
-        shifts_text_dim (torch.Tensor): The shift amounts along the text dimension of shape (B,).
-        shifts_mel_dim (torch.Tensor): The shift amounts along the mel dimension of shape (B,).
+        shifts_text_dim (torch.Tensor): The shift amounts along the text hidden of shape (B,).
+        shifts_mel_dim (torch.Tensor): The shift amounts along the mel hidden of shape (B,).
 
     Returns:
         x (torch.Tensor): The right-shifted tensor of shape (B, I, J, K).
@@ -152,7 +152,7 @@ def convert_geq_to_gt(log_cond_prob_geq_backward):
 
 def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask, log_eps):
     """
-    pad the last text dimension which using prior knowledge for "greater than" format
+    pad the last text hidden which using prior knowledge for "greater than" format
 
     Args:
         log_cond_prob_gt_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-2, J-1).
@@ -177,7 +177,7 @@ def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask, log_eps):
 
 def geq_mask_on_text_dim(log_cond_prob_geq_or_gt, text_mask):
     """
-    pad the last text dimension which using prior knowledge for "greater than or equal to" format
+    pad the last text hidden which using prior knowledge for "greater than or equal to" format
 
     Args:
         log_cond_prob_geq_or_gt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-2, J-1) for backward.
