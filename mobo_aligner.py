@@ -55,24 +55,23 @@ class MoBoAligner(nn.Module):
             raise ValueError("Direction must be a subset of 'forward' or 'backward'.")
         if not torch.all(text_mask.sum(1) < mel_mask.sum(1)):
             raise ValueError(
-                "The dimension of text embeddings (I) is greater than or equal to the dimension of mel spectrogram embeddings (J), which is not allowed."
+                "The dimension of text hiddens (I) is greater than or equal to the dimension of mel hiddens (J), which is not allowed."
             )
 
-    def compute_energy(self, text_embeddings, mel_embeddings):
+    def compute_energy(self, text_hiddens, mel_hiddens):
         """
-        Compute the energy matrix between text embeddings and mel embeddings.
-        The text embeddings and mel embeddings must be contains positional information.
+        Compute the energy matrix between text hiddens and mel hiddens, which must be contain positional information.
 
         Args:
-            text_embeddings (torch.FloatTensor): The text embeddings of shape (B, I, D_text).
-            mel_embeddings (torch.FloatTensor): The mel spectrogram embeddings of shape (B, J, D_mel).
+            text_hiddens (torch.FloatTensor): The text hiddens of shape (B, I, D_text).
+            mel_hiddens (torch.FloatTensor): The mel hiddens of shape (B, J, D_mel).
 
         Returns:
             energy (torch.FloatTensor): The energy matrix of shape (B, I, J) which applied Gaussian noise.
         """
-        processed_mel = self.mel_layer(mel_embeddings.unsqueeze(1))  # (B, 1, J, D_att)
+        processed_mel = self.mel_layer(mel_hiddens.unsqueeze(1))  # (B, 1, J, D_att)
         processed_text = self.text_layer(
-            text_embeddings.unsqueeze(2)
+            text_hiddens.unsqueeze(2)
         )  # (B, I, 1, D_att)
         energy = self.v(torch.tanh(processed_mel + processed_text))  # (B, I, J, 1)
 
@@ -90,12 +89,12 @@ class MoBoAligner(nn.Module):
         Args:
             energy (torch.FloatTensor): The energy matrix of shape (B, I, J).
             text_mask (torch.BoolTensor): The text mask of shape (B, I).
-            mel_mask (torch.BoolTensor): The mel spectrogram mask of shape (B, J).
+            mel_mask (torch.BoolTensor): The mel hidden mask of shape (B, J).
 
         Returns:
             energy_backward (torch.FloatTensor): The backward energy matrix of shape (B, I-1, J-1).
             text_mask_backward (torch.BoolTensor): The backward text mask of shape (B, I-1).
-            mel_mask_backward (torch.BoolTensor): The backward mel spectrogram mask of shape (B, J-1).
+            mel_mask_backward (torch.BoolTensor): The backward mel hidden mask of shape (B, J-1).
         """
         shifts_text_dim = compute_max_length_diff(text_mask)
         shifts_mel_dim = compute_max_length_diff(mel_mask)
@@ -118,7 +117,7 @@ class MoBoAligner(nn.Module):
         Args:
             energy (torch.FloatTensor): The energy matrix of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
             text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
-            mel_mask (torch.BoolTensor): The mel spectrogram mask of shape (B, J) for forward, or (B, J-1) for backward.
+            mel_mask (torch.BoolTensor): The mel hidden mask of shape (B, J) for forward, or (B, J-1) for backward.
 
         Returns:
             log_cond_prob (torch.FloatTensor): The log conditional probability tensor of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
@@ -145,7 +144,7 @@ class MoBoAligner(nn.Module):
         Args:
             log_cond_prob (torch.FloatTensor): The log conditional probability tensor for forward of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
             text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
-            mel_mask (torch.BoolTensor): The mel spectrogram mask of shape (B, J) for forward, or (B, J-1) for backward.
+            mel_mask (torch.BoolTensor): The mel hidden mask of shape (B, J) for forward, or (B, J-1) for backward.
 
         Returns:
             B_ij (torch.FloatTensor): The forward tensor of shape (B, I+1, J+1) for forward, or (B, I, J) for backward.
@@ -218,21 +217,21 @@ class MoBoAligner(nn.Module):
 
     def forward(
         self,
-        text_embeddings: torch.FloatTensor,
-        mel_embeddings: torch.FloatTensor,
+        text_hiddens: torch.FloatTensor,
+        mel_hiddens: torch.FloatTensor,
         text_mask: torch.BoolTensor,
         mel_mask: torch.BoolTensor,
         direction: List[str],
         return_hard_alignment: bool = False,
     ) -> Tuple[torch.FloatTensor, Optional[torch.FloatTensor]]:
         """
-        Compute the soft alignment and the expanded text embeddings.
+        Compute the soft alignment and the expanded text hiddens.
 
         Args:
-            text_embeddings (torch.FloatTensor): The text embeddings of shape (B, I, D_text).
-            mel_embeddings (torch.FloatTensor): The mel spectrogram embeddings of shape (B, J, D_mel).
+            text_hiddens (torch.FloatTensor): The text hiddens of shape (B, I, D_text).
+            mel_hiddens (torch.FloatTensor): The mel hiddens of shape (B, J, D_mel).
             text_mask (torch.BoolTensor): The text mask of shape (B, I).
-            mel_mask (torch.BoolTensor): The mel spectrogram mask of shape (B, J).
+            mel_mask (torch.BoolTensor): The mel hidden mask of shape (B, J).
             direction (List[str]): The direction of the alignment, a subset of ["forward", "backward"].
             return_hard_alignment (bool): Whether to return the hard alignment which obtained by Viterbi decoding.
 
@@ -246,7 +245,7 @@ class MoBoAligner(nn.Module):
         alignment_mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)  # (B, I, J)
 
         # Compute the energy matrix and apply noise
-        energy = self.compute_energy(text_embeddings, mel_embeddings)
+        energy = self.compute_energy(text_hiddens, mel_hiddens)
 
         if "forward" in direction:
             # 1. Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
@@ -341,13 +340,13 @@ if __name__ == "__main__":
     if device == "cuda":
         torch.cuda.reset_max_memory_allocated()  # 重置显存使用情况
 
-    # Initialize the text and mel embedding tensors
-    text_embeddings = torch.randn(
+    # Initialize the text and mel hidden tensors
+    text_hiddens = torch.randn(
         2, I, 10, requires_grad=True, device=device
-    )  # Batch size: 2, Text tokens: I, Embedding dimension: 10
-    mel_embeddings = torch.randn(
+    )  # Batch size: 2, Text tokens: I, hidden dimension: 10
+    mel_hiddens = torch.randn(
         2, J, 10, requires_grad=True, device=device
-    )  # Batch size: 2, Mel frames: J, Embedding dimension: 10
+    )  # Batch size: 2, Mel frames: J, hidden dimension: 10
     # Initialize the text and mel masks
     text_mask = torch.tensor(
         [[1] * I, [1] * 2 + [0] * (I - 2)], dtype=torch.bool, device=device
@@ -357,25 +356,25 @@ if __name__ == "__main__":
     )  # Batch size: 2, Mel frames: J
 
     # Initialize the MoBoAligner model
-    aligner = MoBoAligner(text_embeddings.size(-1), mel_embeddings.size(-1), 128).to(
+    aligner = MoBoAligner(text_hiddens.size(-1), mel_hiddens.size(-1), 128).to(
         device
     )
 
     soft_alignment, hard_alignment = aligner(
-        text_embeddings,
-        mel_embeddings,
+        text_hiddens,
+        mel_hiddens,
         text_mask,
         mel_mask,
         direction=["forward", "backward"],
         return_hard_alignment=True,
     )
 
-    # Print the shape of the soft and hard alignment and the expanded text embeddings
+    # Print the shape of the soft and hard alignment and the expanded text hiddens
     print("Soft alignment:")
     print(soft_alignment.shape)
     print("Hard alignment:")
     print(hard_alignment.shape)
-    print("Expanded text embeddings:")
+    print("Expanded text hiddens:")
     print(soft_alignment.mean())
 
     if device == "cuda":
@@ -388,7 +387,7 @@ if __name__ == "__main__":
     with torch.autograd.detect_anomaly():
         soft_alignment.mean().backward()
 
-    print("Gradient for text_embeddings:")
-    print(text_embeddings.grad.mean())
-    print("Gradient for mel_embeddings:")
-    print(mel_embeddings.grad.mean())
+    print("Gradient for text_hiddens:")
+    print(text_hiddens.grad.mean())
+    print("Gradient for mel_hiddens:")
+    print(mel_hiddens.grad.mean())
