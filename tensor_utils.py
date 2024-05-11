@@ -137,13 +137,12 @@ def gen_i_range_mask(B, I, J, i_lens, j_lens):
     mask_b = (indices >= limit_s).flip(1)
     mask_e = (indices < limit_e).flip(1)
 
-    mask = (mask_b & mask_e).unsqueeze(-1)
+    mask = mask_b & mask_e
     diff = i_lens - i_lens.max()
     mask = roll_tensor(mask, shifts=diff, dim=1)
 
     bool_tensor = i_lens.unsqueeze(1) > torch.arange(I, device=i_lens.device)
-    bool_tensor = bool_tensor[:, :, None, None].repeat(1, 1, J, 1)
-    mask = mask * bool_tensor
+    mask = mask * bool_tensor.unsqueeze(-1)
 
     return mask
 
@@ -161,7 +160,7 @@ def gen_tri(B, I, J, K, device):
 def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
     i_lens = text_mask.sum(1)
     j_lens = mel_mask.sum(1)
-    energy_mask = gen_i_range_mask(B, I, J, i_lens, j_lens)
+    energy_mask = gen_i_range_mask(B, I, J, i_lens, j_lens).unsqueeze(-1)
     tri_ijk_mask = gen_tri(B, I, J, K, device=text_mask.device)
     return (~energy_mask) | (~tri_ijk_mask)
 
@@ -359,5 +358,5 @@ if __name__ == "__main__":
     B, I, J = 2, 5, 10
     i_lens = torch.tensor([5, 2])
     j_lens = torch.tensor([10, 5])
-    masked_tensor = gen_i_range_mask(B, I, J, i_lens, j_lens).int().squeeze(-1)
+    masked_tensor = gen_i_range_mask(B, I, J, i_lens, j_lens).int()
     print(masked_tensor)
