@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-
+import numpy as np
 
 def roll_tensor(tensor, shifts, dim):
     # 获取tensor的形状
