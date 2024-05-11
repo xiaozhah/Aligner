@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
+
 def roll_tensor(tensor, shifts, dim):
     # 获取tensor的形状
     shape = tensor.size()
@@ -95,6 +96,7 @@ def compute_max_length_diff(mask):
     return lengths.max() - lengths
 
 
+@torch.no_grad()
 def gen_i_range_mask(B, I, J, i_lens, j_lens):
     indices_i = (
         torch.arange(I, device=i_lens.device).unsqueeze(0).unsqueeze(-1).repeat(B, 1, J)
@@ -121,6 +123,7 @@ def gen_i_range_mask(B, I, J, i_lens, j_lens):
     return mask
 
 
+@torch.no_grad()
 def gen_tri(B, I, J, K, device):
     triu = torch.triu(torch.ones((K, J), device=device), diagonal=0)
     triu = triu.unsqueeze(-1).unsqueeze(0)  # (1, K, J, 1)
@@ -129,6 +132,7 @@ def gen_tri(B, I, J, K, device):
     return triu.bool()
 
 
+@torch.no_grad()
 def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
     i_lens = text_mask.sum(1)
     j_lens = mel_mask.sum(1)
@@ -143,7 +147,7 @@ def convert_geq_to_gt(log_cond_prob_geq_backward):
 
     Args:
         log_cond_prob_geq_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-1, J-1).
-    
+
     Returns:
         log_cond_prob_geq_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-2, J-1).
     """
@@ -157,7 +161,7 @@ def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask, log_eps):
     Args:
         log_cond_prob_gt_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-2, J-1).
         text_mask (torch.Tensor): The text mask of shape (B, I).
-    
+
     Returns:
         log_cond_prob_gt_backward (torch.Tensor): The padded log cumulative conditional probability tensor of shape (B, I, J-2, J-1).
     """
@@ -240,15 +244,17 @@ def lengths_to_mask(lens, max_lens=None):
 def get_mat_p_f(src_tokens, durations):
     """
     Calculate the mapping matrix (mat_p_f) from the text tokens, e.g. phone, to the mel spectrograms.
-    
+
     Args:
         src_tokens (torch.Tensor): The input tensor of shape (B, L, C).
         durations (torch.Tensor): The duration tensor of shape (B, L).
-    
+
     Returns:
         mat_p_f (torch.Tensor): The mapping matrix of shape (B, L, T).
     """
-    assert src_tokens.shape[:2] == durations.shape, "src_tokens and durations should have the same batch size and length"
+    assert (
+        src_tokens.shape[:2] == durations.shape
+    ), "src_tokens and durations should have the same batch size and length"
     B, L, _ = src_tokens.shape
     T = durations.sum(axis=-1).max()
     cumsum_dur_1 = torch.cumsum(durations, dim=-1)  # [B, L]
@@ -258,6 +264,7 @@ def get_mat_p_f(src_tokens, durations):
     mask0 = lengths_to_mask(cumsum_dur_0.flatten(), T).reshape(B, L, T)
     mat_p_f = (mask1 & ~mask0).float()
     return mat_p_f
+
 
 def calculate_tensor_memory_size(shape, dtype):
     total_elements = 1
@@ -269,13 +276,17 @@ def calculate_tensor_memory_size(shape, dtype):
     memory_size_in_mb = memory_size_in_bytes / (1024 * 1024)
     return memory_size_in_mb
 
+
 def cal_max_hidden_memory_size(selected_boundary_indices, text_mask):
     B, K = selected_boundary_indices.shape
     _, I = text_mask.shape
-    shape = (B, I, K, K) # max tensor shape in MoBo aligner
+    shape = (B, I, K, K)  # max tensor shape in MoBo aligner
     dtype = torch.float32
     memory_size_mb = calculate_tensor_memory_size(shape, dtype)
-    print(f"Memory size for tensor with shape {shape} and dtype {dtype}: {memory_size_mb:.2f} MB")
+    print(
+        f"Memory size for tensor with shape {shape} and dtype {dtype}: {memory_size_mb:.2f} MB"
+    )
+
 
 if __name__ == "__main__":
     # 示例用法 1
