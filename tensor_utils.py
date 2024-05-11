@@ -108,7 +108,6 @@ def compute_max_length_diff(mask):
     return lengths.max() - lengths
 
 
-@torch.no_grad()
 def gen_i_range_mask(B, I, J, i_lens, j_lens):
     """
     Generate a mask which limit the boundary index range of mel.
@@ -147,7 +146,6 @@ def gen_i_range_mask(B, I, J, i_lens, j_lens):
     return mask
 
 
-@torch.no_grad()
 def gen_tri(B, I, J, K, device):
     triu = torch.triu(torch.ones((K, J), device=device), diagonal=0)
     triu = triu.unsqueeze(-1).unsqueeze(0)  # (1, K, J, 1)
@@ -156,7 +154,6 @@ def gen_tri(B, I, J, K, device):
     return triu.bool()
 
 
-@torch.no_grad()
 def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
     i_lens = text_mask.sum(1)
     j_lens = mel_mask.sum(1)
