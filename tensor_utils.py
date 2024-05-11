@@ -4,6 +4,18 @@ import numpy as np
 
 
 def roll_tensor(tensor, shifts, dim):
+    """
+    Roll the multi-dimension tensor (2D or 3D or 4D...) along the given dimension.
+
+    Args:
+        tensor (torch.Tensor): The input tensor of shape (B, I) or (B, I, J) or (B, I, J, K) or ....
+        shifts (torch.Tensor): The shift amounts along the dimension of shape (B,)
+        dim (int): The dimension to roll.
+
+    Returns:
+        result (torch.Tensor): The rolled tensor of shape (B, I) or (B, I, J) or (B, I, J, K) or ....
+    """
+
     # 获取tensor的形状
     shape = tensor.size()
 
@@ -17,7 +29,7 @@ def roll_tensor(tensor, shifts, dim):
         .expand(shape)
     )
 
-    # 将shifts转换为tensor并调整形状
+    # 调整shifts形状
     shifts = shifts.view([-1] + [1] * (len(shape) - 1))
 
     # 计算移位后的索引
@@ -302,32 +314,46 @@ def cal_max_hidden_memory_size(selected_boundary_indices, text_mask):
 
 
 if __name__ == "__main__":
-    # 示例用法 1
+    # 示例用法 1 (4D tensor)
     tensor1 = torch.tensor(
         [
             [[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]],
             [[[13, 14, 15], [16, 17, 18]], [[19, 20, 21], [22, 23, 24]]],
         ]
-    )
+    ) # shape is (2, 2, 2, 3)
     shifts1 = torch.tensor([1, 2])  # 每个sample在最后一个维度上的右移量
     dim1 = 3  # 在最后一个维度上进行移位
     result1 = roll_tensor(tensor1, shifts1, dim1)
     print("示例 1 - 在最后一个维度上移位:")
     print(result1)
 
-    # 示例用法 2
+    # 示例用法 2 (3D tensor)
     tensor2 = torch.tensor(
         [
             [[1, 2], [3, 4], [5, 6]],
             [[7, 8], [9, 10], [11, 12]],
             [[13, 14], [15, 16], [17, 18]],
         ]
-    )
+    ) # shape is (3, 3, 2)
     shifts2 = torch.tensor([1, 2, 3])  # 每个sample在第二个维度上的左移量
     dim2 = 1  # 在第二个维度上进行移位
     result2 = roll_tensor(tensor2, shifts2, dim2)
     print("示例 2 - 在第二个维度上移位:")
     print(result2)
+
+    # 示例用法 2 (2D tensor)
+    tensor3 = torch.tensor(
+        [
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+        ]
+    ) # shape is (3, 3)
+    shifts3 = torch.tensor([1, 2, 3])
+    dim3 = 1
+    result3 = roll_tensor(tensor3, shifts3, dim3)
+    print("示例 3 - 在第一个维度上移位:")
+    print(result3)
 
     # 测试用例1
     B, I, J = 2, 5, 10
