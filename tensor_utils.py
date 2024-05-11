@@ -154,12 +154,15 @@ def gen_tri(B, I, J, K, device):
     return triu.bool()
 
 
-def get_invalid_tri_mask(B, I, J, K, text_mask, mel_mask):
+def get_valid_tri_mask(B, I, J, K, text_mask, mel_mask):
+    """
+    Return the valid triangular mask and boundary mask. (valid is True, invalid is False)
+    """
     i_lens = text_mask.sum(1)
     j_lens = mel_mask.sum(1)
     energy_mask = gen_i_range_mask(B, I, J, i_lens, j_lens).unsqueeze(-1)
     tri_ijk_mask = gen_tri(B, I, J, K, device=text_mask.device)
-    return (~energy_mask) | (~tri_ijk_mask)
+    return energy_mask & tri_ijk_mask
 
 
 def convert_geq_to_gt(log_cond_prob_geq_backward):
