@@ -70,15 +70,14 @@ class MoBoAligner(nn.Module):
             energy (torch.FloatTensor): The energy matrix of shape (B, I, J) which applied Gaussian noise.
         """
         processed_mel = self.mel_layer(mel_hiddens.unsqueeze(1))  # (B, 1, J, D_att)
-        processed_text = self.text_layer(
-            text_hiddens.unsqueeze(2)
-        )  # (B, I, 1, D_att)
+        processed_text = self.text_layer(text_hiddens.unsqueeze(2))  # (B, I, 1, D_att)
         energy = self.v(torch.tanh(processed_mel + processed_text))  # (B, I, J, 1)
 
         energy = energy.squeeze(-1)  # (B, I, J)
 
         noise = torch.randn_like(energy) * self.noise_scale
-        energy = F.sigmoid(energy + noise)
+        # energy = F.sigmoid(energy + noise).log()
+        energy = -F.softplus(-energy - noise)  # log(sigmoid(x)) = -softplus(-x)
 
         return energy
 
@@ -356,9 +355,7 @@ if __name__ == "__main__":
     )  # Batch size: 2, Mel frames: J
 
     # Initialize the MoBoAligner model
-    aligner = MoBoAligner(text_hiddens.size(-1), mel_hiddens.size(-1), 128).to(
-        device
-    )
+    aligner = MoBoAligner(text_hiddens.size(-1), mel_hiddens.size(-1), 128).to(device)
 
     soft_alignment, hard_alignment = aligner(
         text_hiddens,
