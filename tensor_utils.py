@@ -5,7 +5,7 @@ import numpy as np
 
 def roll_tensor(tensor, shifts, dim):
     """
-    Roll the multi-dimension tensor (2D or 3D or 4D...) along the given dimension.
+    Right shift the multi-dimensional tensor (2D or 3D or 4D...) along the given dimension.
 
     Args:
         tensor (torch.Tensor): The input tensor of shape (B, I) or (B, I, J) or (B, I, J, K) or ....
@@ -152,6 +152,12 @@ def gen_tri(B, I, J, K, device):
     triu = triu.repeat(B, 1, 1, I)  # (B, K, J, I)
     triu = triu.transpose(1, 3)  # (B, I, J, K)
     return triu.bool()
+
+def gen_tri2(B, I, D, K, device):
+    tri = torch.tril(torch.ones((D, K), device=device), diagonal=-1).flip(1) # (D, K)
+    tri = tri.unsqueeze(0).unsqueeze(0) # (1, 1, D, K)
+    tri = tri.repeat(B, I, 1, 1) # (B, I, D, K)
+    return tri.bool()
 
 
 def get_valid_tri_mask(B, I, J, K, text_mask, mel_mask):
