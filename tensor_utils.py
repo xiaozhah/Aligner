@@ -108,40 +108,54 @@ def compute_max_length_diff(mask):
     return lengths.max() - lengths
 
 
-def gen_i_range_mask(B, I, J, i_lens, j_lens):
+def arange_from_0(lens: torch.LongTensor):
+    B = len(lens)
+    I = lens.max()
+    x = torch.arange(I).unsqueeze(0).repeat(B, 1)
+    mask = x >= lens.unsqueeze(1)
+    x.masked_fill_(mask, 0)
+    return x
+
+
+def arange_to_end(i_lens: torch.LongTensor, j_lens: torch.LongTensor):
+    B = len(i_lens)
+    I = i_lens.max()
+    strat = j_lens - i_lens
+    x = torch.arange(I).unsqueeze(0).repeat(B, 1) + strat.unsqueeze(1)
+    mask = x >= j_lens.unsqueeze(1)
+    x.masked_fill_(mask, 0)
+    return x
+
+
+def gen_i_range_mask(B, I, D, J, text_mask, mel_mask):
     """
     Generate a mask which limit the boundary index range of mel.
 
     Args:
         B (int): The batch size.
         I (int): The number of text hiddens.
+        D (int): The number of candidate mel hiddens.
         J (int): The number of mel hiddens.
-        i_lens (torch.Tensor): The text lengths of shape (B,).
-        j_lens (torch.Tensor): The mel lengths of shape (B,).
+        text_mask (torch.Tensor): The text mask of shape (B, I).
+        mel_mask (torch.Tensor): The mel mask of shape (B, J).
 
     Returns:
-        mask (torch.Tensor): The mask of shape (B, I, J).
+        mask (torch.Tensor): The mask of shape (B, I, D, J).
     """
-    indices_i = (
-        torch.arange(I, device=i_lens.device).unsqueeze(0).unsqueeze(-1).repeat(B, 1, J)
-    )
-    indices_j = (
-        torch.arange(J, device=i_lens.device).unsqueeze(0).unsqueeze(0).repeat(B, I, 1)
-    )
-    indices = indices_i + indices_j
+    i_lens = text_mask.sum(1)
+    j_lens = mel_mask.sum(1)
 
-    limit_s = (i_lens - 1).unsqueeze(-1).unsqueeze(-1).expand(B, I, J)
-    limit_e = j_lens.unsqueeze(-1).unsqueeze(-1).expand(B, I, J)
+    indices_d = torch.arange(D, device=i_lens.device)[:, None]
+    indices_j = torch.arange(J, device=i_lens.device)[None, :]
+    indices = (indices_d + indices_j).unsqueeze(0).unsqueeze(0).repeat(B, I, 1, 1)
 
-    mask_b = (indices >= limit_s).flip(1)
-    mask_e = (indices < limit_e).flip(1)
+    mask_b = indices > (arange_from_0(i_lens) - 1)[:, :, None, None]
+    mask_e = indices <= arange_to_end(i_lens, j_lens)[:, :, None, None]
 
     mask = mask_b & mask_e
-    diff = i_lens - i_lens.max()
-    mask = roll_tensor(mask, shifts=diff, dim=1)
 
     bool_tensor = i_lens.unsqueeze(1) > torch.arange(I, device=i_lens.device)
-    mask = mask * bool_tensor.unsqueeze(-1)
+    mask = mask * bool_tensor.unsqueeze(-1).unsqueeze(-1)
 
     return mask
 
@@ -152,12 +166,6 @@ def gen_tri(B, I, J, K, device):
     triu = triu.repeat(B, 1, 1, I)  # (B, K, J, I)
     triu = triu.transpose(1, 3)  # (B, I, J, K)
     return triu.bool()
-
-def gen_tri2(B, I, D, K, device):
-    tri = torch.tril(torch.ones((D, K), device=device), diagonal=-1).flip(1) # (D, K)
-    tri = tri.unsqueeze(0).unsqueeze(0) # (1, 1, D, K)
-    tri = tri.repeat(B, I, 1, 1) # (B, I, D, K)
-    return tri.bool()
 
 
 def get_valid_tri_mask(B, I, J, K, text_mask, mel_mask):
@@ -318,6 +326,32 @@ def cal_max_hidden_memory_size(selected_boundary_indices, text_mask):
     )
 
 
+def diag_logsumexp(tensor, from_ind):
+    """
+    Calculate the logsumexp of the diagonals of a 3D tensor, from the diagonal with index from_ind to the main diagonal.
+
+    Args:
+        tensor: A 3D tensor of shape (B, I, J).
+        from_ind: The index of the diagonal to start from.
+
+    Returns:
+        A 2D tensor of shape (B, J) containing the logsumexp of the diagonals of the input tensor.
+    """
+    batch_size, dim1, dim2 = tensor.size()
+
+    assert from_ind < dim2, "from_ind should be less than dim2"
+
+    logsumexp_result = torch.full(
+        (batch_size, dim2 - from_ind), -float("inf"), device=tensor.device
+    )
+
+    for i in range(from_ind, dim2):
+        diagonal_elements = tensor.diagonal(offset=i - dim1 + 1, dim1=-2, dim2=-1)
+        logsumexp_result[:, i - from_ind] = torch.logsumexp(diagonal_elements, dim=-1)
+
+    return logsumexp_result
+
+
 if __name__ == "__main__":
     # 示例用法 1 (4D tensor)
     tensor1 = torch.tensor(
@@ -361,8 +395,31 @@ if __name__ == "__main__":
     print(result3)
 
     # 测试用例 4
-    B, I, J = 2, 5, 10
-    i_lens = torch.tensor([5, 2])
-    j_lens = torch.tensor([10, 5])
-    masked_tensor = gen_i_range_mask(B, I, J, i_lens, j_lens).int()
+    B, I, D, J = 2, 5, 10, 16
+    text_mask = torch.ones(2, 5)
+    text_mask[1, 2:] = 0
+    mel_mask = torch.ones(2, 16)
+    mel_mask[1, 5:] = 0
+    print("示例 4 - 生成_i_range_mask")
+    masked_tensor = gen_i_range_mask(B, I, D, J, text_mask, mel_mask).int()
     print(masked_tensor)
+
+    # 测试用例 5
+    i_lens = text_mask.sum(1)
+    j_lens = mel_mask.sum(1)
+    print("示例 5 - arange_from_0")
+    print(arange_from_0(i_lens))
+    print("示例 5 - arange_to_end")
+    print(arange_to_end(i_lens, j_lens))
+
+    # 测试用例 6
+    tensor = torch.tensor(
+        [
+            [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
+            [[13, 14, 15, 16], [17, 18, 19, 20], [21, 22, 23, 24]],
+        ]
+    )
+
+    # 调用函数计算副对角线的logsumexp并获取结果tensor
+    result = diag_logsumexp(tensor.flip(1), from_ind=3)
+    print(result)
