@@ -143,10 +143,10 @@ class MoBoAligner(nn.Module):
         log_cond_prob = energy_4D - torch.logsumexp(
             energy_4D, dim=2, keepdim=True
         )  # on the J dimension
+        log_cond_prob.masked_fill_(~valid_mask, LOG_EPS)
 
-        # log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
-        # log_cond_prob_geq.masked_fill_(~tri_valid, LOG_EPS)
-        log_cond_prob_geq = None
+        log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
+        log_cond_prob_geq.masked_fill_(~valid_mask, LOG_EPS)
         return log_cond_prob, log_cond_prob_geq
 
     def compute_forward_pass(self, log_cond_prob, text_mask, mel_mask):
