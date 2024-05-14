@@ -12,10 +12,12 @@ from tensor_utils import (
     compute_max_length_diff,
     convert_geq_to_gt,
     geq_mask_on_text_dim,
-    get_valid_tri_mask,
     gt_pad_on_text_dim,
     reverse_and_pad_head_tail_on_alignment,
     shift_tensor,
+    roll_tensor,
+    gen_i_range_mask,
+    diag_logsumexp,
 )
 
 # Define a very small logarithmic value to avoid division by zero or negative infinity in logarithmic calculations
@@ -25,7 +27,9 @@ LOG_2 = math.log(2.0)
 
 
 class MoBoAligner(nn.Module):
-    def __init__(self, text_channels, mel_channels, attention_dim, noise_scale=2.0):
+    def __init__(
+        self, text_channels, mel_channels, attention_dim, noise_scale=2.0, max_dur=10
+    ):
         super(MoBoAligner, self).__init__()
         self.mel_layer = LinearNorm(
             mel_channels, attention_dim, bias=True, w_init_gain="tanh"
@@ -43,6 +47,7 @@ class MoBoAligner(nn.Module):
         )
 
         self.noise_scale = noise_scale
+        self.max_dur = max_dur  # max duration of a text token
 
     def check_parameter_validity(self, text_mask, mel_mask, direction):
         """
@@ -58,13 +63,14 @@ class MoBoAligner(nn.Module):
                 "The dimension of text hiddens (I) is greater than or equal to the dimension of mel hiddens (J), which is not allowed."
             )
 
-    def compute_energy(self, text_hiddens, mel_hiddens):
+    def compute_energy(self, text_hiddens, mel_hiddens, alignment_mask):
         """
         Compute the energy matrix between text hiddens and mel hiddens, which must be contain positional information.
 
         Args:
             text_hiddens (torch.FloatTensor): The text hiddens of shape (B, I, D_text).
             mel_hiddens (torch.FloatTensor): The mel hiddens of shape (B, J, D_mel).
+            alignment_mask (torch.BoolTensor): The alignment mask of shape (B, I, J).
 
         Returns:
             energy (torch.FloatTensor): The energy matrix of shape (B, I, J) which applied Gaussian noise.
@@ -78,6 +84,7 @@ class MoBoAligner(nn.Module):
         noise = torch.randn_like(energy) * self.noise_scale
         # energy = F.sigmoid(energy + noise).log()
         energy = -F.softplus(-energy - noise)  # log(sigmoid(x)) = -softplus(-x)
+        energy.masked_fill_(~alignment_mask, LOG_EPS)
 
         return energy
 
@@ -123,17 +130,23 @@ class MoBoAligner(nn.Module):
             log_cond_prob_geq (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
         """
         B, I = text_mask.shape
-        _, J = mel_mask.shape
+        _, K = mel_mask.shape
 
-        energy_4D = energy.unsqueeze(-1).repeat(1, 1, 1, J)  # BIJK format
-        tri_valid = get_valid_tri_mask(B, I, J, J, text_mask, mel_mask)
-        energy_4D.masked_fill_(~tri_valid, LOG_EPS)
+        energy_4D = energy.unsqueeze(2).repeat(1, 1, self.max_dur, 1)  # BIJK format
+        energy_4D = roll_tensor(
+            energy_4D.permute(2, 0, 1, 3),
+            shifts=-torch.arange(self.max_dur, device=energy.device),
+            dim=3,
+        ).permute(1, 2, 0, 3)
+        valid_mask = gen_i_range_mask(B, I, self.max_dur, K, text_mask, mel_mask)
+        energy_4D.masked_fill_(~valid_mask, LOG_EPS)
         log_cond_prob = energy_4D - torch.logsumexp(
             energy_4D, dim=2, keepdim=True
         )  # on the J dimension
 
-        log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
-        log_cond_prob_geq.masked_fill_(~tri_valid, LOG_EPS)
+        # log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
+        # log_cond_prob_geq.masked_fill_(~tri_valid, LOG_EPS)
+        log_cond_prob_geq = None
         return log_cond_prob, log_cond_prob_geq
 
     def compute_forward_pass(self, log_cond_prob, text_mask, mel_mask):
@@ -150,16 +163,14 @@ class MoBoAligner(nn.Module):
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
-        J_minus_I_max = (mel_mask.sum(1) - text_mask.sum(1)).max()
 
         B_ij = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob.device)
         B_ij[:, 0, 0] = 0  # Initialize forward[0, 0] = 0
         for i in range(1, I + 1):
-            B_ij[:, i, i : (J_minus_I_max + i + 2)] = torch.logsumexp(
-                B_ij[:, i - 1, :-1].unsqueeze(1)
-                + log_cond_prob[:, i - 1, (i - 1) : (J_minus_I_max + i + 1)],
-                dim=2,  # sum at the K dimension
-            )
+            log_mul = B_ij[:, i - 1, :-1].unsqueeze(1) + log_cond_prob[:, i - 1]
+            B_ij[:, i, i:] = diag_logsumexp(
+                log_mul.flip(1), from_ind=i - 1
+            )  # sum at the K dimension
 
         return B_ij
 
@@ -244,15 +255,12 @@ class MoBoAligner(nn.Module):
         alignment_mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)  # (B, I, J)
 
         # Compute the energy matrix and apply noise
-        energy = self.compute_energy(text_hiddens, mel_hiddens)
+        energy = self.compute_energy(text_hiddens, mel_hiddens, alignment_mask)
 
         if "forward" in direction:
             # 1. Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
             log_cond_prob_forward, log_cond_prob_geq_forward = (
                 self.compute_log_cond_prob(energy, text_mask, mel_mask)
-            )
-            log_cond_prob_geq_forward = geq_mask_on_text_dim(
-                log_cond_prob_geq_forward, text_mask
             )
 
             # 2. Compute forward recursively in the log domain
