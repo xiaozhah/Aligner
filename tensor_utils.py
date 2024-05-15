@@ -108,9 +108,9 @@ def compute_max_length_diff(mask):
     return lengths.max() - lengths
 
 
-def arange_from_0(lens: torch.LongTensor):
+def arange_for_left(lens: torch.LongTensor):
     """
-    gen arange from 0 to lens
+    gen arange from 0.
 
     Args:
         lens (torch.LongTensor): The length tensor of shape (B,).
@@ -126,9 +126,9 @@ def arange_from_0(lens: torch.LongTensor):
     return x
 
 
-def arange_to_end(i_lens: torch.LongTensor, j_lens: torch.LongTensor):
+def arange_for_right(i_lens: torch.LongTensor, j_lens: torch.LongTensor):
     """
-    gen arange from strat to the end.
+    gen arange from j_lens - i_lens.
 
     Args:
         i_lens (torch.LongTensor): The text length tensor of shape (B,).
@@ -140,16 +140,17 @@ def arange_to_end(i_lens: torch.LongTensor, j_lens: torch.LongTensor):
     B = len(i_lens)
     I = i_lens.max()
     strat = j_lens - i_lens
-    x = torch.arange(I, device=i_lens.device).unsqueeze(0).repeat(B, 1) + strat.unsqueeze(1)
+    x = torch.arange(I, device=i_lens.device).unsqueeze(0).repeat(
+        B, 1
+    ) + strat.unsqueeze(1)
     mask = x >= j_lens.unsqueeze(1)
     x.masked_fill_(mask, 0)
     return x
 
 
-def gen_i_range_mask(B, I, D, J, text_mask, mel_mask):
+def gen_left_right_mask(B, I, D, J, text_mask, mel_mask):
     """
-    Generate a mask which limit the boundary index range of mel.
-    True means valid, False means invalid.
+    Generate a mask which mask the impossible boundary mel index range.
 
     Args:
         B (int): The batch size.
@@ -160,8 +161,8 @@ def gen_i_range_mask(B, I, D, J, text_mask, mel_mask):
         mel_mask (torch.Tensor): The mel mask of shape (B, J).
 
     Returns:
-        mask (torch.Tensor): The mask of shape (B, I, D, J).
-        arange_from_0 is used to generate the left triangle marked with "-", arange_to_end is used to generate the right triangle marked with "-".
+        mask (torch.Tensor): The mask of shape (B, I, D, J), in which True means valid, False means invalid.
+        arange_for_left is used to generate the left triangle marked with "-", arange_for_right is used to generate the right triangle marked with "-".
         - - - + + + + - -
         - - + + + + - - -
         - + + + + - - - -
@@ -174,13 +175,13 @@ def gen_i_range_mask(B, I, D, J, text_mask, mel_mask):
     indices_j = torch.arange(J, device=i_lens.device)[None, :]
     indices = (indices_d + indices_j).unsqueeze(0).unsqueeze(0).repeat(B, I, 1, 1)
 
-    mask_b = indices > (arange_from_0(i_lens) - 1)[:, :, None, None] # True means valid, False means invalid.
-    mask_e = indices <= arange_to_end(i_lens, j_lens)[:, :, None, None] # True means valid, False means invalid.
-
-    mask = mask_b & mask_e
-
-    mask = mask * text_mask.unsqueeze(-1).unsqueeze(-1)
-
+    mask_b = (
+        indices > (arange_for_left(i_lens) - 1)[:, :, None, None]
+    )  # True means valid, False means invalid.
+    mask_e = (
+        indices <= arange_for_right(i_lens, j_lens)[:, :, None, None]
+    )  # True means valid, False means invalid.
+    mask = (mask_b & mask_e) * text_mask.unsqueeze(-1).unsqueeze(-1)
     return mask
 
 
@@ -405,17 +406,17 @@ if __name__ == "__main__":
     text_mask[1, 2:] = 0
     mel_mask = torch.ones(2, 16)
     mel_mask[1, 5:] = 0
-    print("示例 4 - 生成_i_range_mask")
-    masked_tensor = gen_i_range_mask(B, I, D, J, text_mask, mel_mask).int()
+    print("示例 4 - 生成_left_right_mask")
+    masked_tensor = gen_left_right_mask(B, I, D, J, text_mask, mel_mask).int()
     print(masked_tensor)
 
     # 测试用例 5
     i_lens = text_mask.sum(1).long()
     j_lens = mel_mask.sum(1).long()
-    print("示例 5 - arange_from_0")
-    print(arange_from_0(i_lens))
-    print("示例 5 - arange_to_end")
-    print(arange_to_end(i_lens, j_lens))
+    print("示例 5 - arange_for_left")
+    print(arange_for_left(i_lens))
+    print("示例 5 - arange_for_right")
+    print(arange_for_right(i_lens, j_lens))
 
     # 测试用例 6
     tensor = torch.tensor(
