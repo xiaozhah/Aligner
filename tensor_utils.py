@@ -109,6 +109,15 @@ def compute_max_length_diff(mask):
 
 
 def arange_from_0(lens: torch.LongTensor):
+    """
+    gen arange from 0 to lens
+
+    Args:
+        lens (torch.LongTensor): The length tensor of shape (B,).
+
+    Returns:
+        x (torch.LongTensor): The arange tensor of shape (B, I).
+    """
     B = len(lens)
     I = lens.max()
     x = torch.arange(I).unsqueeze(0).repeat(B, 1)
@@ -118,6 +127,16 @@ def arange_from_0(lens: torch.LongTensor):
 
 
 def arange_to_end(i_lens: torch.LongTensor, j_lens: torch.LongTensor):
+    """
+    gen arange from strat to the end.
+
+    Args:
+        i_lens (torch.LongTensor): The text length tensor of shape (B,).
+        j_lens (torch.LongTensor): The mel length tensor of shape (B,).
+
+    Returns:
+        x (torch.LongTensor): The arange tensor of shape (B, I).
+    """
     B = len(i_lens)
     I = i_lens.max()
     strat = j_lens - i_lens
