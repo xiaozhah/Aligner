@@ -154,8 +154,7 @@ def gen_i_range_mask(B, I, D, J, text_mask, mel_mask):
 
     mask = mask_b & mask_e
 
-    bool_tensor = i_lens.unsqueeze(1) > torch.arange(I, device=i_lens.device)
-    mask = mask * bool_tensor.unsqueeze(-1).unsqueeze(-1)
+    mask = mask * text_mask.unsqueeze(-1).unsqueeze(-1)
 
     return mask
 
