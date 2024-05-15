@@ -41,7 +41,7 @@ class MoBoAligner(nn.Module):
             attention_dim,
             1,
             bias=True,
-            w_init_gain="sigmoid",
+            w_init_gain="relu", # because the SoftPlus is a smooth approximation to the ReLU function
             weight_norm=True,
             init_weight_norm=math.sqrt(1 / attention_dim),
         )
