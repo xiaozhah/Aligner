@@ -120,7 +120,7 @@ def arange_from_0(lens: torch.LongTensor):
     """
     B = len(lens)
     I = lens.max()
-    x = torch.arange(I).unsqueeze(0).repeat(B, 1)
+    x = torch.arange(I, device=lens.device).unsqueeze(0).repeat(B, 1)
     mask = x >= lens.unsqueeze(1)
     x.masked_fill_(mask, 0)
     return x
@@ -140,7 +140,7 @@ def arange_to_end(i_lens: torch.LongTensor, j_lens: torch.LongTensor):
     B = len(i_lens)
     I = i_lens.max()
     strat = j_lens - i_lens
-    x = torch.arange(I).unsqueeze(0).repeat(B, 1) + strat.unsqueeze(1)
+    x = torch.arange(I, device=i_lens.device).unsqueeze(0).repeat(B, 1) + strat.unsqueeze(1)
     mask = x >= j_lens.unsqueeze(1)
     x.masked_fill_(mask, 0)
     return x
