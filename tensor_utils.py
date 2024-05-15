@@ -411,9 +411,9 @@ if __name__ == "__main__":
 
     # 测试用例 4
     B, I, D, J = 2, 5, 10, 16
-    text_mask = torch.ones(2, 5)
+    text_mask = torch.ones(2, 5, dtype=torch.bool)
     text_mask[1, 2:] = 0
-    mel_mask = torch.ones(2, 16)
+    mel_mask = torch.ones(2, 16, dtype=torch.bool)
     mel_mask[1, 5:] = 0
     print("示例 4 - gen_left_right_mask")
     masked_tensor = gen_left_right_mask(B, I, D, J, text_mask, mel_mask).int()
