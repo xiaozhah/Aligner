@@ -126,13 +126,13 @@ class MoBoAligner(nn.Module):
             mel_mask (torch.BoolTensor): The mel hidden mask of shape (B, J) for forward, or (B, J-1) for backward.
 
         Returns:
-            log_cond_prob (torch.FloatTensor): The log conditional probability tensor of shape (B, I, D, J) for forward, or (B, I-1, D, J-1) for backward.
-            log_cond_prob_geq (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, J) for forward, or (B, I-1, D, J-1) for backward.
+            log_cond_prob (torch.FloatTensor): The log conditional probability tensor of shape (B, I, D, K) for forward, or (B, I-1, D, K-1) for backward.
+            log_cond_prob_geq (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, K) for forward, or (B, I-1, D, K-1) for backward.
         """
         B, I = text_mask.shape
-        _, K = mel_mask.shape
+        _, K = mel_mask.shape  # K = J, j index from 1 to J, k index from 0 to J-1
 
-        energy_4D = energy.unsqueeze(2).repeat(1, 1, self.max_dur, 1)  # BIJK format
+        energy_4D = energy.unsqueeze(2).repeat(1, 1, self.max_dur, 1)  # BIDK
         energy_4D = roll_tensor(
             energy_4D.permute(2, 0, 1, 3),
             shifts=-torch.arange(self.max_dur, device=energy.device),
@@ -154,7 +154,7 @@ class MoBoAligner(nn.Module):
         Compute forward recursively in the log domain.
 
         Args:
-            log_cond_prob (torch.FloatTensor): The log conditional probability tensor for forward of shape (B, I, D, J) for forward, or (B, I-1, D, J-1) for backward.
+            log_cond_prob (torch.FloatTensor): The log conditional probability tensor for forward of shape (B, I, D, K) for forward, or (B, I-1, D, K-1) for backward.
             text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
             mel_mask (torch.BoolTensor): The mel hidden mask of shape (B, J) for forward, or (B, J-1) for backward.
 
@@ -180,7 +180,7 @@ class MoBoAligner(nn.Module):
 
         Args:
             prob (torch.FloatTensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I, J-1) for backward.
-            log_cond_prob_geq_or_gt (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-2, J-1) for backward.
+            log_cond_prob_geq_or_gt (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, K) for forward, or (B, I, J-2, J-1) for backward.
 
         Returns:
             log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
