@@ -142,8 +142,8 @@ def gen_i_range_mask(B, I, D, J, text_mask, mel_mask):
     Returns:
         mask (torch.Tensor): The mask of shape (B, I, D, J).
     """
-    i_lens = text_mask.sum(1)
-    j_lens = mel_mask.sum(1)
+    i_lens = text_mask.sum(1).long()
+    j_lens = mel_mask.sum(1).long()
 
     indices_d = torch.arange(D, device=i_lens.device)[:, None]
     indices_j = torch.arange(J, device=i_lens.device)[None, :]
@@ -385,8 +385,8 @@ if __name__ == "__main__":
     print(masked_tensor)
 
     # 测试用例 5
-    i_lens = text_mask.sum(1)
-    j_lens = mel_mask.sum(1)
+    i_lens = text_mask.sum(1).long()
+    j_lens = mel_mask.sum(1).long()
     print("示例 5 - arange_from_0")
     print(arange_from_0(i_lens))
     print("示例 5 - arange_to_end")
