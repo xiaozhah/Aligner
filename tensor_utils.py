@@ -161,6 +161,11 @@ def gen_i_range_mask(B, I, D, J, text_mask, mel_mask):
 
     Returns:
         mask (torch.Tensor): The mask of shape (B, I, D, J).
+        arange_from_0 is used to generate the left triangle marked with "-", arange_to_end is used to generate the right triangle marked with "-".
+        - - - + + + + - -
+        - - + + + + - - -
+        - + + + + - - - -
+        + + + + - - - - -
     """
     i_lens = text_mask.sum(1).long()
     j_lens = mel_mask.sum(1).long()
