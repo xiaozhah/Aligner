@@ -126,8 +126,8 @@ class MoBoAligner(nn.Module):
             mel_mask (torch.BoolTensor): The mel hidden mask of shape (B, J) for forward, or (B, J-1) for backward.
 
         Returns:
-            log_cond_prob (torch.FloatTensor): The log conditional probability tensor of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
-            log_cond_prob_geq (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
+            log_cond_prob (torch.FloatTensor): The log conditional probability tensor of shape (B, I, D, J) for forward, or (B, I-1, D, J-1) for backward.
+            log_cond_prob_geq (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, J) for forward, or (B, I-1, D, J-1) for backward.
         """
         B, I = text_mask.shape
         _, K = mel_mask.shape
@@ -154,7 +154,7 @@ class MoBoAligner(nn.Module):
         Compute forward recursively in the log domain.
 
         Args:
-            log_cond_prob (torch.FloatTensor): The log conditional probability tensor for forward of shape (B, I, J, J) for forward, or (B, I-1, J-1, J-1) for backward.
+            log_cond_prob (torch.FloatTensor): The log conditional probability tensor for forward of shape (B, I, D, J) for forward, or (B, I-1, D, J-1) for backward.
             text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
             mel_mask (torch.BoolTensor): The mel hidden mask of shape (B, J) for forward, or (B, J-1) for backward.
 
