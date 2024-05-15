@@ -422,9 +422,9 @@ if __name__ == "__main__":
     # 测试用例 5
     i_lens = text_mask.sum(1).long()
     j_lens = mel_mask.sum(1).long()
-    print("示例 5 - arange_for_left")
+    print("示例 5.1 - arange_for_left")
     print(arange_for_left(i_lens))
-    print("示例 5 - arange_for_right")
+    print("示例 5.2 - arange_for_right")
     print(arange_for_right(i_lens, j_lens))
 
     # 测试用例 6
@@ -437,4 +437,5 @@ if __name__ == "__main__":
 
     # 调用函数计算副对角线的logsumexp并获取结果tensor
     result = diag_logsumexp(tensor.flip(1), from_ind=3)
+    print("示例 6 - diag_logsumexp")
     print(result)
