@@ -149,6 +149,7 @@ def arange_to_end(i_lens: torch.LongTensor, j_lens: torch.LongTensor):
 def gen_i_range_mask(B, I, D, J, text_mask, mel_mask):
     """
     Generate a mask which limit the boundary index range of mel.
+    True means valid, False means invalid.
 
     Args:
         B (int): The batch size.
@@ -168,8 +169,8 @@ def gen_i_range_mask(B, I, D, J, text_mask, mel_mask):
     indices_j = torch.arange(J, device=i_lens.device)[None, :]
     indices = (indices_d + indices_j).unsqueeze(0).unsqueeze(0).repeat(B, I, 1, 1)
 
-    mask_b = indices > (arange_from_0(i_lens) - 1)[:, :, None, None]
-    mask_e = indices <= arange_to_end(i_lens, j_lens)[:, :, None, None]
+    mask_b = indices > (arange_from_0(i_lens) - 1)[:, :, None, None] # True means valid, False means invalid.
+    mask_e = indices <= arange_to_end(i_lens, j_lens)[:, :, None, None] # True means valid, False means invalid.
 
     mask = mask_b & mask_e
 
