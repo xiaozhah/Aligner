@@ -376,7 +376,7 @@ def BIJ_to_BIDK(x, D):
     Return:
         y (torch.Tensor): The output tensor of shape (B, I, D, J).
     """
-    x = F.pad(x, (D - 1, 0, 0, 0, 0, 0))  # x -> (B, I, J+D-1)
+    x = F.pad(x, (D - 1, 0, 0, 0, 0, 0), mode="constant", value=-float("inf"))  # x -> (B, I, J+D-1)
     y = x.unfold(dimension=2, size=D, step=1)
     y = y.permute(0, 1, 3, 2)  # (B, I, J, D) -> (B, I, D, J)
     return y
