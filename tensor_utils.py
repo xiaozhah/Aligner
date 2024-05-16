@@ -367,6 +367,44 @@ def diag_logsumexp(tensor, from_ind):
     return logsumexp_result
 
 
+def BIJ_to_BIDK(x, D):
+    """
+    Transform BIJ format to BID format.
+    Args:
+        x (torch.Tensor): The input tensor of shape (B, I, J).
+
+    Return:
+        y (torch.Tensor): The output tensor of shape (B, I, D, J).
+    """
+    x = F.pad(x, (D - 1, 0, 0, 0, 0, 0))  # x -> (B, I, J+D-1)
+    y = x.unfold(dimension=2, size=D, step=1)
+    y = y.permute(0, 1, 3, 2)  # (B, I, J, D) -> (B, I, D, J)
+    return y
+
+
+def BIDK_transform(x):
+    """
+    Transform BIDK format with k fixed and j from k+1 to K+D to BIDK format with j fixed and k from j-D to j-1.
+    Args:
+        x (torch.Tensor): The input tensor of shape (B, I, D, K).
+    Returns:
+        y (torch.Tensor): The transformed tensor of shape (B, I, D, K).
+    """
+    B, I, D, K = x.size()
+    # can view x[0, 0]
+    x = x.flip(2)  # (B, I, D, K)
+    x = x.permute(0, 1, 3, 2)  # (B, I, K, D)
+    y = torch.full((B, I, K, D), -float("inf"), device=x.device)  # (B, I, K, D)
+    for i in range(K):
+        y[:, :, i, : (i + 1)] = x.diagonal(offset=D - i - 1, dim1=-2, dim2=-1)
+    y = y.permute(2, 3, 0, 1)  # (K, D, B, I)
+    shifts = torch.arange(D - 1, D - 1 - K, -1, device=y.device).clamp(min=0)
+    y = roll_tensor(y, shifts=shifts, dim=1)  # (K, D, B, I)
+    y = y.permute(2, 3, 1, 0)  # (B, I, D, K)
+    # can view y[0, 0].T
+    return y
+
+
 if __name__ == "__main__":
     # 示例用法 1 (4D tensor)
     tensor1 = torch.tensor(
@@ -439,3 +477,12 @@ if __name__ == "__main__":
     result = diag_logsumexp(tensor.flip(1), from_ind=3)
     print("示例 6 - diag_logsumexp")
     print(result)
+
+    x = torch.tensor(range(1400)).reshape(2, 5, 10, 14)  # K=14, D=10
+    print(x)
+    print("示例 7 - BIDK_transform")
+    print(BIDK_transform(x))
+
+    x = torch.arange(180).view(2, 3, 30)
+    print("示例 8 - BIJ_to_BIDK")
+    print(BIJ_to_BIDK(x, D=10))

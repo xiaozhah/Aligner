@@ -16,8 +16,10 @@ from tensor_utils import (
     reverse_and_pad_head_tail_on_alignment,
     shift_tensor,
     roll_tensor,
-    gen_i_range_mask,
+    gen_left_right_mask,
     diag_logsumexp,
+    BIDK_transform,
+    BIJ_to_BIDK
 )
 
 # Define a very small logarithmic value to avoid division by zero or negative infinity in logarithmic calculations
@@ -138,7 +140,7 @@ class MoBoAligner(nn.Module):
             shifts=-torch.arange(self.max_dur, device=energy.device),
             dim=3,
         ).permute(1, 2, 0, 3)
-        valid_mask = gen_i_range_mask(B, I, self.max_dur, K, text_mask, mel_mask)
+        valid_mask = gen_left_right_mask(B, I, self.max_dur, K, text_mask, mel_mask)
         energy_4D.masked_fill_(~valid_mask, LOG_EPS)
         log_cond_prob = energy_4D - torch.logsumexp(
             energy_4D, dim=2, keepdim=True
@@ -185,10 +187,10 @@ class MoBoAligner(nn.Module):
         Returns:
             log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
         """
-        K = log_cond_prob_geq_or_gt.shape[2]
-        x = prob.unsqueeze(-1).repeat(1, 1, 1, K) + log_cond_prob_geq_or_gt.transpose(
-            2, 3
-        )  # (B, I, K, J)
+        prob =BIJ_to_BIDK(prob, D=self.max_dur) # -> (B, I, D, K)
+        log_cond_prob_geq_or_gt = BIDK_transform(log_cond_prob_geq_or_gt) # -> (B, I, D, K)
+        
+        x = prob + log_cond_prob_geq_or_gt
         log_interval_prob = torch.logsumexp(x, dim=2)
         return log_interval_prob
 
