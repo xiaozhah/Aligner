@@ -19,7 +19,7 @@ from tensor_utils import (
     gen_left_right_mask,
     diag_logsumexp,
     BIDK_transform,
-    BIJ_to_BIDK
+    BIJ_to_BIDK,
 )
 
 # Define a very small logarithmic value to avoid division by zero or negative infinity in logarithmic calculations
@@ -187,9 +187,11 @@ class MoBoAligner(nn.Module):
         Returns:
             log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
         """
-        prob =BIJ_to_BIDK(prob, D=self.max_dur) # -> (B, I, D, K)
-        log_cond_prob_geq_or_gt = BIDK_transform(log_cond_prob_geq_or_gt) # -> (B, I, D, K)
-        
+        prob = BIJ_to_BIDK(prob, D=self.max_dur)  # -> (B, I, D, K)
+        log_cond_prob_geq_or_gt = BIDK_transform(
+            log_cond_prob_geq_or_gt
+        )  # -> (B, I, D, K)
+
         x = prob + log_cond_prob_geq_or_gt
         log_interval_prob = torch.logsumexp(x, dim=2)
         return log_interval_prob
