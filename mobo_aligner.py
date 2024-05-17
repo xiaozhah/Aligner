@@ -266,7 +266,7 @@ class MoBoAligner(nn.Module):
             log_cond_prob_forward, log_cond_prob_geq_forward = (
                 self.compute_log_cond_prob(energy, text_mask, mel_mask)
             )
-            log_cond_prob_geq_forward = geq_mask_on_text_dim(
+            log_cond_prob_geq_forward = force_prob_geq_to_one(
                 log_cond_prob_geq_forward, text_mask
             )
 
