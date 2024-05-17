@@ -345,7 +345,7 @@ def diag_logsumexp(x, from_ind, log_eps=-float("inf")):
         x: A 3D tensor of shape (B, I, J).
         from_ind: The index of the diagonal to start from.
         log_eps: The log value to use for masking invalid elements.
-        
+
     Returns:
         A 2D tensor of shape (B, J) containing the logsumexp of the diagonals of the input tensor.
     """
@@ -354,7 +354,12 @@ def diag_logsumexp(x, from_ind, log_eps=-float("inf")):
     x = x.permute(1, 0, 2)  # (I, B, J)
     x = roll_tensor(x, shifts=torch.arange(I), dim=2)  # (I, B, J)
 
-    mask = gen_tri_invalid(B, I, J, device=x.device)
+    mask = (
+        torch.tril(torch.ones((I, J), device=x.device), diagonal=-1)
+        .unsqueeze(1)
+        .repeat(1, B, 1)
+        .bool()
+    )
     x.masked_fill_(mask, log_eps)
     x = x.permute(1, 0, 2)  # (B, I, J)
     x = x[:, :, from_ind:].logsumexp(1)
