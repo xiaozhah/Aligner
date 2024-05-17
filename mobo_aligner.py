@@ -63,7 +63,7 @@ class MoBoAligner(nn.Module):
             raise ValueError(
                 "The length of text hiddens (I) is greater than or equal to the length of mel hiddens (J), which is not allowed."
             )
-        if not torch.all(text_mask.sum(1) * self.max_dur <= mel_mask.sum(1)):
+        if not torch.all(text_mask.sum(1) * self.max_dur >= mel_mask.sum(1)):
             raise ValueError(
                 f"The length of mel hiddens (J) is greater than or equal to the {self.max_dur} times of the length of text hiddens (I), which is not allowed."
             )
