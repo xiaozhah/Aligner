@@ -337,30 +337,35 @@ def cal_max_hidden_memory_size(selected_boundary_indices, text_mask):
     )
 
 
-def diag_logsumexp(tensor, from_ind):
+def diag_logsumexp(x, from_ind, log_eps=-float("inf")):
     """
     Calculate the logsumexp of the diagonals of a 3D tensor, from the diagonal with index from_ind to the main diagonal.
 
     Args:
-        tensor: A 3D tensor of shape (B, I, J).
+        x: A 3D tensor of shape (B, I, J).
         from_ind: The index of the diagonal to start from.
-
+        log_eps: The log value to use for masking invalid elements.
+        
     Returns:
         A 2D tensor of shape (B, J) containing the logsumexp of the diagonals of the input tensor.
     """
-    batch_size, dim1, dim2 = tensor.size()
+    B, I, J = x.size()
+    assert from_ind < J, "from_ind should be less than J"
+    x = x.permute(1, 0, 2)  # (I, B, J)
+    x = roll_tensor(x, shifts=torch.arange(I), dim=2)  # (I, B, J)
 
-    assert from_ind < dim2, "from_ind should be less than dim2"
+    mask = gen_tri_invalid(B, I, J, device=x.device)
+    x.masked_fill_(mask, log_eps)
+    x = x.permute(1, 0, 2)  # (B, I, J)
+    x = x[:, :, from_ind:].logsumexp(1)
+    return x
 
-    logsumexp_result = torch.full(
-        (batch_size, dim2 - from_ind), -float("inf"), device=tensor.device
-    )
 
-    for i in range(from_ind, dim2):
-        diagonal_elements = tensor.diagonal(offset=i - dim1 + 1, dim1=-2, dim2=-1)
-        logsumexp_result[:, i - from_ind] = torch.logsumexp(diagonal_elements, dim=-1)
-
-    return logsumexp_result
+def gen_tri_invalid(B, I, J, device):
+    triu = torch.tril(torch.ones((I, J), device=device), diagonal=-1)
+    triu = triu.unsqueeze(1)  # (I, 1, J)
+    triu = triu.repeat(1, B, 1)  # (I, B, J)
+    return triu.bool()
 
 
 def BIJ_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
@@ -477,7 +482,7 @@ if __name__ == "__main__":
     )
 
     # 调用函数计算副对角线的logsumexp并获取结果tensor
-    result = diag_logsumexp(tensor.flip(1), from_ind=3)
+    result = diag_logsumexp(tensor.float(), from_ind=0)
     print("示例 6 - diag_logsumexp")
     print(result)
 

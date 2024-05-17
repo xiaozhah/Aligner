@@ -15,7 +15,6 @@ from tensor_utils import (
     gt_pad_on_text_dim,
     reverse_and_pad_head_tail_on_alignment,
     shift_tensor,
-    roll_tensor,
     gen_left_right_mask,
     diag_logsumexp,
     BIDK_transform,
@@ -134,7 +133,7 @@ class MoBoAligner(nn.Module):
         B, I = text_mask.shape
         _, K = mel_mask.shape  # K = J, j index from 1 to J, k index from 0 to J-1
 
-        energy_4D = BIJ_to_BIDK(energy, self.max_dur, padding_direction='right')
+        energy_4D = BIJ_to_BIDK(energy, self.max_dur, padding_direction="right")
         valid_mask = gen_left_right_mask(B, I, self.max_dur, K, text_mask, mel_mask)
         energy_4D.masked_fill_(~valid_mask, LOG_EPS)
         log_cond_prob = energy_4D - torch.logsumexp(
@@ -166,7 +165,7 @@ class MoBoAligner(nn.Module):
         for i in range(1, I + 1):
             log_mul = B_ij[:, i - 1, :-1].unsqueeze(1) + log_cond_prob[:, i - 1]
             B_ij[:, i, i:] = diag_logsumexp(
-                log_mul.flip(1), from_ind=i - 1
+                log_mul, from_ind=i - 1
             )  # sum at the K dimension
 
         return B_ij
@@ -183,7 +182,7 @@ class MoBoAligner(nn.Module):
             log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
         """
         D = log_cond_prob_geq_or_gt.shape[2]
-        prob_trans = BIJ_to_BIDK(prob, D=D, padding_direction='left')  # -> (B, I, D, K)
+        prob_trans = BIJ_to_BIDK(prob, D=D, padding_direction="left")  # -> (B, I, D, K)
         log_cond_prob_geq_or_gt_trans = BIDK_transform(
             log_cond_prob_geq_or_gt
         )  # -> (B, I, D, K)
