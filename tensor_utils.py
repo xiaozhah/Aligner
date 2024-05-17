@@ -363,7 +363,7 @@ def diag_logsumexp(tensor, from_ind):
     return logsumexp_result
 
 
-def BIJ_to_BIDK(x, D, padding_direction='left'):
+def BIJ_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
     """
     Transform BIJ format to BID format.
     Args:
@@ -372,15 +372,15 @@ def BIJ_to_BIDK(x, D, padding_direction='left'):
     Return:
         y (torch.Tensor): The output tensor of shape (B, I, D, J).
     """
-    if padding_direction == 'left':
+    if padding_direction == "left":
         x = F.pad(
-            x, (D - 1, 0, 0, 0, 0, 0), mode="constant", value=-float("inf")
-        )  # x -> (B, I, J+D-1), padding at the beginning of j index
+            x, (D - 1, 0, 0, 0, 0, 0), mode="constant", value=log_eps
+        )  # (B, I, J+D-1), padding at the beginning of j index
     else:
         x = F.pad(
-            x, (0, D - 1, 0, 0, 0, 0), mode="constant", value=-float("inf")
-        )  # x -> (B, I, J+D-1), padding at the end of j index
-    y = x.unfold(dimension=2, size=D, step=1) # (B, I, J+D-1) -> (B, I, J, D)
+            x, (0, D - 1, 0, 0, 0, 0), mode="constant", value=log_eps
+        )  # (B, I, J+D-1), padding at the end of j index
+    y = x.unfold(dimension=2, size=D, step=1)  # (B, I, J+D-1) -> (B, I, J, D)
     y = y.permute(0, 1, 3, 2)  # (B, I, J, D) -> (B, I, D, J)
     return y
 
