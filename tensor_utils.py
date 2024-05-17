@@ -366,13 +366,6 @@ def diag_logsumexp(x, from_ind, log_eps=-float("inf")):
     return x
 
 
-def gen_tri_invalid(B, I, J, device):
-    triu = torch.tril(torch.ones((I, J), device=device), diagonal=-1)
-    triu = triu.unsqueeze(1)  # (I, 1, J)
-    triu = triu.repeat(1, B, 1)  # (I, B, J)
-    return triu.bool()
-
-
 def BIJ_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
     """
     Transform BIJ format to BID format.
@@ -491,11 +484,11 @@ if __name__ == "__main__":
     print("示例 6 - diag_logsumexp")
     print(result)
 
-    x = torch.tensor(range(1400)).reshape(2, 5, 10, 14)  # K=14, D=10
+    x = torch.tensor(range(1400)).reshape(2, 5, 10, 14).float()  # K=14, D=10
     print(x)
     print("示例 7 - BIDK_transform")
     print(BIDK_transform(x))
 
-    x = torch.arange(180).view(2, 3, 30)
+    x = torch.arange(180).view(2, 3, 30).float()
     print("示例 8 - BIJ_to_BIDK")
     print(BIJ_to_BIDK(x, D=10))
