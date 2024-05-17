@@ -225,7 +225,7 @@ def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask, log_eps):
     )
 
     # (B, I, J-2, J-1) -> (B, I, J-2, J-1)
-    log_cond_prob_gt_backward = geq_mask_on_text_dim(
+    log_cond_prob_gt_backward = force_prob_geq_to_one(
         log_cond_prob_gt_backward, text_mask
     )
 
