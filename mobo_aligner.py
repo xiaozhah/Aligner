@@ -11,7 +11,7 @@ from layers import LinearNorm
 from tensor_utils import (
     compute_max_length_diff,
     convert_geq_to_gt,
-    geq_mask_on_text_dim,
+    force_prob_geq_to_one,
     gt_pad_on_text_dim,
     reverse_and_pad_head_tail_on_alignment,
     shift_tensor,
