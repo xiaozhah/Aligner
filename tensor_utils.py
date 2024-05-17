@@ -237,21 +237,17 @@ def geq_mask_on_text_dim(log_cond_prob_geq_or_gt, text_mask):
     pad the last text hidden which using prior knowledge for "greater than or equal to" format
 
     Args:
-        log_cond_prob_geq_or_gt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-2, J-1) for backward.
+        log_cond_prob_geq_or_gt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, D, K).
         text_mask (torch.Tensor): The text mask of shape (B, I).
 
     Returns:
-        log_cond_prob_geq_or_gt (torch.Tensor): The padded log cumulative conditional probability tensor of shape (B, I, J, J) for forward, or (B, I, J-2, J-1) for backward.
+        log_cond_prob_geq_or_gt (torch.Tensor): The padded log cumulative conditional probability tensor of shape (B, I, D, K).
     """
-    B, _, J, K = log_cond_prob_geq_or_gt.shape
-    diagonal = 0 if J == K else 1  # if forward else backward
-    pad = torch.tril(
-        torch.ones(J, K, device=log_cond_prob_geq_or_gt.device), diagonal=diagonal
-    )
-    mask = torch.zeros_like(log_cond_prob_geq_or_gt)
+    B = log_cond_prob_geq_or_gt.shape[0]
     i_lens = text_mask.sum(1)
-    mask[torch.arange(B), i_lens - 1, :, :] = pad
-    log_cond_prob_geq_or_gt.masked_fill_(mask.bool(), 0)
+    mask = torch.zeros_like(log_cond_prob_geq_or_gt, dtype=torch.bool)
+    mask[torch.arange(B), i_lens - 1] = True
+    log_cond_prob_geq_or_gt.masked_fill_(mask, 0)
     return log_cond_prob_geq_or_gt
 
 
