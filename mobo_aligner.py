@@ -61,7 +61,11 @@ class MoBoAligner(nn.Module):
             raise ValueError("Direction must be a subset of 'forward' or 'backward'.")
         if not torch.all(text_mask.sum(1) < mel_mask.sum(1)):
             raise ValueError(
-                "The dimension of text hiddens (I) is greater than or equal to the dimension of mel hiddens (J), which is not allowed."
+                "The length of text hiddens (I) is greater than or equal to the length of mel hiddens (J), which is not allowed."
+            )
+        if not torch.all(text_mask.sum(1) * self.max_dur <= mel_mask.sum(1)):
+            raise ValueError(
+                f"The length of mel hiddens (J) is greater than or equal to the {self.max_dur} times of the length of text hiddens (I), which is not allowed."
             )
 
     def compute_energy(self, text_hiddens, mel_hiddens, alignment_mask):
@@ -343,7 +347,7 @@ if __name__ == "__main__":
     torch.manual_seed(1234)
 
     I = 10
-    J = 100
+    J = 91
     device = "cpu"
 
     if device == "cuda":
