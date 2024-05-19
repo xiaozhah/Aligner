@@ -16,26 +16,26 @@ def roll_tensor(tensor, shifts, dim):
         result (torch.Tensor): The rolled tensor of shape (B, I) or (B, I, J) or (B, I, J, K) or ....
     """
 
-    # 获取tensor的形状
+    # Get the shape of the tensor
     shape = tensor.size()
 
-    # 确保dim在有效范围内
+    # Ensure that dim is within the valid range
     assert dim >= 0 and dim < len(shape), "Invalid hidden"
 
-    # 生成一个索引tensor
+    # Generate an index tensor
     indices = (
         torch.arange(shape[dim], device=tensor.device)
         .view([1] * dim + [-1] + [1] * (len(shape) - dim - 1))
         .expand(shape)
     )
 
-    # 调整shifts形状
+    # Reshape shifts
     shifts = shifts.view([-1] + [1] * (len(shape) - 1))
 
-    # 计算移位后的索引
+    # Calculate the shifted indices
     shifted_indices = (indices - shifts) % shape[dim]
 
-    # 使用移位后的索引对tensor进行索引操作
+    # Use the shifted indices to index the tensor
     result = tensor.gather(dim, shifted_indices.expand(shape))
 
     return result
@@ -370,7 +370,7 @@ def BIJ_to_BIK(Bij):
 def BIJ_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
     """
     Transform BIJ to BIDK format.
-    
+
     Args:
         x (torch.FloatTensor): The input tensor of shape (B, I, J).
         D (int): The max duration of text tokens.
@@ -452,20 +452,22 @@ def force_assign_last_text_hidden(
 
 
 if __name__ == "__main__":
-    # 示例用法 1 (4D tensor)
+    # Example usage 1 (4D tensor)
     tensor1 = torch.tensor(
         [
             [[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]],
             [[[13, 14, 15], [16, 17, 18]], [[19, 20, 21], [22, 23, 24]]],
         ]
     )  # shape is (2, 2, 2, 3)
-    shifts1 = torch.tensor([1, 2])  # 每个sample在最后一个维度上的右移量
-    dim1 = 3  # 在最后一个维度上进行移位
+    shifts1 = torch.tensor(
+        [1, 2]
+    )  # Right shift amount for each sample in the last dimension
+    dim1 = 3  # Perform the shift on the last dimension
     result1 = roll_tensor(tensor1, shifts1, dim1)
-    print("示例 1 - 在最后一个维度上移位:")
+    print("Example 1 - Shift on the last dimension:")
     print(result1)
 
-    # 示例用法 2 (3D tensor)
+    # Example usage 2 (3D tensor)
     tensor2 = torch.tensor(
         [
             [[1, 2], [3, 4], [5, 6]],
@@ -473,13 +475,15 @@ if __name__ == "__main__":
             [[13, 14], [15, 16], [17, 18]],
         ]
     )  # shape is (3, 3, 2)
-    shifts2 = torch.tensor([1, 2, 3])  # 每个sample在第二个维度上的左移量
-    dim2 = 1  # 在第二个维度上进行移位
+    shifts2 = torch.tensor(
+        [1, 2, 3]
+    )  # Left shift amount for each sample in the second dimension
+    dim2 = 1  # Perform the shift on the second dimension
     result2 = roll_tensor(tensor2, shifts2, dim2)
-    print("示例 2 - 在第二个维度上移位:")
+    print("Example 2 - Shift on the second dimension:")
     print(result2)
 
-    # 示例用法 3 (2D tensor)
+    # Example usage 3 (2D tensor)
     tensor3 = torch.tensor(
         [
             [1, 2, 3],
@@ -490,28 +494,28 @@ if __name__ == "__main__":
     shifts3 = torch.tensor([1, 2, 3])
     dim3 = 1
     result3 = roll_tensor(tensor3, shifts3, dim3)
-    print("示例 3 - 在第一个维度上移位:")
+    print("Example 3 - Shift on the first dimension:")
     print(result3)
 
-    # 测试用例 4
+    # Test case 4
     B, I, D, J = 2, 5, 10, 16
     text_mask = torch.ones(2, 5, dtype=torch.bool)
     text_mask[1, 2:] = 0
     mel_mask = torch.ones(2, 16, dtype=torch.bool)
     mel_mask[1, 5:] = 0
-    print("示例 4 - gen_left_right_mask")
+    print("Example 4 - gen_left_right_mask")
     masked_tensor = gen_left_right_mask(B, I, D, J, text_mask, mel_mask).int()
     print(masked_tensor)
 
-    # 测试用例 5
+    # Test case 5
     i_lens = text_mask.sum(1).long()
     j_lens = mel_mask.sum(1).long()
-    print("示例 5.1 - arange_for_left")
+    print("Example 5.1 - arange_for_left")
     print(arange_for_left(i_lens))
-    print("示例 5.2 - arange_for_right")
+    print("Example 5.2 - arange_for_right")
     print(arange_for_right(i_lens, j_lens))
 
-    # 测试用例 6
+    # Test case 6
     tensor = torch.tensor(
         [
             [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
@@ -519,16 +523,16 @@ if __name__ == "__main__":
         ]
     )
 
-    # 调用函数计算副对角线的logsumexp并获取结果tensor
+    # Call the function to compute the logsumexp along the off-diagonal and get the result tensor
     result = diag_logsumexp(tensor.float(), from_ind=0)
-    print("示例 6 - diag_logsumexp")
+    print("Example 6 - diag_logsumexp")
     print(result)
 
     x = torch.tensor(range(1400)).reshape(2, 5, 10, 14).float()  # K=14, D=10
     print(x)
-    print("示例 7 - BIDK_transform")
+    print("Example 7 - BIDK_transform")
     print(BIDK_transform(x))
 
     x = torch.arange(180).view(2, 3, 30).float()
-    print("示例 8 - BIJ_to_BIDK")
+    print("Example 8 - BIJ_to_BIDK")
     print(BIJ_to_BIDK(x, D=10))
