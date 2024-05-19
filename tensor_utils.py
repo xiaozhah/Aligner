@@ -254,9 +254,9 @@ def get_valid_max(tensor, mask, inf_value=1e6):
     return min_values, max_values
 
 
-# lens: torch.LongTensor
-# returns: torch.BoolTensor
-def lengths_to_padding_mask(lens, max_lens=None):
+def lengths_to_padding_mask(
+    lens: torch.LongTensor, max_lens: int = None
+) -> torch.BoolTensor:
     bsz = lens.size(0)
     if max_lens is None:
         max_lens = torch.max(lens).item()
@@ -265,9 +265,7 @@ def lengths_to_padding_mask(lens, max_lens=None):
     return mask
 
 
-# lens: torch.LongTensor
-# returns: torch.BoolTensor
-def lengths_to_mask(lens, max_lens=None):
+def lengths_to_mask(lens: torch.LongTensor, max_lens: int = None) -> torch.BoolTensor:
     return ~lengths_to_padding_mask(lens, max_lens)
 
 
@@ -297,6 +295,15 @@ def get_mat_p_f(src_tokens, durations):
 
 
 def calculate_tensor_memory_size(shape, dtype):
+    """
+    Calculate the memory size of a tensor in MB.
+
+    Args:
+        shape (tuple): The shape of the tensor.
+        dtype (torch.dtype): The data type of the tensor.
+    Returns:
+        float: The memory size of the tensor in MB.
+    """
     total_elements = 1
     for dim in shape:
         total_elements *= dim
