@@ -199,10 +199,10 @@ def convert_geq_to_gt(log_cond_prob_geq_backward):
     "greater than or equal to" format to "greater than" format
 
     Args:
-        log_cond_prob_geq_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-1, J-1).
+        log_cond_prob_geq_backward (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I-1, J-1, J-1).
 
     Returns:
-        log_cond_prob_geq_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-2, J-1).
+        log_cond_prob_geq_backward (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I-1, J-2, J-1).
     """
     return log_cond_prob_geq_backward[:, :, 1:]
 
@@ -237,13 +237,13 @@ def get_valid_max(tensor, mask, inf_value=1e6):
     Calculate the minimum and maximum values of the valid elements in the given 2D tensor.
 
     Args:
-        tensor: 2D tensor, shape (B, L)
-        mask: 2D mask tensor, shape (B, L), valid elements are 1, invalid elements are 0
-        inf_value: The value to use for masking invalid elements.
+        tensor (torch.FloatTensor): The input tensor of shape (B, L).
+        mask (torch.BoolTensor): The mask tensor of shape (B, L), valid elements are 1, invalid elements are 0.
+        inf_value (float): The value to use for masking invalid elements.
 
     Returns:
-        min_values: The minimum value of the valid elements in each sample, shape (B,)
-        max_values: The maximum value of the valid elements in each sample, shape (B,)
+        min_values (torch.FloatTensor): The minimum value of the valid elements in each sample, shape (B,)
+        max_values (torch.FloatTensor): The maximum value of the valid elements in each sample, shape (B,)
     """
     masked_tensor = tensor.masked_fill(~mask, inf_value)
     min_values, _ = torch.min(masked_tensor, dim=1)
@@ -274,11 +274,11 @@ def get_mat_p_f(src_tokens, durations):
     Calculate the mapping matrix (mat_p_f) from the text tokens, e.g. phone, to the mel spectrograms.
 
     Args:
-        src_tokens (torch.Tensor): The input tensor of shape (B, L, C).
-        durations (torch.Tensor): The duration tensor of shape (B, L).
+        src_tokens (torch.FloatTensor): The input tensor of shape (B, L, C).
+        durations (torch.LongTensor): The duration tensor of shape (B, L).
 
     Returns:
-        mat_p_f (torch.Tensor): The mapping matrix of shape (B, L, T).
+        mat_p_f (torch.FloatTensor): The mapping matrix of shape (B, L, T).
     """
     assert (
         src_tokens.shape[:2] == durations.shape
@@ -330,12 +330,12 @@ def diag_logsumexp(x, from_ind, log_eps=-float("inf")):
     Calculate the logsumexp of the diagonals of a 3D tensor, from the diagonal with index from_ind to the main diagonal.
 
     Args:
-        x: A 3D tensor of shape (B, I, J).
-        from_ind: The index of the diagonal to start from.
-        log_eps: The log value to use for masking invalid elements.
+        x (torch.FloatTensor): The input tensor of shape (B, I, J).
+        from_ind (int): The index of the diagonal to start from.
+        log_eps (float): The log value to use for masking invalid elements.
 
     Returns:
-        A 2D tensor of shape (B, J) containing the logsumexp of the diagonals of the input tensor.
+        x (torch.FloatTensor): The logsumexp of the diagonals of the input tensor of shape (B, J).
     """
     B, I, J = x.size()
     assert from_ind < J, "from_ind should be less than J"
@@ -370,11 +370,14 @@ def BIJ_to_BIK(Bij):
 def BIJ_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
     """
     Transform BIJ to BIDK format.
+    
     Args:
-        x (torch.Tensor): The input tensor of shape (B, I, J).
-
+        x (torch.FloatTensor): The input tensor of shape (B, I, J).
+        D (int): The max duration of text tokens.
+        padding_direction (str): The direction of padding.
+        log_eps (float): The log value to use for masking invalid elements.
     Return:
-        y (torch.Tensor): The output tensor of shape (B, I, D, K).
+        y (torch.FloatTensor): The output tensor of shape (B, I, D, K).
     """
     if padding_direction == "left":
         x = F.pad(
@@ -396,10 +399,10 @@ def BIDK_transform(x, log_eps=-float("inf")):
     Transform BIDK format with k fixed and j from k+1 to K+D to BIDK format with j fixed and k from j-D to j-1.
 
     Args:
-        x (torch.Tensor): The input tensor of shape (B, I, D, K).
+        x (torch.FloatTensor): The input tensor of shape (B, I, D, K).
         log_eps (float): The log value to use for masking invalid elements.
     Returns:
-        y (torch.Tensor): The transformed tensor of shape (B, I, D, K).
+        y (torch.FloatTensor): The transformed tensor of shape (B, I, D, K).
     """
     _, _, D, K = x.size()
     x = x.permute(2, 3, 0, 1)  # (D, K, B, I)
@@ -425,13 +428,13 @@ def force_assign_last_text_hidden(
     Not a inplace operation version.
 
     Args:
-        log_interval_prob (torch.Tensor): The log interval probability tensor of shape (B, I, J).
-        prob (torch.Tensor): The probability tensor of shape (B, I, K).
-        text_mask (torch.Tensor): The text mask tensor of shape (B, I).
+        log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J).
+        prob (torch.FloatTensor): The probability tensor of shape (B, I, K).
+        text_mask (torch.BoolTensor): The text mask tensor of shape (B, I).
         alignment_mask (torch.Tensor): The alignment mask tensor of shape (B, I).
         log_eps (float): The log value to use for masking invalid elements.
     Returns:
-        log_interval_prob (torch.Tensor): The log interval probability tensor of shape (B, I, J).
+        log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J).
     """
     B, _, K = log_interval_prob.shape
 
