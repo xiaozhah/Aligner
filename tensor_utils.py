@@ -232,25 +232,6 @@ def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask, log_eps):
     return log_cond_prob_gt_backward
 
 
-def force_prob_geq_to_one(log_cond_prob_geq_or_gt, text_mask):
-    """
-    force the last text hidden of log_cond_prob_geq_or_gt to be 1 for "greater than or equal to" format
-
-    Args:
-        log_cond_prob_geq_or_gt (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I, D, K).
-        text_mask (torch.Tensor): The text mask of shape (B, I).
-
-    Returns:
-        log_cond_prob_geq_or_gt (torch.Tensor): The padded log cumulative conditional probability tensor of shape (B, I, D, K).
-    """
-    B = log_cond_prob_geq_or_gt.shape[0]
-    i_lens = text_mask.sum(1)
-    mask = torch.zeros_like(log_cond_prob_geq_or_gt, dtype=torch.bool)
-    mask[torch.arange(B), i_lens - 1] = True
-    log_cond_prob_geq_or_gt.masked_fill_(mask, 0)
-    return log_cond_prob_geq_or_gt
-
-
 def get_valid_max(tensor, mask, inf_value=1e6):
     """
     Calculate the minimum and maximum values of the valid elements in the given 2D tensor.
@@ -417,7 +398,7 @@ def force_assign_last_text_hidden(
     """
     Use the cumulative sum of boundary probabilities from the last text in prob to directly assign interval probabilities of the last text in log_interval_prob.
     Not a inplace operation version.
-    
+
     Args:
         log_interval_prob (torch.Tensor): The log interval probability tensor of shape (B, I, J).
         prob (torch.Tensor): The probability tensor of shape (B, I, K).

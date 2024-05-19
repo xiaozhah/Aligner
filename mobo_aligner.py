@@ -11,7 +11,6 @@ from layers import LinearNorm
 from tensor_utils import (
     compute_max_length_diff,
     convert_geq_to_gt,
-    force_prob_geq_to_one,
     gt_pad_on_text_dim,
     reverse_and_pad_head_tail_on_alignment,
     shift_tensor,
@@ -275,9 +274,6 @@ class MoBoAligner(nn.Module):
             # 1. Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
             log_cond_prob_forward, log_cond_prob_geq_forward = (
                 self.compute_log_cond_prob(energy, text_mask, mel_mask)
-            )
-            log_cond_prob_geq_forward = force_prob_geq_to_one(
-                log_cond_prob_geq_forward, text_mask
             )
 
             # 2. Compute forward recursively in the log domain
