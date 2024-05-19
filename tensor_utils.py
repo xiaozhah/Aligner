@@ -382,27 +382,31 @@ def BIJ_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
     return y
 
 
-def BIDK_transform(x):
+def BIDK_transform(x, log_eps=-float("inf")):
     """
     Transform BIDK format with k fixed and j from k+1 to K+D to BIDK format with j fixed and k from j-D to j-1.
+
     Args:
         x (torch.Tensor): The input tensor of shape (B, I, D, K).
+        log_eps (float): The log value to use for masking invalid elements.
     Returns:
         y (torch.Tensor): The transformed tensor of shape (B, I, D, K).
     """
     B, I, D, K = x.size()
-    # can view x[0, 0]
-    x = x.flip(2)  # (B, I, D, K)
-    x = x.permute(0, 1, 3, 2)  # (B, I, K, D)
-    y = torch.full((B, I, K, D), -float("inf"), device=x.device)  # (B, I, K, D)
-    for i in range(K):
-        y[:, :, i, : (i + 1)] = x.diagonal(offset=D - i - 1, dim1=-2, dim2=-1)
-    y = y.permute(2, 3, 0, 1)  # (K, D, B, I)
-    shifts = torch.arange(D - 1, D - 1 - K, -1, device=y.device).clamp(min=0)
-    y = roll_tensor(y, shifts=shifts, dim=1)  # (K, D, B, I)
-    y = y.permute(2, 3, 1, 0)  # (B, I, D, K)
-    # can view y[0, 0].T
-    return y
+    x = x.permute(2, 3, 0, 1)  # (D, K, B, I)
+    x = roll_tensor(x, shifts=torch.arange(D, device=x.device), dim=1)  # (D, K, B, I)
+    x = torch.rot90(x, dims=(1, 0))  # (K, D, B, I)
+    x = x.permute(2, 3, 1, 0)  # (B, I, D, K)
+    mask = (
+        torch.triu(torch.ones((D, K), device=x.device), diagonal=K - D + 1)
+        .flip(1)
+        .unsqueeze(0)
+        .unsqueeze(0)
+        .repeat(B, I, 1, 1)
+        .bool()
+    )
+    x.masked_fill_(mask, log_eps)
+    return x
 
 
 def force_assign_last_text_hidden(
