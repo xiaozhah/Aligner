@@ -349,7 +349,7 @@ def diag_logsumexp(x, from_ind, log_eps=-float("inf")):
 
 def BIJ_to_BIK(Bij):
     """
-    from j index (j = 1...J) to k index (k = 0...J-1) and drop the last text hidden.
+    from j index (j = 1...J) to k index (k = 0...J-1) and drop the last text index.
 
     Args:
         Bij (torch.Tensor): The input tensor of shape (B, I+1, J+1).
@@ -373,10 +373,12 @@ def BIJ_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
         x = F.pad(
             x, (D - 1, 0, 0, 0, 0, 0), mode="constant", value=log_eps
         )  # (B, I, J+D-1), padding at the beginning of j index
-    else:
+    elif padding_direction == "right":
         x = F.pad(
             x, (0, D - 1, 0, 0, 0, 0), mode="constant", value=log_eps
         )  # (B, I, J+D-1), padding at the end of j index
+    else:
+        raise ValueError("Invalid padding direction")
     y = x.unfold(dimension=2, size=D, step=1)  # (B, I, J+D-1) -> (B, I, J, D)
     y = y.permute(0, 1, 3, 2)  # (B, I, J, D) -> (B, I, D, J)
     return y
@@ -392,7 +394,7 @@ def BIDK_transform(x, log_eps=-float("inf")):
     Returns:
         y (torch.Tensor): The transformed tensor of shape (B, I, D, K).
     """
-    B, I, D, K = x.size()
+    _, _, D, K = x.size()
     x = x.permute(2, 3, 0, 1)  # (D, K, B, I)
     x = roll_tensor(x, shifts=torch.arange(D, device=x.device), dim=1)  # (D, K, B, I)
     x = torch.rot90(x, dims=(1, 0))  # (K, D, B, I)
