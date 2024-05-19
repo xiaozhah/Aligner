@@ -360,11 +360,11 @@ def BIJ_to_BIK(Bij):
     return Bij
 
 
-def BIK_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
+def BIJ_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
     """
-    Transform BIK to BIDK format.
+    Transform BIJ to BIDK format.
     Args:
-        x (torch.Tensor): The input tensor of shape (B, I, K).
+        x (torch.Tensor): The input tensor of shape (B, I, J).
 
     Return:
         y (torch.Tensor): The output tensor of shape (B, I, D, K).
