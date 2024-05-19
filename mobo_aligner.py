@@ -16,8 +16,9 @@ from tensor_utils import (
     shift_tensor,
     gen_left_right_mask,
     diag_logsumexp,
+    BIJ_to_BIK,
+    BIK_to_BIDK,
     BIDK_transform,
-    BIJ_to_BIDK,
     force_assign_last_text_hidden,
 )
 
@@ -137,12 +138,12 @@ class MoBoAligner(nn.Module):
         B, I = text_mask.shape
         _, K = mel_mask.shape  # K = J, j index from 1 to J, k index from 0 to J-1
 
-        energy_4D = BIJ_to_BIDK(energy, self.max_dur, padding_direction="right")
+        energy_4D = BIK_to_BIDK(energy, self.max_dur, padding_direction="right")
         valid_mask = gen_left_right_mask(B, I, self.max_dur, K, text_mask, mel_mask)
         energy_4D.masked_fill_(~valid_mask, LOG_EPS)
         log_cond_prob = energy_4D - torch.logsumexp(
             energy_4D, dim=2, keepdim=True
-        )  # on the J dimension
+        )  # on the D dimension
         log_cond_prob.masked_fill_(~valid_mask, LOG_EPS)
 
         log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
@@ -175,13 +176,13 @@ class MoBoAligner(nn.Module):
         return B_ij
 
     def compute_interval_probability(
-        self, prob, log_cond_prob_geq_or_gt, text_mask, alignment_mask
+        self, boundary_prob, log_cond_prob_geq_or_gt, text_mask, alignment_mask
     ):
         """
         Compute the log interval probability, which is the log of the probability P(B_{i-1} < j <= B_i), the sum of P(B_{i-1} < j <= B_i) over i is 1.
 
         Args:
-            prob (torch.FloatTensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I, J-1) for backward.
+            boundary_prob (torch.FloatTensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I, J-1) for backward.
             log_cond_prob_geq_or_gt (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, K) for forward, or (B, I, J-2, J-1) for backward.
             text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
             alignment_mask (torch.BoolTensor): The alignment mask of shape (B, I, J) for forward, or (B, I, J-1) for backward.
@@ -190,7 +191,7 @@ class MoBoAligner(nn.Module):
             log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
         """
         D = log_cond_prob_geq_or_gt.shape[2]
-        prob_trans = BIJ_to_BIDK(prob, D=D, padding_direction="left")  # -> (B, I, D, K)
+        prob_trans = BIK_to_BIDK(boundary_prob, D=D, padding_direction="left")  # -> (B, I, D, K)
         log_cond_prob_geq_or_gt_trans = BIDK_transform(
             log_cond_prob_geq_or_gt
         )  # -> (B, I, D, K)
@@ -200,7 +201,7 @@ class MoBoAligner(nn.Module):
         )  # (B, I-1, J)
 
         log_interval_prob = force_assign_last_text_hidden(
-            log_interval_prob, prob, text_mask, alignment_mask, LOG_EPS
+            log_interval_prob, boundary_prob, text_mask, alignment_mask, LOG_EPS
         )  # (B, I, J)
 
         return log_interval_prob
@@ -280,11 +281,11 @@ class MoBoAligner(nn.Module):
             Bij_forward = self.compute_forward_pass(
                 log_cond_prob_forward, text_mask, mel_mask
             )
-            Bij_forward = Bij_forward[:, :-1, :-1]  # (B, I+1, J+1) -> (B, I, J)
+            Bik_forward = BIJ_to_BIK(Bij_forward)
 
             # 3. Compute the forward P(B_{i-1} < j <= B_i)
             log_boundary_forward = self.compute_interval_probability(
-                Bij_forward, log_cond_prob_geq_forward, text_mask, alignment_mask
+                Bik_forward, log_cond_prob_geq_forward, text_mask, alignment_mask
             )
 
         if "backward" in direction:
