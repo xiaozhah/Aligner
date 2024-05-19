@@ -143,6 +143,7 @@ class MoBoAligner(nn.Module):
         )
         valid_mask = gen_left_right_mask(B, I, self.max_dur, K, text_mask, mel_mask)
         energy_4D.masked_fill_(~valid_mask, LOG_EPS)
+
         log_cond_prob = energy_4D - torch.logsumexp(
             energy_4D, dim=2, keepdim=True
         )  # on the D dimension
@@ -150,6 +151,7 @@ class MoBoAligner(nn.Module):
 
         log_cond_prob_geq = torch.logcumsumexp(log_cond_prob.flip(2), dim=2).flip(2)
         log_cond_prob_geq.masked_fill_(~valid_mask, LOG_EPS)
+
         return log_cond_prob, log_cond_prob_geq
 
     def compute_forward_pass(self, log_cond_prob, text_mask, mel_mask):
@@ -170,10 +172,10 @@ class MoBoAligner(nn.Module):
         B_ij = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob.device)
         B_ij[:, 0, 0] = 0  # Initialize forward[0, 0] = 0
         for i in range(1, I + 1):
-            log_mul = B_ij[:, i - 1, :-1].unsqueeze(1) + log_cond_prob[:, i - 1]
             B_ij[:, i, i:] = diag_logsumexp(
-                log_mul, from_ind=i - 1
-            )  # sum at the K dimension
+                B_ij[:, i - 1, :-1].unsqueeze(1) + log_cond_prob[:, i - 1],  # (B, D, J)
+                from_ind=i - 1,
+            )  # sum at the D dimension
 
         return B_ij
 
