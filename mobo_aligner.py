@@ -61,7 +61,9 @@ class MoBoAligner(nn.Module):
             len(direction) >= 1
             and set(direction).issubset(set(["forward", "backward"]))
         ):
-            raise ValueError("Direction must be a subset of 'forward' or 'backward'.")
+            raise ValueError(
+                f"Direction must be a subset of 'forward' or 'backward', {direction} is not allowed."
+            )
         if not torch.all(I < J):
             raise ValueError(
                 f"The length of text hiddens (I={I.tolist()}) is greater than or equal to the length of mel hiddens (J={J.tolist()}), which is not allowed."
