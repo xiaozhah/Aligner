@@ -281,11 +281,11 @@ class MoBoAligner(nn.Module):
             Bij_forward = self.compute_forward_pass(
                 log_cond_prob_forward, text_mask, mel_mask
             )
-            Bik_forward = BIJ_to_BIK(Bij_forward)
+            Bij_forward = BIJ_to_BIK(Bij_forward)
 
             # 3. Compute the forward P(B_{i-1} < j <= B_i)
             log_boundary_forward = self.compute_interval_probability(
-                Bik_forward, log_cond_prob_geq_forward, text_mask, alignment_mask
+                Bij_forward, log_cond_prob_geq_forward, text_mask, alignment_mask
             )
 
         if "backward" in direction:
