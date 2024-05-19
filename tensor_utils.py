@@ -411,6 +411,37 @@ def BIDK_transform(x):
     return y
 
 
+def force_assign_last_text_hidden(
+    log_interval_prob, prob, text_mask, alignment_mask, log_eps=-float("inf")
+):
+    """
+    Use the cumulative sum of boundary probabilities from the last text in prob to directly assign interval probabilities of the last text in log_interval_prob.
+    Not a inplace operation version.
+    
+    Args:
+        log_interval_prob (torch.Tensor): The log interval probability tensor of shape (B, I, J).
+        prob (torch.Tensor): The probability tensor of shape (B, I, K).
+        text_mask (torch.Tensor): The text mask tensor of shape (B, I).
+        alignment_mask (torch.Tensor): The alignment mask tensor of shape (B, I).
+        log_eps (float): The log value to use for masking invalid elements.
+    Returns:
+        log_interval_prob (torch.Tensor): The log interval probability tensor of shape (B, I, J).
+    """
+    B, _, K = log_interval_prob.shape
+
+    log_interval_prob.masked_fill_(~alignment_mask[:, 1:], 0)
+    log_interval_prob = torch.cat(
+        (log_interval_prob, torch.zeros(B, 1, K, device=prob.device)), dim=1
+    )  # (B, I-1, J) -> (B, I, J)
+
+    i_lens = text_mask.sum(1)
+    last = prob[torch.arange(B), i_lens - 1].logcumsumexp(1)  # (B, K)
+    log_interval_prob[torch.arange(B), i_lens - 1] += last
+
+    log_interval_prob.masked_fill_(~alignment_mask, log_eps)
+    return log_interval_prob
+
+
 if __name__ == "__main__":
     # 示例用法 1 (4D tensor)
     tensor1 = torch.tensor(

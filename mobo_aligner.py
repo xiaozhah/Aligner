@@ -19,6 +19,7 @@ from tensor_utils import (
     diag_logsumexp,
     BIDK_transform,
     BIJ_to_BIDK,
+    force_assign_last_text_hidden,
 )
 
 # Define a very small logarithmic value to avoid division by zero or negative infinity in logarithmic calculations
@@ -54,18 +55,20 @@ class MoBoAligner(nn.Module):
         """
         Check if the parameters are valid for the alignment.
         """
+        I = text_mask.sum(1)
+        J = mel_mask.sum(1)
         if not (
             len(direction) >= 1
             and set(direction).issubset(set(["forward", "backward"]))
         ):
             raise ValueError("Direction must be a subset of 'forward' or 'backward'.")
-        if not torch.all(text_mask.sum(1) < mel_mask.sum(1)):
+        if not torch.all(I < J):
             raise ValueError(
-                "The length of text hiddens (I) is greater than or equal to the length of mel hiddens (J), which is not allowed."
+                f"The length of text hiddens (I={I.tolist()}) is greater than or equal to the length of mel hiddens (J={J.tolist()}), which is not allowed."
             )
-        if not torch.all(text_mask.sum(1) * self.max_dur >= mel_mask.sum(1)):
+        if not torch.all(I * self.max_dur >= J):
             raise ValueError(
-                f"The length of mel hiddens (J) is greater than or equal to the {self.max_dur} times of the length of text hiddens (I), which is not allowed."
+                f"The length of mel hiddens (J={J.tolist()}) is greater than or equal to the {self.max_dur} times of the length of text hiddens (I={I.tolist()}), which is not allowed."
             )
 
     def compute_energy(self, text_hiddens, mel_hiddens, alignment_mask):
@@ -174,13 +177,17 @@ class MoBoAligner(nn.Module):
 
         return B_ij
 
-    def compute_interval_probability(self, prob, log_cond_prob_geq_or_gt):
+    def compute_interval_probability(
+        self, prob, log_cond_prob_geq_or_gt, text_mask, alignment_mask
+    ):
         """
         Compute the log interval probability, which is the log of the probability P(B_{i-1} < j <= B_i), the sum of P(B_{i-1} < j <= B_i) over i is 1.
 
         Args:
             prob (torch.FloatTensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I, J-1) for backward.
             log_cond_prob_geq_or_gt (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, K) for forward, or (B, I, J-2, J-1) for backward.
+            text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
+            alignment_mask (torch.BoolTensor): The alignment mask of shape (B, I, J) for forward, or (B, I, J-1) for backward.
 
         Returns:
             log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
@@ -191,8 +198,14 @@ class MoBoAligner(nn.Module):
             log_cond_prob_geq_or_gt
         )  # -> (B, I, D, K)
 
-        x = prob_trans + log_cond_prob_geq_or_gt_trans  # (B, I, D, K)
-        log_interval_prob = torch.logsumexp(x, dim=2)
+        log_interval_prob = torch.logsumexp(
+            prob_trans[:, :-1] + log_cond_prob_geq_or_gt_trans[:, :-1], dim=2
+        )  # (B, I-1, J)
+
+        log_interval_prob = force_assign_last_text_hidden(
+            log_interval_prob, prob, text_mask, alignment_mask, LOG_EPS
+        )  # (B, I, J)
+
         return log_interval_prob
 
     def combine_alignments(self, log_boundary_forward, log_boundary_backward):
@@ -277,10 +290,7 @@ class MoBoAligner(nn.Module):
 
             # 3. Compute the forward P(B_{i-1} < j <= B_i)
             log_boundary_forward = self.compute_interval_probability(
-                Bij_forward, log_cond_prob_geq_forward
-            )
-            log_boundary_forward = log_boundary_forward.masked_fill(
-                ~alignment_mask, LOG_EPS
+                Bij_forward, log_cond_prob_geq_forward, text_mask, alignment_mask
             )
 
         if "backward" in direction:
