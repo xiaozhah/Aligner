@@ -66,10 +66,6 @@ class MoBoAligner(nn.Module):
             raise ValueError(
                 f"The length of text hiddens (I={I.tolist()}) is greater than or equal to the length of mel hiddens (J={J.tolist()}), which is not allowed."
             )
-        if not torch.all(I * self.max_dur >= J):
-            raise ValueError(
-                f"The length of mel hiddens (J={J.tolist()}) is greater than or equal to the {self.max_dur} times of the length of text hiddens (I={I.tolist()}), which is not allowed."
-            )
 
     def compute_energy(self, text_hiddens, mel_hiddens, alignment_mask):
         """
