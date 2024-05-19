@@ -349,9 +349,14 @@ def diag_logsumexp(x, from_ind, log_eps=-float("inf")):
 
 def BIJ_to_BIK(Bij):
     """
-    from j index (j = 1...J) to k index (k = 0...J-1)
+    from j index (j = 1...J) to k index (k = 0...J-1) and drop the last text hidden.
+
+    Args:
+        Bij (torch.Tensor): The input tensor of shape (B, I+1, J+1).
+    Returns:
+        Bik (torch.Tensor): The output tensor of shape (B, I, J).
     """
-    Bij = Bij[:, :-1, :-1]  # (B, I+1, J+1) -> (B, I, J)
+    Bij = Bij[:, :-1, :-1]
     return Bij
 
 
