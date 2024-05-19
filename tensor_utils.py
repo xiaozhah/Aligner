@@ -402,7 +402,6 @@ def BIDK_transform(x, log_eps=-float("inf")):
         .flip(1)
         .unsqueeze(0)
         .unsqueeze(0)
-        .repeat(B, I, 1, 1)
         .bool()
     )
     x.masked_fill_(mask, log_eps)
