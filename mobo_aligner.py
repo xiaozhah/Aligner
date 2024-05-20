@@ -240,6 +240,7 @@ class MoBoAligner(nn.Module):
         Args:
             log_probs (torch.FloatTensor): The log probabilities tensor of shape (B, I, J).
             alignment_mask (torch.BoolTensor): The alignment mask of shape (B, I, J).
+        
         Returns:
             hard_alignment (torch.FloatTensor): The tensor representing the hard alignment path of shape (B, I, J).
         """
