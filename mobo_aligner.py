@@ -280,7 +280,10 @@ class MoBoAligner(nn.Module):
 
             # 3. Compute the forward P(B_{i-1} < j <= B_i)
             log_interval_forward = self.compute_interval_prob(
-                log_boundary_prob_forward, log_cond_prob_geq_forward, text_mask, alignment_mask
+                log_boundary_prob_forward,
+                log_cond_prob_geq_forward,
+                text_mask,
+                alignment_mask,
             )
 
         if "backward" in direction:
