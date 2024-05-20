@@ -29,6 +29,7 @@ class RoMoAligner(nn.Module):
         skip_rough_aligner=False,
         dropout=0.1,
         noise_scale=2.0,  # the scale of the noise used in the MoBo aligner
+        max_dur=10, # the maximum duration of the MoBo aligner
         num_boundary_candidates=3,  # number of boundary candidates of each text token
         verbose=False,  # whether to print the memory size of the hidden state
     ):
@@ -36,11 +37,16 @@ class RoMoAligner(nn.Module):
 
         if num_boundary_candidates < 3:
             raise ValueError(
-                "The number of boundary candidates must be greater than 2."
+                "The number of boundary candidates must be greater than or equal to 3."
             )
 
-        if num_boundary_candidates % 2 != 1:
+        if num_boundary_candidates % 2 != 1:  # for Rough Aligner
             raise ValueError("The number of boundary candidates must be an odd number.")
+
+        if num_boundary_candidates > max_dur:  # for MoBo Aligner
+            raise ValueError(
+                "The number of boundary candidates must be less than or equal to max_dur."
+            )
 
         self.text_fc = LinearNorm(text_embeddings, attention_dim)
         if not skip_text_conformer:
@@ -93,7 +99,7 @@ class RoMoAligner(nn.Module):
         if not skip_rough_aligner:
             self.rough_aligner = RoughAligner(attention_dim, attention_head, dropout)
         self.mobo_aligner = MoBoAligner(
-            attention_dim, attention_dim, attention_dim, noise_scale
+            attention_dim, attention_dim, attention_dim, noise_scale, max_dur
         )
 
         if skip_text_conformer or skip_mel_conformer:
