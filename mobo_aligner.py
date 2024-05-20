@@ -168,12 +168,12 @@ class MoBoAligner(nn.Module):
         B, I = text_mask.shape
         _, J = mel_mask.shape
 
-        B_ij = torch.full((B, I + 1, J + 1), -float("inf"), device=log_cond_prob.device)
+        B_ij = torch.full((B, I + 1, J + 1), LOG_EPS, device=log_cond_prob.device, dtype=torch.float)
         B_ij[:, 0, 0] = 0  # Initialize forward[0, 0] = 0
         for i in range(1, I + 1):
             B_ij[:, i, i:] = diag_logsumexp(
                 B_ij[:, i - 1, :-1].unsqueeze(1) + log_cond_prob[:, i - 1],  # (B, D, J)
-                from_ind=i - 1,
+                from_ind=i - 1, log_eps=LOG_EPS
             )  # sum at the D dimension
 
         return B_ij
