@@ -345,7 +345,7 @@ def BIJ_to_BIK(Bij):
         Bij (torch.Tensor): The input tensor of shape (B, I+1, J+1) for forward, or (B, I, J) for backward.
 
     Returns:
-        Bik (torch.Tensor): The output tensor of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
+        Bij (torch.Tensor): The output tensor of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
     """
     Bij = Bij[:, :-1, :-1]
     return Bij
