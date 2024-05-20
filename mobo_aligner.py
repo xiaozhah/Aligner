@@ -67,6 +67,10 @@ class MoBoAligner(nn.Module):
             raise ValueError(
                 f"The length of text hiddens (I={I.tolist()}) is greater than or equal to the length of mel hiddens (J={J.tolist()}), which is not allowed."
             )
+        if not torch.all(I * self.max_dur >= J):
+            raise ValueError(
+                f"The length of mel hiddens (J={J.tolist()}) is greater than or equal to the {self.max_dur} times of the length of text hiddens (I={I.tolist()}), which is not allowed."
+            )
 
     def compute_energy(self, text_hiddens, mel_hiddens, alignment_mask):
         """
@@ -121,7 +125,7 @@ class MoBoAligner(nn.Module):
         mel_mask_backward = mel_mask[:, 1:]
         return energy_backward, text_mask_backward, mel_mask_backward
 
-    def compute_log_cond_prob(self, energy, text_mask, mel_mask):
+    def compute_log_cond_prob(self, energy, text_mask, mel_mask, max_dur):
         """
         Compute the log conditional probability of the alignment in the specified direction.
 
@@ -129,18 +133,19 @@ class MoBoAligner(nn.Module):
             energy (torch.FloatTensor): The energy matrix of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
             text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
             mel_mask (torch.BoolTensor): The mel hidden mask of shape (B, J) for forward, or (B, J-1) for backward.
+            max_dur (int): The maximum duration of a text token.
 
         Returns:
-            log_cond_prob (torch.FloatTensor): The log conditional probability tensor of shape (B, I, D, K) for forward, or (B, I-1, D, K-1) for backward.
-            log_cond_prob_geq (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, K) for forward, or (B, I-1, D, K-1) for backward.
+            log_cond_prob (torch.FloatTensor): The log conditional probability tensor of shape (B, I, D, K) for forward, or (B, I-1, D+1, K-1) for backward.
+            log_cond_prob_geq (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, K) for forward, or (B, I-1, D+1, K-1) for backward.
         """
         B, I = text_mask.shape
         _, K = mel_mask.shape  # K = J, j index from 1 to J, k index from 0 to J-1
 
         energy_4D = BIJ_to_BIDK(
-            energy, self.max_dur, padding_direction="right", log_eps=LOG_EPS
+            energy, max_dur, padding_direction="right", log_eps=LOG_EPS
         )
-        valid_mask = gen_left_right_mask(B, I, self.max_dur, K, text_mask, mel_mask)
+        valid_mask = gen_left_right_mask(B, I, max_dur, K, text_mask, mel_mask)
         energy_4D.masked_fill_(~valid_mask, LOG_EPS)
 
         log_cond_prob = energy_4D - torch.logsumexp(
@@ -158,7 +163,7 @@ class MoBoAligner(nn.Module):
         Compute forward recursively in the log domain.
 
         Args:
-            log_cond_prob (torch.FloatTensor): The log conditional probability tensor for forward of shape (B, I, D, K) for forward, or (B, I-1, D, K-1) for backward.
+            log_cond_prob (torch.FloatTensor): The log conditional probability tensor for forward of shape (B, I, D, K) for forward, or (B, I-1, D+1, K-1) for backward.
             text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
             mel_mask (torch.BoolTensor): The mel hidden mask of shape (B, J) for forward, or (B, J-1) for backward.
 
@@ -168,12 +173,15 @@ class MoBoAligner(nn.Module):
         B, I = text_mask.shape
         _, J = mel_mask.shape
 
-        B_ij = torch.full((B, I + 1, J + 1), LOG_EPS, device=log_cond_prob.device, dtype=torch.float)
+        B_ij = torch.full(
+            (B, I + 1, J + 1), LOG_EPS, device=log_cond_prob.device, dtype=torch.float
+        )
         B_ij[:, 0, 0] = 0  # Initialize forward[0, 0] = 0
         for i in range(1, I + 1):
             B_ij[:, i, i:] = diag_logsumexp(
                 B_ij[:, i - 1, :-1].unsqueeze(1) + log_cond_prob[:, i - 1],  # (B, D, J)
-                from_ind=i - 1, log_eps=LOG_EPS
+                from_ind=i - 1,
+                log_eps=LOG_EPS,
             )  # sum at the D dimension
 
         return B_ij
@@ -186,7 +194,7 @@ class MoBoAligner(nn.Module):
 
         Args:
             boundary_prob (torch.FloatTensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
-            log_cond_prob_geq_or_gt (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, K) for forward, or (B, I-1, D-1, J-1) for backward.
+            log_cond_prob_geq_or_gt (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, K) for forward, or (B, I-1, D, J-1) for backward.
             text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
             alignment_mask (torch.BoolTensor): The alignment mask of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
 
@@ -279,7 +287,7 @@ class MoBoAligner(nn.Module):
         if "forward" in direction:
             # 1. Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
             log_cond_prob_forward, log_cond_prob_geq_forward = (
-                self.compute_log_cond_prob(energy, text_mask, mel_mask)
+                self.compute_log_cond_prob(energy, text_mask, mel_mask, self.max_dur)
             )
 
             # 2. Compute forward recursively in the log domain
@@ -302,7 +310,10 @@ class MoBoAligner(nn.Module):
             # 1.2 Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i < j | B_{i+1}=k) for backward
             log_cond_prob_backward, log_cond_prob_geq_backward = (
                 self.compute_log_cond_prob(
-                    energy_backward, text_mask_backward, mel_mask_backward
+                    energy_backward,
+                    text_mask_backward,
+                    mel_mask_backward,
+                    self.max_dur + 1,
                 )
             )
             log_cond_prob_gt_backward = convert_geq_to_gt(log_cond_prob_geq_backward)
@@ -314,9 +325,16 @@ class MoBoAligner(nn.Module):
             Bij_backward = BIJ_to_BIK(Bij_backward)
 
             # 3.1 Compute the backward P(B_{i-1} < j <= B_i)
-            alignment_mask_backward = text_mask_backward.unsqueeze(-1) * mel_mask_backward.unsqueeze(1)  # (B, I-1, J-1)
+            alignment_mask_backward = text_mask_backward.unsqueeze(
+                -1
+            ) * mel_mask_backward.unsqueeze(
+                1
+            )  # (B, I-1, J-1)
             log_boundary_backward = self.compute_interval_probability(
-                Bij_backward, log_cond_prob_gt_backward, text_mask_backward, alignment_mask_backward, 
+                Bij_backward,
+                log_cond_prob_gt_backward,
+                text_mask_backward,
+                alignment_mask_backward,
             )
 
             # 3.2 reverse the text and mel direction of log_boundary_backward, and pad head and tail one-hot vector on mel dimension
@@ -367,7 +385,7 @@ if __name__ == "__main__":
     )  # Batch size: 2, Mel frames: J, hidden dimension: 10
     # Initialize the text and mel masks
     text_mask = torch.tensor(
-        [[1] * I, [1] * 2 + [0] * (I - 2)], dtype=torch.bool, device=device
+        [[1] * I, [1] * 10 + [0] * (I - 10)], dtype=torch.bool, device=device
     )  # Batch size: 2, Text tokens: I
     mel_mask = torch.tensor(
         [[1] * J, [1] * 70 + [0] * (J - 70)], dtype=torch.bool, device=device

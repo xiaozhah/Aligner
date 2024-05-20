@@ -201,10 +201,10 @@ def convert_geq_to_gt(log_cond_prob_geq_backward):
     "greater than or equal to" format to "greater than" format
 
     Args:
-        log_cond_prob_geq_backward (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I-1, J-1, J-1).
+        log_cond_prob_geq_backward (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I-1, D+1, J-1).
 
     Returns:
-        log_cond_prob_geq_backward (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I-1, J-2, J-1).
+        log_cond_prob_geq_backward (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I-1, D, J-1).
     """
     return log_cond_prob_geq_backward[:, :, 1:]
 
