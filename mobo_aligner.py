@@ -11,7 +11,7 @@ from layers import LinearNorm
 from tensor_utils import (
     compute_max_length_diff,
     convert_geq_to_gt,
-    reverse_and_pad_head_tail_on_alignment,
+    pad_and_reverse_log_interval,
     shift_tensor,
     gen_left_right_mask,
     diag_logsumexp,
@@ -219,19 +219,19 @@ class MoBoAligner(nn.Module):
 
         return log_interval_prob
 
-    def combine_alignments(self, log_boundary_forward, log_boundary_backward):
+    def combine_alignments(self, log_interval_forward, log_interval_backward):
         """
         Combine the log probabilities from forward and backward boundary calculations.
 
         Args:
-            log_boundary_forward (torch.FloatTensor): The log probabilities from the forward boundary calculation of shape (B, I, J).
-            log_boundary_backward (torch.FloatTensor): The log probabilities from the backward boundary calculation of shape (B, I, J).
+            log_interval_forward (torch.FloatTensor): The log probabilities from the forward boundary calculation of shape (B, I, J).
+            log_interval_backward (torch.FloatTensor): The log probabilities from the backward boundary calculation of shape (B, I, J).
 
         Returns:
             log_interval_prob (torch.FloatTensor): The combined log probabilities of shape (B, I, J).
         """
         log_interval_prob = torch.logaddexp(
-            log_boundary_forward - LOG_2, log_boundary_backward - LOG_2
+            log_interval_forward - LOG_2, log_interval_backward - LOG_2
         )
         return log_interval_prob
 
@@ -297,7 +297,7 @@ class MoBoAligner(nn.Module):
             Bij_forward = BIJ_to_BIK(Bij_forward)
 
             # 3. Compute the forward P(B_{i-1} < j <= B_i)
-            log_boundary_forward = self.compute_interval_probability(
+            log_interval_forward = self.compute_interval_probability(
                 Bij_forward, log_cond_prob_geq_forward, text_mask, alignment_mask
             )
 
@@ -330,26 +330,26 @@ class MoBoAligner(nn.Module):
             ) * mel_mask_backward.unsqueeze(
                 1
             )  # (B, I-1, J-1)
-            log_boundary_backward = self.compute_interval_probability(
+            log_interval_backward = self.compute_interval_probability(
                 Bij_backward,
                 log_cond_prob_gt_backward,
                 text_mask_backward,
                 alignment_mask_backward,
             )
 
-            # 3.2 reverse the text and mel direction of log_boundary_backward, and pad head and tail one-hot vector on mel dimension
-            log_boundary_backward = reverse_and_pad_head_tail_on_alignment(
-                log_boundary_backward, text_mask_backward, mel_mask_backward
+            # 3.2 reverse the text and mel direction of log_interval_backward, and pad head and tail one-hot vector on mel dimension
+            log_interval_backward = pad_and_reverse_log_interval(
+                log_interval_backward, text_mask_backward, mel_mask_backward
             )
 
         # Combine the forward and backward soft alignment
         if direction == ["forward"]:
-            log_soft_alignment = log_boundary_forward
+            log_soft_alignment = log_interval_forward
         elif direction == ["backward"]:
-            log_soft_alignment = log_boundary_backward
+            log_soft_alignment = log_interval_backward
         else:
             log_soft_alignment = self.combine_alignments(
-                log_boundary_forward, log_boundary_backward
+                log_interval_forward, log_interval_backward
             )
 
         soft_alignment = torch.exp(log_soft_alignment) * alignment_mask
