@@ -317,7 +317,7 @@ def diag_logsumexp(x, from_ind, log_eps=-float("inf")):
     B, I, J = x.size()
     assert from_ind < J, "from_ind should be less than J"
     x = x.permute(1, 0, 2)  # (I, B, J)
-    x = roll_tensor(x, shifts=torch.arange(I), dim=2)  # (I, B, J)
+    x = roll_tensor(x, shifts=torch.arange(I, device=x.device), dim=2)  # (I, B, J)
 
     mask = (
         torch.tril(torch.ones((I, J), device=x.device), diagonal=-1)
