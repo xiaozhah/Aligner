@@ -1,6 +1,13 @@
+import math
+
 import torch
 import torch.nn.functional as F
 import numpy as np
+
+# Define a very small logarithmic value to avoid division by zero or negative infinity in logarithmic calculations
+LOG_EPS = -1000
+# Calculate the natural logarithm of 2 and store it for repeated use to improve efficiency
+LOG_2 = math.log(2.0)
 
 
 def roll_tensor(tensor, shifts, dim):
@@ -68,7 +75,7 @@ def one_hot(I, device):
 
 
 def pad_and_reverse_log_interval(
-    log_interval_backward, text_mask_backward, mel_mask_backward, log_eps=-float("inf")
+    log_interval_backward, text_mask_backward, mel_mask_backward
 ):
     """
     Reverse the alignment and pad the boundary matrix for backward.
@@ -77,14 +84,13 @@ def pad_and_reverse_log_interval(
         log_interval_backward (torch.Tensor): The log boundary matrix of shape (B, I-1, J-1).
         text_mask_backward (torch.Tensor): The text mask of shape (B, I-1).
         mel_mask_backward (torch.Tensor): The mel spectrogram mask of shape (B, J-1).
-        log_eps (float): The log epsilon value.
 
     Returns:
         log_interval_backward (torch.Tensor): The reversed and padded alignment matrix of shape (B, I, J).
     """
     B, I_minus_1, _ = log_interval_backward.shape
     log_interval_backward = F.pad(
-        log_interval_backward, (0, 0, 1, 0, 0, 0), "constant", log_eps
+        log_interval_backward, (0, 0, 1, 0, 0, 0), "constant", LOG_EPS
     )  # (B, I, J-1)
 
     onehot = one_hot(I_minus_1 + 1, device=log_interval_backward.device)[
@@ -302,14 +308,13 @@ def cal_max_hidden_memory_size(selected_boundary_indices, text_mask):
     )
 
 
-def diag_logsumexp(x, from_ind, log_eps=-float("inf")):
+def diag_logsumexp(x, from_ind):
     """
     Calculate the logsumexp of the diagonals of a 3D tensor, from the diagonal with index from_ind to the main diagonal.
 
     Args:
         x (torch.FloatTensor): The input tensor of shape (B, I, J).
         from_ind (int): The index of the diagonal to start from.
-        log_eps (float): The log value to use for masking invalid elements.
 
     Returns:
         x (torch.FloatTensor): The logsumexp of the diagonals of the input tensor of shape (B, J).
@@ -325,7 +330,7 @@ def diag_logsumexp(x, from_ind, log_eps=-float("inf")):
         .repeat(1, B, 1)
         .bool()
     )
-    x.masked_fill_(mask, log_eps)
+    x.masked_fill_(mask, LOG_EPS)
     x = x.permute(1, 0, 2)  # (B, I, J)
     x = x[:, :, from_ind:].logsumexp(1)
     return x
@@ -344,7 +349,7 @@ def BIJ_to_BIK(Bij):
     return Bij
 
 
-def BIJ_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
+def BIJ_to_BIDK(x, D, padding_direction="left"):
     """
     Transform BIJ to BIDK format.
 
@@ -352,17 +357,16 @@ def BIJ_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
         x (torch.FloatTensor): The input tensor of shape (B, I, J).
         D (int): The max duration of text tokens.
         padding_direction (str): The direction of padding.
-        log_eps (float): The log value to use for masking invalid elements.
     Return:
         y (torch.FloatTensor): The output tensor of shape (B, I, D, K).
     """
     if padding_direction == "left":
         x = F.pad(
-            x, (D - 1, 0, 0, 0, 0, 0), mode="constant", value=log_eps
+            x, (D - 1, 0, 0, 0, 0, 0), mode="constant", value=LOG_EPS
         )  # (B, I, J+D-1), padding at the beginning of j index
     elif padding_direction == "right":
         x = F.pad(
-            x, (0, D - 1, 0, 0, 0, 0), mode="constant", value=log_eps
+            x, (0, D - 1, 0, 0, 0, 0), mode="constant", value=LOG_EPS
         )  # (B, I, J+D-1), padding at the end of j index
     else:
         raise ValueError("Invalid padding direction")
@@ -371,13 +375,12 @@ def BIJ_to_BIDK(x, D, padding_direction="left", log_eps=-float("inf")):
     return y
 
 
-def BIDK_transform(x, log_eps=-float("inf")):
+def BIDK_transform(x):
     """
     Transform BIDK format with k fixed and j from k+1 to K+D to BIDK format with j fixed and k from j-D to j-1.
 
     Args:
         x (torch.FloatTensor): The input tensor of shape (B, I, D, K).
-        log_eps (float): The log value to use for masking invalid elements.
     Returns:
         y (torch.FloatTensor): The transformed tensor of shape (B, I, D, K).
     """
@@ -394,14 +397,12 @@ def BIDK_transform(x, log_eps=-float("inf")):
         .unsqueeze(0)
         .bool()
     )
-    x.masked_fill_(mask, log_eps)
+    x.masked_fill_(mask, LOG_EPS)
     # view x[0, :, :, 0], x[0, :, :, 1], x[0, :, :, 2] ...
     return x
 
 
-def force_assign_last_text_hidden(
-    log_interval_prob, prob, text_mask, alignment_mask, log_eps=-float("inf")
-):
+def force_assign_last_text_hidden(log_interval_prob, prob, text_mask, alignment_mask):
     """
     Use the cumulative sum of boundary probabilities from the last text in prob to directly assign interval probabilities of the last text in log_interval_prob.
     Not a inplace operation version.
@@ -411,7 +412,6 @@ def force_assign_last_text_hidden(
         prob (torch.FloatTensor): The probability tensor of shape (B, I, K).
         text_mask (torch.BoolTensor): The text mask tensor of shape (B, I).
         alignment_mask (torch.Tensor): The alignment mask tensor of shape (B, I).
-        log_eps (float): The log value to use for masking invalid elements.
     Returns:
         log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J).
     """
@@ -426,7 +426,7 @@ def force_assign_last_text_hidden(
     last = prob[torch.arange(B), i_lens - 1].logcumsumexp(1)  # (B, K)
     log_interval_prob[torch.arange(B), i_lens - 1] += last
 
-    log_interval_prob = log_interval_prob.masked_fill(~alignment_mask, log_eps)
+    log_interval_prob = log_interval_prob.masked_fill(~alignment_mask, LOG_EPS)
     return log_interval_prob
 
 

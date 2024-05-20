@@ -19,12 +19,9 @@ from tensor_utils import (
     BIJ_to_BIDK,
     BIDK_transform,
     force_assign_last_text_hidden,
+    LOG_EPS,
+    LOG_2,
 )
-
-# Define a very small logarithmic value to avoid division by zero or negative infinity in logarithmic calculations
-LOG_EPS = -1000
-# Calculate the natural logarithm of 2 and store it for repeated use to improve efficiency
-LOG_2 = math.log(2.0)
 
 
 class MoBoAligner(nn.Module):
@@ -142,9 +139,7 @@ class MoBoAligner(nn.Module):
         B, I = text_mask.shape
         _, K = mel_mask.shape  # K = J, j index from 1 to J, k index from 0 to J-1
 
-        energy_4D = BIJ_to_BIDK(
-            energy, max_dur, padding_direction="right", log_eps=LOG_EPS
-        )
+        energy_4D = BIJ_to_BIDK(energy, max_dur, padding_direction="right")
         valid_mask = gen_left_right_mask(B, I, max_dur, K, text_mask, mel_mask)
         energy_4D.masked_fill_(~valid_mask, LOG_EPS)
 
@@ -181,7 +176,6 @@ class MoBoAligner(nn.Module):
             B_ij[:, i, i:] = diag_logsumexp(
                 B_ij[:, i - 1, :-1].unsqueeze(1) + log_cond_prob[:, i - 1],  # (B, D, J)
                 from_ind=i - 1,
-                log_eps=LOG_EPS,
             )  # sum at the D dimension
 
         return B_ij
@@ -203,10 +197,10 @@ class MoBoAligner(nn.Module):
         """
         D = log_cond_prob_geq_or_gt.shape[2]
         prob_trans = BIJ_to_BIDK(
-            boundary_prob, D=D, padding_direction="left", log_eps=LOG_EPS
+            boundary_prob, D=D, padding_direction="left"
         )  # -> (B, I, D, K) for forward , or (B, I-1, D-1, K-1) for backward
         log_cond_prob_geq_or_gt_trans = BIDK_transform(
-            log_cond_prob_geq_or_gt, LOG_EPS
+            log_cond_prob_geq_or_gt
         )  # -> (B, I, D, K) for forward, or (B, I-1, D-1, K-1) for backward
 
         log_interval_prob = torch.logsumexp(
@@ -214,7 +208,7 @@ class MoBoAligner(nn.Module):
         )  # (B, I-1, J) for forward, or (B, I-2, J-1) for backward
 
         log_interval_prob = force_assign_last_text_hidden(
-            log_interval_prob, boundary_prob, text_mask, alignment_mask, LOG_EPS
+            log_interval_prob, boundary_prob, text_mask, alignment_mask
         )  # (B, I, J) for forward, or (B, I-1, J-1) for backward
 
         return log_interval_prob
