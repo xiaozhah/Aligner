@@ -71,7 +71,7 @@ def reverse_and_pad_head_tail_on_alignment(
     log_boundary_backward, text_mask_backward, mel_mask_backward, log_eps=-float("inf")
 ):
     """
-    Reverse the alignment and pad the boundary matrix.
+    Reverse the alignment and pad the boundary matrix for backward.
 
     Args:
         log_boundary_backward (torch.Tensor): The log boundary matrix of shape (B, I-1, J-1).

@@ -314,7 +314,7 @@ class MoBoAligner(nn.Module):
             Bij_backward = BIJ_to_BIK(Bij_backward)
 
             # 3.1 Compute the backward P(B_{i-1} < j <= B_i)
-            alignment_mask_backward = text_mask_backward.unsqueeze(-1) * mel_mask_backward.unsqueeze(1)  # (B, I, J)
+            alignment_mask_backward = text_mask_backward.unsqueeze(-1) * mel_mask_backward.unsqueeze(1)  # (B, I-1, J-1)
             log_boundary_backward = self.compute_interval_probability(
                 Bij_backward, log_cond_prob_gt_backward, text_mask_backward, alignment_mask_backward, 
             )
