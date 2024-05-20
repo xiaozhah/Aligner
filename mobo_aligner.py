@@ -191,7 +191,7 @@ class MoBoAligner(nn.Module):
             alignment_mask (torch.BoolTensor): The alignment mask of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
 
         Returns:
-            log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
+            log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
         """
         D = log_cond_prob_geq_or_gt.shape[2]
         prob_trans = BIJ_to_BIDK(
@@ -322,9 +322,6 @@ class MoBoAligner(nn.Module):
             # 3.2 reverse the text and mel direction of log_boundary_backward, and pad head and tail one-hot vector on mel dimension
             log_boundary_backward = reverse_and_pad_head_tail_on_alignment(
                 log_boundary_backward, text_mask_backward, mel_mask_backward
-            )
-            log_boundary_backward = log_boundary_backward.masked_fill(
-                ~alignment_mask, LOG_EPS
             )
 
         # Combine the forward and backward soft alignment

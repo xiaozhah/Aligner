@@ -58,7 +58,7 @@ def shift_tensor(x, shifts_text_dim, shifts_mel_dim):
     return x
 
 
-def one_hot(B, I, device):
+def one_hot(I, device):
     """
     Generate a one-hot vector of shape (I,) on the device.
     """
@@ -68,29 +68,32 @@ def one_hot(B, I, device):
 
 
 def reverse_and_pad_head_tail_on_alignment(
-    log_boundary_backward, text_mask_backward, mel_mask_backward
+    log_boundary_backward, text_mask_backward, mel_mask_backward, log_eps=-float("inf")
 ):
     """
     Reverse the alignment and pad the boundary matrix.
 
     Args:
-        log_boundary_backward (torch.Tensor): The log boundary matrix of shape (B, I, J-2).
+        log_boundary_backward (torch.Tensor): The log boundary matrix of shape (B, I-1, J-1).
         text_mask_backward (torch.Tensor): The text mask of shape (B, I-1).
         mel_mask_backward (torch.Tensor): The mel spectrogram mask of shape (B, J-1).
+        log_eps (float): The log epsilon value.
 
     Returns:
         log_boundary_backward (torch.Tensor): The reversed and padded alignment matrix of shape (B, I, J).
     """
-    B, I, _ = log_boundary_backward.shape
+    B, I_minus_1, _ = log_boundary_backward.shape
+    log_boundary_backward = F.pad(
+        log_boundary_backward, (0, 0, 1, 0, 0, 0), "constant", log_eps
+    )  # (B, I, J-1)
 
-    onehot = one_hot(B, I, device=log_boundary_backward.device)[None, :, None].repeat(
-        B, 1, 1
-    )
-    # (B, I, J-2) -> (B, I, J-1)
-    log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim=2)
+    onehot = one_hot(I_minus_1 + 1, device=log_boundary_backward.device)[
+        None, :, None
+    ].repeat(B, 1, 1)
+    log_boundary_backward = torch.cat(
+        (onehot, log_boundary_backward), dim=2
+    )  # (B, I, J)
 
-    # mel index: (J-1)-(j-1)+1 = J-j+1 -> 1, means shift iter num = J-j
-    # text index: I-i+1 -> 1, means shift iter num = I-i
     shifts_text_dim = compute_max_length_diff(text_mask_backward)
     shifts_mel_dim = compute_max_length_diff(mel_mask_backward)
     log_boundary_backward = shift_tensor(
@@ -98,7 +101,6 @@ def reverse_and_pad_head_tail_on_alignment(
         shifts_text_dim=-shifts_text_dim,
         shifts_mel_dim=-shifts_mel_dim,
     )
-    log_boundary_backward = torch.cat((onehot, log_boundary_backward), dim=2)
     return log_boundary_backward
 
 
