@@ -53,9 +53,7 @@ if __name__ == "__main__":
     attention_head = 8
     dropout = 0.1
 
-    aligner = RoughAligner(
-        attention_dim, attention_head, dropout
-    )
+    aligner = RoughAligner(attention_dim, attention_head, dropout)
 
     batch_size = 2
     text_len = 5
