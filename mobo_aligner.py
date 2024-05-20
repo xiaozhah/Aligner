@@ -11,7 +11,6 @@ from layers import LinearNorm
 from tensor_utils import (
     compute_max_length_diff,
     convert_geq_to_gt,
-    gt_pad_on_text_dim,
     reverse_and_pad_head_tail_on_alignment,
     shift_tensor,
     gen_left_right_mask,
@@ -186,10 +185,10 @@ class MoBoAligner(nn.Module):
         Compute the log interval probability, which is the log of the probability P(B_{i-1} < j <= B_i), the sum of P(B_{i-1} < j <= B_i) over i is 1.
 
         Args:
-            boundary_prob (torch.FloatTensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I, J-1) for backward.
-            log_cond_prob_geq_or_gt (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, K) for forward, or (B, I, J-2, J-1) for backward.
+            boundary_prob (torch.FloatTensor): The forward or backward tensor of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
+            log_cond_prob_geq_or_gt (torch.FloatTensor): The log cumulative conditional probability tensor of shape (B, I, D, K) for forward, or (B, I-1, D-1, J-1) for backward.
             text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward, or (B, I-1) for backward.
-            alignment_mask (torch.BoolTensor): The alignment mask of shape (B, I, J) for forward, or (B, I, J-1) for backward.
+            alignment_mask (torch.BoolTensor): The alignment mask of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
 
         Returns:
             log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J) for forward, or (B, I, J-2) for backward.
@@ -197,18 +196,18 @@ class MoBoAligner(nn.Module):
         D = log_cond_prob_geq_or_gt.shape[2]
         prob_trans = BIJ_to_BIDK(
             boundary_prob, D=D, padding_direction="left", log_eps=LOG_EPS
-        )  # -> (B, I, D, K)
+        )  # -> (B, I, D, K) for forward , or (B, I-1, D-1, K-1) for backward
         log_cond_prob_geq_or_gt_trans = BIDK_transform(
             log_cond_prob_geq_or_gt, LOG_EPS
-        )  # -> (B, I, D, K)
+        )  # -> (B, I, D, K) for forward, or (B, I-1, D-1, K-1) for backward
 
         log_interval_prob = torch.logsumexp(
             prob_trans[:, :-1] + log_cond_prob_geq_or_gt_trans[:, :-1], dim=2
-        )  # (B, I-1, J)
+        )  # (B, I-1, J) for forward, or (B, I-2, J-1) for backward
 
         log_interval_prob = force_assign_last_text_hidden(
             log_interval_prob, boundary_prob, text_mask, alignment_mask, LOG_EPS
-        )  # (B, I, J)
+        )  # (B, I, J) for forward, or (B, I-1, J-1) for backward
 
         return log_interval_prob
 
@@ -307,19 +306,17 @@ class MoBoAligner(nn.Module):
                 )
             )
             log_cond_prob_gt_backward = convert_geq_to_gt(log_cond_prob_geq_backward)
-            log_cond_prob_gt_backward = gt_pad_on_text_dim(
-                log_cond_prob_gt_backward, text_mask, LOG_EPS
-            )
 
             # 2. Compute backward recursively in the log domain
             Bij_backward = self.compute_forward_pass(
                 log_cond_prob_backward, text_mask_backward, mel_mask_backward
             )
-            Bij_backward = Bij_backward[:, :, :-1]  # (B, I, J) -> (B, I, J-1)
+            Bij_backward = BIJ_to_BIK(Bij_backward)
 
             # 3.1 Compute the backward P(B_{i-1} < j <= B_i)
+            alignment_mask_backward = text_mask_backward.unsqueeze(-1) * mel_mask_backward.unsqueeze(1)  # (B, I, J)
             log_boundary_backward = self.compute_interval_probability(
-                Bij_backward, log_cond_prob_gt_backward
+                Bij_backward, log_cond_prob_gt_backward, text_mask_backward, alignment_mask_backward, 
             )
 
             # 3.2 reverse the text and mel direction of log_boundary_backward, and pad head and tail one-hot vector on mel dimension

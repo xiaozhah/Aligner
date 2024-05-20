@@ -207,31 +207,6 @@ def convert_geq_to_gt(log_cond_prob_geq_backward):
     return log_cond_prob_geq_backward[:, :, 1:]
 
 
-def gt_pad_on_text_dim(log_cond_prob_gt_backward, text_mask, log_eps):
-    """
-    pad the last text hidden which using prior knowledge for "greater than" format
-
-    Args:
-        log_cond_prob_gt_backward (torch.Tensor): The log cumulative conditional probability tensor of shape (B, I-1, J-2, J-1).
-        text_mask (torch.Tensor): The text mask of shape (B, I).
-
-    Returns:
-        log_cond_prob_gt_backward (torch.Tensor): The padded log cumulative conditional probability tensor of shape (B, I, J-2, J-1).
-    """
-
-    # (B, I-1, J-2, J-1) -> (B, I, J-2, J-1)
-    log_cond_prob_gt_backward = F.pad(
-        log_cond_prob_gt_backward, (0, 0, 0, 0, 0, 1), "constant", log_eps
-    )
-
-    # (B, I, J-2, J-1) -> (B, I, J-2, J-1)
-    log_cond_prob_gt_backward = force_prob_geq_to_one(
-        log_cond_prob_gt_backward, text_mask
-    )
-
-    return log_cond_prob_gt_backward
-
-
 def get_valid_max(tensor, mask, inf_value=1e6):
     """
     Calculate the minimum and maximum values of the valid elements in the given 2D tensor.
@@ -359,9 +334,9 @@ def BIJ_to_BIK(Bij):
     from j index (j = 1...J) to k index (k = 0...J-1) and drop the last text index.
 
     Args:
-        Bij (torch.Tensor): The input tensor of shape (B, I+1, J+1).
+        Bij (torch.Tensor): The input tensor of shape (B, I+1, J+1) for forward, or (B, I, J) for backward.
     Returns:
-        Bik (torch.Tensor): The output tensor of shape (B, I, J).
+        Bik (torch.Tensor): The output tensor of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
     """
     Bij = Bij[:, :-1, :-1]
     return Bij
