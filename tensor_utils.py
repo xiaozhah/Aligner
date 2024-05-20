@@ -69,7 +69,7 @@ def one_hot(I, device):
     """
     Generate a one-hot vector of shape (I,) on the device.
     """
-    x = torch.full((I,), -float("inf"), device=device)
+    x = torch.full((I,), LOG_EPS, device=device)
     x[0] = 0
     return x
 
