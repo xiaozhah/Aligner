@@ -65,9 +65,9 @@ def shift_tensor(x, shifts_text_dim, shifts_mel_dim):
     return x
 
 
-def one_hot(I, device):
+def log_one_hot(I, device):
     """
-    Generate a one-hot vector of shape (I,) on the device.
+    Generate a log one-hot vector of shape (I,) on the device.
     """
     x = torch.full((I,), LOG_EPS, device=device)
     x[0] = 0
@@ -93,7 +93,7 @@ def pad_and_reverse_log_interval(
         log_interval_backward, (0, 0, 1, 0, 0, 0), "constant", LOG_EPS
     )  # (B, I, J-1)
 
-    onehot = one_hot(I_minus_1 + 1, device=log_interval_backward.device)[
+    onehot = log_one_hot(I_minus_1 + 1, device=log_interval_backward.device)[
         None, :, None
     ].repeat(B, 1, 1)
     log_interval_backward = torch.cat(
