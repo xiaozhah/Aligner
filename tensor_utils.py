@@ -415,7 +415,7 @@ def force_assign_last_text_hidden(
     """
     B, _, K = log_interval_prob.shape
 
-    log_interval_prob.masked_fill_(~alignment_mask[:, 1:], 0)
+    log_interval_prob = log_interval_prob.masked_fill(~alignment_mask[:, 1:], 0)
     log_interval_prob = torch.cat(
         (log_interval_prob, torch.zeros(B, 1, K, device=prob.device)), dim=1
     )  # (B, I-1, J) -> (B, I, J)
@@ -424,7 +424,7 @@ def force_assign_last_text_hidden(
     last = prob[torch.arange(B), i_lens - 1].logcumsumexp(1)  # (B, K)
     log_interval_prob[torch.arange(B), i_lens - 1] += last
 
-    log_interval_prob.masked_fill_(~alignment_mask, log_eps)
+    log_interval_prob = log_interval_prob.masked_fill(~alignment_mask, log_eps)
     return log_interval_prob
 
 
