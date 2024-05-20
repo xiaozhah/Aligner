@@ -74,7 +74,7 @@ def log_one_hot(I, device):
     return x
 
 
-def pad_and_reverse_log_interval(
+def pad_and_reverse(
     log_interval_backward, text_mask_backward, mel_mask_backward
 ):
     """

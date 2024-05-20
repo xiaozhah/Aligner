@@ -49,11 +49,11 @@ class MoBoAligner(nn.Module):
             )
         if not torch.all(I < J):
             raise ValueError(
-                f"The length of text hiddens (I={I.tolist()}) is greater than or equal to the length of mel hiddens (J={J.tolist()}), which is not allowed."
+                f"The length of text hiddens is greater than or equal to the length of mel hiddens, which is not allowed."
             )
         if not torch.all(I * self.max_dur >= J):
             raise ValueError(
-                f"The length of mel hiddens (J={J.tolist()}) is greater than or equal to the {self.max_dur} times of the length of text hiddens (I={I.tolist()}), which is not allowed."
+                f"The length of mel hiddens is greater than or equal to the {self.max_dur} times of the length of text hiddens, which is not allowed. Try to increase the max_dur or use RoMoAligner."
             )
 
     def compute_energy(self, text_hiddens, mel_hiddens, alignment_mask):
@@ -140,7 +140,7 @@ class MoBoAligner(nn.Module):
 
         return log_cond_prob, log_cond_prob_geq
 
-    def compute_forward_pass(self, log_cond_prob, text_mask, mel_mask):
+    def compute_boundary_prob(self, log_cond_prob, text_mask, mel_mask):
         """
         Compute forward recursively in the log domain.
 
@@ -167,7 +167,7 @@ class MoBoAligner(nn.Module):
 
         return B_ij
 
-    def compute_interval_probability(
+    def compute_interval_prob(
         self, boundary_prob, log_cond_prob_geq_or_gt, text_mask, alignment_mask
     ):
         """
@@ -273,14 +273,14 @@ class MoBoAligner(nn.Module):
             )
 
             # 2. Compute forward recursively in the log domain
-            Bij_forward = self.compute_forward_pass(
+            log_boundary_prob_forward = self.compute_boundary_prob(
                 log_cond_prob_forward, text_mask, mel_mask
             )
-            Bij_forward = BIJ_to_BIK(Bij_forward)
+            log_boundary_prob_forward = BIJ_to_BIK(log_boundary_prob_forward)
 
             # 3. Compute the forward P(B_{i-1} < j <= B_i)
-            log_interval_forward = self.compute_interval_probability(
-                Bij_forward, log_cond_prob_geq_forward, text_mask, alignment_mask
+            log_interval_forward = self.compute_interval_prob(
+                log_boundary_prob_forward, log_cond_prob_geq_forward, text_mask, alignment_mask
             )
 
         if "backward" in direction:
@@ -301,10 +301,10 @@ class MoBoAligner(nn.Module):
             log_cond_prob_gt_backward = convert_geq_to_gt(log_cond_prob_geq_backward)
 
             # 2. Compute backward recursively in the log domain
-            Bij_backward = self.compute_forward_pass(
+            log_boundary_prob_backward = self.compute_boundary_prob(
                 log_cond_prob_backward, text_mask_backward, mel_mask_backward
             )
-            Bij_backward = BIJ_to_BIK(Bij_backward)
+            log_boundary_prob_backward = BIJ_to_BIK(log_boundary_prob_backward)
 
             # 3.1 Compute the backward P(B_{i-1} < j <= B_i)
             alignment_mask_backward = text_mask_backward.unsqueeze(
@@ -312,15 +312,15 @@ class MoBoAligner(nn.Module):
             ) * mel_mask_backward.unsqueeze(
                 1
             )  # (B, I-1, J-1)
-            log_interval_backward = self.compute_interval_probability(
-                Bij_backward,
+            log_interval_backward = self.compute_interval_prob(
+                log_boundary_prob_backward,
                 log_cond_prob_gt_backward,
                 text_mask_backward,
                 alignment_mask_backward,
             )
 
             # 3.2 reverse the text and mel direction of log_interval_backward, and pad head and tail one-hot vector on mel dimension
-            log_interval_backward = pad_and_reverse_log_interval(
+            log_interval_backward = pad_and_reverse(
                 log_interval_backward, text_mask_backward, mel_mask_backward
             )
 

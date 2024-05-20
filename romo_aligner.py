@@ -45,7 +45,7 @@ class RoMoAligner(nn.Module):
 
         if num_boundary_candidates > max_dur:  # for MoBo Aligner
             raise ValueError(
-                "The number of boundary candidates must be less than or equal to max_dur."
+                "The number of boundary candidates must be less than or equal to max_dur. Trt to decrease the number of boundary candidates or increase the max_dur."
             )
 
         self.text_fc = LinearNorm(text_embeddings, attention_dim)
