@@ -382,6 +382,7 @@ def BIDK_transform(x, log_eps=-float("inf")):
         y (torch.FloatTensor): The transformed tensor of shape (B, I, D, K).
     """
     _, _, D, K = x.size()
+    # view x[0, :, :, 0], x[0, :, :, 1], x[0, :, :, 2] ...
     x = x.permute(2, 3, 0, 1)  # (D, K, B, I)
     x = roll_tensor(x, shifts=torch.arange(D, device=x.device), dim=1)  # (D, K, B, I)
     x = torch.rot90(x, dims=(1, 0))  # (K, D, B, I)
@@ -394,6 +395,7 @@ def BIDK_transform(x, log_eps=-float("inf")):
         .bool()
     )
     x.masked_fill_(mask, log_eps)
+    # view x[0, :, :, 0], x[0, :, :, 1], x[0, :, :, 2] ...
     return x
 
 
