@@ -109,7 +109,7 @@ class MoBoAligner(nn.Module):
         mel_mask_backward = mel_mask[:, 1:]
         return energy_backward, text_mask_backward, mel_mask_backward
 
-    def compute_log_cond_prob(self, energy, text_mask, mel_mask, max_dur):
+    def compute_cond_prob(self, energy, text_mask, mel_mask, max_dur):
         """
         Compute the log conditional probability of the alignment in the specified direction.
 
@@ -150,22 +150,22 @@ class MoBoAligner(nn.Module):
             mel_mask (torch.BoolTensor): The mel hidden mask of shape (B, J) for forward, or (B, J-1) for backward.
 
         Returns:
-            B_ij (torch.FloatTensor): The forward tensor of shape (B, I+1, J+1) for forward, or (B, I, J) for backward.
+            log_boundary_prob (torch.FloatTensor): The forward tensor of shape (B, I+1, J+1) for forward, or (B, I, J) for backward.
         """
         B, I = text_mask.shape
         _, J = mel_mask.shape
 
-        B_ij = torch.full(
+        log_boundary_prob = torch.full(
             (B, I + 1, J + 1), LOG_EPS, device=log_cond_prob.device, dtype=torch.float
         )
-        B_ij[:, 0, 0] = 0  # Initialize forward[0, 0] = 0
+        log_boundary_prob[:, 0, 0] = 0  # Initialize forward[0, 0] = 0
         for i in range(1, I + 1):
-            B_ij[:, i, i:] = diag_logsumexp(
-                B_ij[:, i - 1, :-1].unsqueeze(1) + log_cond_prob[:, i - 1],  # (B, D, J)
+            log_boundary_prob[:, i, i:] = diag_logsumexp(
+                log_boundary_prob[:, i - 1, :-1].unsqueeze(1) + log_cond_prob[:, i - 1],  # (B, D, J)
                 from_ind=i - 1,
             )  # sum at the D dimension
 
-        return B_ij
+        return log_boundary_prob
 
     def compute_interval_prob(
         self, boundary_prob, log_cond_prob_geq_or_gt, text_mask, alignment_mask
@@ -269,7 +269,7 @@ class MoBoAligner(nn.Module):
         if "forward" in direction:
             # 1. Compute the log conditional probability P(B_i=j | B_{i-1}=k), P(B_i >= j | B_{i-1}=k) for forward
             log_cond_prob_forward, log_cond_prob_geq_forward = (
-                self.compute_log_cond_prob(energy, text_mask, mel_mask, self.max_dur)
+                self.compute_cond_prob(energy, text_mask, mel_mask, self.max_dur)
             )
 
             # 2. Compute forward recursively in the log domain
@@ -294,7 +294,7 @@ class MoBoAligner(nn.Module):
 
             # 1.2 Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i < j | B_{i+1}=k) for backward
             log_cond_prob_backward, log_cond_prob_geq_backward = (
-                self.compute_log_cond_prob(
+                self.compute_cond_prob(
                     energy_backward,
                     text_mask_backward,
                     mel_mask_backward,
