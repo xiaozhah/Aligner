@@ -406,7 +406,7 @@ def BIDK_transform(x):
     return x
 
 
-def force_assign_last_text_hidden(log_interval_prob, prob, text_mask, alignment_mask):
+def force_assign_last_text_prob(log_interval_prob, prob, text_mask, alignment_mask):
     """
     Use the cumulative sum of boundary probabilities from the last text in prob to directly assign interval probabilities of the last text in log_interval_prob.
     Not a inplace operation version.

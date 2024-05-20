@@ -18,7 +18,7 @@ from tensor_utils import (
     BIJ_to_BIK,
     BIJ_to_BIDK,
     BIDK_transform,
-    force_assign_last_text_hidden,
+    force_assign_last_text_prob,
     LOG_EPS,
     LOG_2,
 )
@@ -207,7 +207,7 @@ class MoBoAligner(nn.Module):
             prob_trans[:, :-1] + log_cond_prob_geq_or_gt_trans[:, :-1], dim=2
         )  # (B, I-1, J) for forward, or (B, I-2, J-1) for backward
 
-        log_interval_prob = force_assign_last_text_hidden(
+        log_interval_prob = force_assign_last_text_prob(
             log_interval_prob, boundary_prob, text_mask, alignment_mask
         )  # (B, I, J) for forward, or (B, I-1, J-1) for backward
 
