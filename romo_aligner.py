@@ -26,6 +26,7 @@ class RoMoAligner(nn.Module):
         conformer_dec_kernel_size,
         skip_text_conformer=False,
         skip_mel_conformer=False,
+        skip_rough_aligner=False,
         dropout=0.1,
         noise_scale=2.0,  # the scale of the noise used in the MoBo aligner
         num_boundary_candidates=3,  # number of boundary candidates of each text token
@@ -89,7 +90,8 @@ class RoMoAligner(nn.Module):
                 cnn_module_kernel=conformer_dec_kernel_size,
             )
 
-        self.rough_aligner = RoughAligner(attention_dim, attention_head, dropout)
+        if not skip_rough_aligner:
+            self.rough_aligner = RoughAligner(attention_dim, attention_head, dropout)
         self.mobo_aligner = MoBoAligner(
             attention_dim, attention_dim, attention_dim, noise_scale
         )
@@ -100,6 +102,7 @@ class RoMoAligner(nn.Module):
             )
         self.skip_text_conformer = skip_text_conformer
         self.skip_mel_conformer = skip_mel_conformer
+        self.skip_rough_aligner = skip_rough_aligner
         self.num_boundary_candidates_one_side = (
             num_boundary_candidates - 1
         ) // 2  # the number of boundary candidates on each side of the current boundary
@@ -281,19 +284,24 @@ class RoMoAligner(nn.Module):
             text_embeddings, mel_embeddings, text_mask, mel_mask
         )
 
-        dur_by_rough, int_dur_by_rough = self.rough_aligner(
-            text_hiddens, mel_hiddens, text_mask, mel_mask
-        )
+        if not self.skip_rough_aligner:
+            dur_by_rough, int_dur_by_rough = self.rough_aligner(
+                text_hiddens, mel_hiddens, text_mask, mel_mask
+            )
 
-        # Select the corresponding mel_hiddens based on the possible boundary indices
-        (
-            selected_boundary_indices,
-            selected_boundary_indices_mask,
-            selected_mel_hiddens,
-        ) = self.select_mel_hiddens(mel_hiddens, int_dur_by_rough, text_mask)
+            # Select the corresponding mel_hiddens based on the possible boundary indices
+            (
+                selected_boundary_indices,
+                selected_boundary_indices_mask,
+                selected_mel_hiddens,
+            ) = self.select_mel_hiddens(mel_hiddens, int_dur_by_rough, text_mask)
 
-        if self.verbose:
-            cal_max_hidden_memory_size(selected_boundary_indices, text_mask)
+            if self.verbose:
+                cal_max_hidden_memory_size(selected_boundary_indices, text_mask)
+        else:
+            selected_mel_hiddens = mel_hiddens
+            selected_boundary_indices_mask = mel_mask
+            dur_by_rough = None
 
         # Run a fine-grained MoBoAligner
         mat_p_d, hard_mat_p_d = self.mobo_aligner(
@@ -305,13 +313,18 @@ class RoMoAligner(nn.Module):
             return_hard_alignment=True,
         )
 
-        # mat_p_d * mat_d_f (computed by selected_boundary_indices) = mat_p_f
-        mat_p_f, hard_mat_p_f, dur_by_mobo = self.get_mat_p_f(
-            mat_p_d,
-            hard_mat_p_d,
-            selected_boundary_indices,
-            selected_boundary_indices_mask,
-        )
+        if not self.skip_rough_aligner:
+            # mat_p_d * mat_d_f (computed by selected_boundary_indices) = mat_p_f
+            mat_p_f, hard_mat_p_f, dur_by_mobo = self.get_mat_p_f(
+                mat_p_d,
+                hard_mat_p_d,
+                selected_boundary_indices,
+                selected_boundary_indices_mask,
+            )
+        else:
+            mat_p_f = mat_p_d
+            hard_mat_p_f = hard_mat_p_d
+            dur_by_mobo = None
 
         # Use mat_p_f to compute the expanded text_embeddings
         expanded_text_embeddings = mat_p_f.transpose(1, 2) @ text_embeddings
