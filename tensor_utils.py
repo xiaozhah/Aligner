@@ -284,7 +284,7 @@ def calculate_tensor_memory_size(shape, dtype):
     Args:
         shape (tuple): The shape of the tensor.
         dtype (torch.dtype): The data type of the tensor.
-    
+
     Returns:
         float: The memory size of the tensor in MB.
     """
@@ -343,7 +343,7 @@ def BIJ_to_BIK(Bij):
 
     Args:
         Bij (torch.Tensor): The input tensor of shape (B, I+1, J+1) for forward, or (B, I, J) for backward.
-    
+
     Returns:
         Bik (torch.Tensor): The output tensor of shape (B, I, J) for forward, or (B, I-1, J-1) for backward.
     """
@@ -359,7 +359,7 @@ def BIJ_to_BIDK(x, D, padding_direction="left"):
         x (torch.FloatTensor): The input tensor of shape (B, I, J).
         D (int): The max duration of text tokens.
         padding_direction (str): The direction of padding.
-    
+
     Return:
         y (torch.FloatTensor): The output tensor of shape (B, I, D, K).
     """
@@ -384,7 +384,7 @@ def BIDK_transform(x):
 
     Args:
         x (torch.FloatTensor): The input tensor of shape (B, I, D, K).
-    
+
     Returns:
         y (torch.FloatTensor): The transformed tensor of shape (B, I, D, K).
     """
@@ -416,7 +416,7 @@ def force_assign_last_text_hidden(log_interval_prob, prob, text_mask, alignment_
         prob (torch.FloatTensor): The probability tensor of shape (B, I, K).
         text_mask (torch.BoolTensor): The text mask tensor of shape (B, I).
         alignment_mask (torch.Tensor): The alignment mask tensor of shape (B, I).
-    
+
     Returns:
         log_interval_prob (torch.FloatTensor): The log interval probability tensor of shape (B, I, J).
     """

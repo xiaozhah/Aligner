@@ -29,7 +29,7 @@ class RoMoAligner(nn.Module):
         skip_rough_aligner=False,
         dropout=0.1,
         noise_scale=2.0,  # the scale of the noise used in the MoBo aligner
-        max_dur=10, # the maximum duration of the MoBo aligner
+        max_dur=10,  # the maximum duration of the MoBo aligner
         num_boundary_candidates=3,  # number of boundary candidates of each text token
         verbose=False,  # whether to print the memory size of the hidden state
     ):
