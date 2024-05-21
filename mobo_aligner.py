@@ -107,12 +107,15 @@ class MoBoAligner(nn.Module):
         energy_backward = energy_backward[:, 1:, 1:]
         text_mask_backward = text_mask[:, 1:]
         mel_mask_backward = mel_mask[:, 1:]
-        alignment_mask_backward = text_mask_backward.unsqueeze(
-            -1
-        ) * mel_mask_backward.unsqueeze(
-            1
+        alignment_mask_backward = compute_alignment_mask(
+            text_mask_backward, mel_mask_backward
         )  # (B, I-1, J-1)
-        return energy_backward, text_mask_backward, mel_mask_backward, alignment_mask_backward
+        return (
+            energy_backward,
+            text_mask_backward,
+            mel_mask_backward,
+            alignment_mask_backward,
+        )
 
     def compute_cond_prob(self, energy, text_mask, mel_mask, max_dur):
         """
@@ -267,7 +270,7 @@ class MoBoAligner(nn.Module):
         # Check length of text < length of mel and direction is either "forward" or "backward"
         self.check_parameter_validity(text_mask, mel_mask, direction)
 
-        alignment_mask = text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)  # (B, I, J)
+        alignment_mask = compute_alignment_mask(text_mask, mel_mask)
 
         # Compute the energy matrix and apply noise
         energy = self.compute_energy(text_hiddens, mel_hiddens, alignment_mask)
@@ -294,16 +297,20 @@ class MoBoAligner(nn.Module):
 
         if "backward" in direction:
             # 1.1 Compute the energy matrix for backward direction
-            energy_backward, text_mask_backward, mel_mask_backward, alignment_mask_backward = (
-                self.compute_reversed_energy_and_masks(energy, text_mask, mel_mask)
-            )
+            (
+                energy_backward,
+                text_mask_backward,
+                mel_mask_backward,
+                alignment_mask_backward,
+            ) = self.compute_reversed_energy_and_masks(energy, text_mask, mel_mask)
 
             # 1.2 Compute the log conditional probability P(B_i=j | B_{i+1}=k), P(B_i < j | B_{i+1}=k) for backward
             log_cond_prob_backward, log_cond_prob_geq_backward = self.compute_cond_prob(
                 energy_backward,
                 text_mask_backward,
                 mel_mask_backward,
-                self.max_dur + 1, # instead of self.max_dur, because considering the geq to gt in the next step
+                self.max_dur
+                + 1,  # instead of self.max_dur, because considering the geq to gt in the next step
             )
             log_cond_prob_gt_backward = convert_geq_to_gt(log_cond_prob_geq_backward)
 

@@ -10,6 +10,10 @@ LOG_EPS = -1000
 LOG_2 = math.log(2.0)
 
 
+def compute_alignment_mask(text_mask, mel_mask):
+    return text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)  # (B, I, J)
+
+
 def roll_tensor(tensor, shifts, dim):
     """
     Right shift the multi-dimensional tensor (2D or 3D or 4D...) along the given dimension.
@@ -74,9 +78,7 @@ def log_one_hot(I, device):
     return x
 
 
-def pad_and_reverse(
-    log_interval_backward, text_mask_backward, mel_mask_backward
-):
+def pad_and_reverse(log_interval_backward, text_mask_backward, mel_mask_backward):
     """
     Reverse the alignment and pad the boundary matrix for backward.
 
