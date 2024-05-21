@@ -78,7 +78,7 @@ def log_one_hot(I, device):
     return x
 
 
-def pad_and_reverse(log_interval_backward, text_mask_backward, mel_mask_backward):
+def pad_and_reverse_alignment(log_interval_backward, text_mask_backward, mel_mask_backward):
     """
     Reverse the alignment and pad the boundary matrix for backward.
 

@@ -329,7 +329,7 @@ class MoBoAligner(nn.Module):
             )
 
             # 3.2 reverse the text and mel direction of log_interval_backward, and pad head and tail one-hot vector on mel dimension
-            log_interval_backward = pad_and_reverse(
+            log_interval_backward = pad_and_reverse_alignment(
                 log_interval_backward, text_mask_backward, mel_mask_backward
             )
 
