@@ -150,7 +150,7 @@ class MoBoAligner(nn.Module):
 
     def compute_boundary_prob(self, log_cond_prob, text_mask, mel_mask):
         """
-        Compute forward recursively in the log domain.
+        Compute boundary prob recursively in the log domain.
 
         Args:
             log_cond_prob (torch.FloatTensor): The log conditional probability tensor for forward of shape (B, I, D, K) for forward, or (B, I-1, D+1, K-1) for backward.

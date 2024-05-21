@@ -11,6 +11,16 @@ LOG_2 = math.log(2.0)
 
 
 def compute_alignment_mask(text_mask, mel_mask):
+    """
+    Compute the alignment mask for the given text and mel masks.
+
+    Args:
+        text_mask (torch.BoolTensor): The text mask of shape (B, I) for forward or (B, I-1) for backward.
+        mel_mask (torch.BoolTensor): The mel mask of shape (B, J) for forward or (B, J-1) for backward.
+
+    Returns:
+        alignment_mask (torch.BoolTensor): The alignment mask of shape (B, I, J) for forward or (B, I-1, J-1) for backward.
+    """
     return text_mask.unsqueeze(-1) * mel_mask.unsqueeze(1)  # (B, I, J)
 
 
