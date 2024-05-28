@@ -1,6 +1,8 @@
 cimport cython
 from cython.parallel import prange
 import numpy as np
+from libc.stdlib cimport rand, RAND_MAX
+from libc.math cimport floor
 
 cdef int round_to_int(float x) nogil:
     return <int>(x + 0.5)
@@ -56,3 +58,47 @@ cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] ma
     cdef int i
     for i in prange(B, nogil=True):
         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])
+
+cdef float generate_random(float start, float end) nogil:
+    return start + (end - start) * (rand() / float(RAND_MAX))
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void generate_random_intervals_each(float[:] boundaries, float[:] result, int num_randoms) nogil:
+    """
+    Generate random intervals for a single batch
+
+    Args:
+        boundaries (float[:]): input boundaries, shape (N,)
+        result (float[:]): output random values, shape ((N-1) * num_randoms,)
+        num_randoms (int): number of random values to generate per interval
+    """
+    cdef int N = boundaries.shape[0]
+    cdef int idx = 0
+    cdef int i, j
+
+    for i in range(N - 1):
+        start = boundaries[i]
+        end = boundaries[i + 1]
+        for j in range(num_randoms-1):
+            result[idx + j] = generate_random(start, end)
+        
+        idx += num_randoms
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef void generate_random_intervals_batch_c(float[:, :] boundaries_batch, float[:, :] result_batch, int num_randoms) nogil:
+    """
+    Generate random intervals for a batch of boundaries
+
+    Args:
+        boundaries_batch (float[:, :]): input boundaries, shape (B, N)
+        result_batch (float[:, :]): output random values, shape (B, (N-1) * num_randoms)
+        num_randoms (int): number of random values to generate per interval
+    """
+    cdef int B = boundaries_batch.shape[0]
+
+    cdef int i
+    for i in prange(B, nogil=True):
+        generate_random_intervals_each(boundaries_batch[i], result_batch[i], num_randoms)

@@ -3,6 +3,7 @@
 /* BEGIN: Cython Metadata
 {
     "distutils": {
+        "depends": [],
         "name": "robo_utils.core",
         "sources": [
             "core.pyx"
@@ -1231,9 +1232,10 @@ static CYTHON_INLINE float __PYX_NAN() {
 #define __PYX_HAVE__robo_utils__core
 #define __PYX_HAVE_API__robo_utils__core
 /* Early includes */
-#include "pythread.h"
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
+#include "pythread.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif /* _OPENMP */
@@ -2672,17 +2674,20 @@ static CYTHON_INLINE int __pyx_sub_acquisition_count_locked(
 static CYTHON_INLINE void __Pyx_INC_MEMVIEW(__Pyx_memviewslice *, int, int);
 static CYTHON_INLINE void __Pyx_XCLEAR_MEMVIEW(__Pyx_memviewslice *, int, int);
 
-/* CIntToPy.proto */
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
-
 /* CIntFromPy.proto */
 static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *);
 
-/* CIntFromPy.proto */
-static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *);
+/* CIntToPy.proto */
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
+
+/* CIntToPy.proto */
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From___pyx_anon_enum(int value);
 
 /* CIntToPy.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
+
+/* CIntFromPy.proto */
+static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *);
 
 /* CIntFromPy.proto */
 static CYTHON_INLINE char __Pyx_PyInt_As_char(PyObject *);
@@ -2727,6 +2732,12 @@ static PyObject *__pyx_memoryviewslice__get_base(struct __pyx_memoryviewslice_ob
 
 /* Module declarations from "cython" */
 
+/* Module declarations from "libc.string" */
+
+/* Module declarations from "libc.stdlib" */
+
+/* Module declarations from "libc.math" */
+
 /* Module declarations from "robo_utils.core" */
 static PyObject *__pyx_collections_abc_Sequence = 0;
 static PyObject *generic = 0;
@@ -2739,6 +2750,9 @@ static PyThread_type_lock __pyx_memoryview_thread_locks[8];
 static int __pyx_f_10robo_utils_4core_round_to_int(float); /*proto*/
 static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviewslice, __Pyx_memviewslice, int, __Pyx_memviewslice); /*proto*/
 static void __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, int __pyx_skip_dispatch); /*proto*/
+static float __pyx_f_10robo_utils_4core_generate_random(float, float); /*proto*/
+static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memviewslice, __Pyx_memviewslice, int); /*proto*/
+static void __pyx_f_10robo_utils_4core_generate_random_intervals_batch_c(__Pyx_memviewslice, __Pyx_memviewslice, int, int __pyx_skip_dispatch); /*proto*/
 static int __pyx_array_allocate_buffer(struct __pyx_array_obj *); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
 static PyObject *__pyx_memoryview_new(PyObject *, int, int, __Pyx_TypeInfo *); /*proto*/
@@ -2805,7 +2819,7 @@ static const char __pyx_k__7[] = ")";
 static const char __pyx_k_gc[] = "gc";
 static const char __pyx_k_id[] = "id";
 static const char __pyx_k_np[] = "np";
-static const char __pyx_k__22[] = "?";
+static const char __pyx_k__24[] = "?";
 static const char __pyx_k_abc[] = "abc";
 static const char __pyx_k_and[] = " and ";
 static const char __pyx_k_dur[] = "dur";
@@ -2870,9 +2884,11 @@ static const char __pyx_k_pyx_vtable[] = "__pyx_vtable__";
 static const char __pyx_k_MemoryError[] = "MemoryError";
 static const char __pyx_k_PickleError[] = "PickleError";
 static const char __pyx_k_collections[] = "collections";
+static const char __pyx_k_num_randoms[] = "num_randoms";
 static const char __pyx_k_initializing[] = "_initializing";
 static const char __pyx_k_is_coroutine[] = "_is_coroutine";
 static const char __pyx_k_pyx_checksum[] = "__pyx_checksum";
+static const char __pyx_k_result_batch[] = "result_batch";
 static const char __pyx_k_stringsource[] = "<stringsource>";
 static const char __pyx_k_version_info[] = "version_info";
 static const char __pyx_k_class_getitem[] = "__class_getitem__";
@@ -2885,6 +2901,7 @@ static const char __pyx_k_dtype_is_object[] = "dtype_is_object";
 static const char __pyx_k_pyx_PickleError[] = "__pyx_PickleError";
 static const char __pyx_k_robo_utils_core[] = "robo_utils.core";
 static const char __pyx_k_setstate_cython[] = "__setstate_cython__";
+static const char __pyx_k_boundaries_batch[] = "boundaries_batch";
 static const char __pyx_k_pyx_unpickle_Enum[] = "__pyx_unpickle_Enum";
 static const char __pyx_k_asyncio_coroutines[] = "asyncio.coroutines";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
@@ -2903,6 +2920,7 @@ static const char __pyx_k_itemsize_0_for_cython_array[] = "itemsize <= 0 for cyt
 static const char __pyx_k_float_to_int_duration_batch_c[] = "float_to_int_duration_batch_c";
 static const char __pyx_k_unable_to_allocate_array_data[] = "unable to allocate array data.";
 static const char __pyx_k_strided_and_direct_or_indirect[] = "<strided and direct or indirect>";
+static const char __pyx_k_generate_random_intervals_batch[] = "generate_random_intervals_batch_c";
 static const char __pyx_k_All_dimensions_preceding_dimensi[] = "All dimensions preceding dimension %d must be indexed and not sliced";
 static const char __pyx_k_Buffer_view_does_not_expose_stri[] = "Buffer view does not expose strides";
 static const char __pyx_k_Can_only_create_a_buffer_that_is[] = "Can only create a buffer that is contiguous in memory.";
@@ -2961,6 +2979,7 @@ static PyObject *__pyx_pf___pyx_memoryviewslice___reduce_cython__(CYTHON_UNUSED 
 static PyObject *__pyx_pf___pyx_memoryviewslice_2__setstate_cython__(CYTHON_UNUSED struct __pyx_memoryviewslice_obj *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
 static PyObject *__pyx_pf_15View_dot_MemoryView___pyx_unpickle_Enum(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v___pyx_type, long __pyx_v___pyx_checksum, PyObject *__pyx_v___pyx_state); /* proto */
 static PyObject *__pyx_pf_10robo_utils_4core_float_to_int_duration_batch_c(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_dur, __Pyx_memviewslice __pyx_v_T, __Pyx_memviewslice __pyx_v_mask, __Pyx_memviewslice __pyx_v_int_dur); /* proto */
+static PyObject *__pyx_pf_10robo_utils_4core_2generate_random_intervals_batch_c(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_boundaries_batch, __Pyx_memviewslice __pyx_v_result_batch, int __pyx_v_num_randoms); /* proto */
 static PyObject *__pyx_tp_new_array(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_Enum(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_memoryview(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
@@ -2991,6 +3010,12 @@ typedef struct {
   #endif
   #ifdef __Pyx_Coroutine_USED
   PyTypeObject *__pyx_CoroutineType;
+  #endif
+  #if CYTHON_USE_MODULE_STATE
+  #endif
+  #if CYTHON_USE_MODULE_STATE
+  #endif
+  #if CYTHON_USE_MODULE_STATE
   #endif
   #if CYTHON_USE_MODULE_STATE
   #endif
@@ -3041,7 +3066,7 @@ typedef struct {
   PyObject *__pyx_n_s_ValueError;
   PyObject *__pyx_n_s_View_MemoryView;
   PyObject *__pyx_kp_u__2;
-  PyObject *__pyx_n_s__22;
+  PyObject *__pyx_n_s__24;
   PyObject *__pyx_n_s__3;
   PyObject *__pyx_kp_u__6;
   PyObject *__pyx_kp_u__7;
@@ -3050,6 +3075,7 @@ typedef struct {
   PyObject *__pyx_kp_u_and;
   PyObject *__pyx_n_s_asyncio_coroutines;
   PyObject *__pyx_n_s_base;
+  PyObject *__pyx_n_s_boundaries_batch;
   PyObject *__pyx_n_s_c;
   PyObject *__pyx_n_u_c;
   PyObject *__pyx_n_s_class;
@@ -3075,6 +3101,7 @@ typedef struct {
   PyObject *__pyx_n_s_fortran;
   PyObject *__pyx_n_u_fortran;
   PyObject *__pyx_kp_u_gc;
+  PyObject *__pyx_n_s_generate_random_intervals_batch;
   PyObject *__pyx_n_s_getstate;
   PyObject *__pyx_kp_u_got;
   PyObject *__pyx_kp_u_got_differing_extents_in_dimensi;
@@ -3097,6 +3124,7 @@ typedef struct {
   PyObject *__pyx_n_s_new;
   PyObject *__pyx_kp_s_no_default___reduce___due_to_non;
   PyObject *__pyx_n_s_np;
+  PyObject *__pyx_n_s_num_randoms;
   PyObject *__pyx_n_s_numpy;
   PyObject *__pyx_n_s_obj;
   PyObject *__pyx_n_s_pack;
@@ -3113,6 +3141,7 @@ typedef struct {
   PyObject *__pyx_n_s_reduce_cython;
   PyObject *__pyx_n_s_reduce_ex;
   PyObject *__pyx_n_s_register;
+  PyObject *__pyx_n_s_result_batch;
   PyObject *__pyx_n_s_robo_utils_core;
   PyObject *__pyx_n_s_setstate;
   PyObject *__pyx_n_s_setstate_cython;
@@ -3155,8 +3184,10 @@ typedef struct {
   PyObject *__pyx_tuple__17;
   PyObject *__pyx_tuple__18;
   PyObject *__pyx_tuple__20;
+  PyObject *__pyx_tuple__22;
   PyObject *__pyx_codeobj__19;
   PyObject *__pyx_codeobj__21;
+  PyObject *__pyx_codeobj__23;
 } __pyx_mstate;
 
 #if CYTHON_USE_MODULE_STATE
@@ -3240,7 +3271,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_ValueError);
   Py_CLEAR(clear_module_state->__pyx_n_s_View_MemoryView);
   Py_CLEAR(clear_module_state->__pyx_kp_u__2);
-  Py_CLEAR(clear_module_state->__pyx_n_s__22);
+  Py_CLEAR(clear_module_state->__pyx_n_s__24);
   Py_CLEAR(clear_module_state->__pyx_n_s__3);
   Py_CLEAR(clear_module_state->__pyx_kp_u__6);
   Py_CLEAR(clear_module_state->__pyx_kp_u__7);
@@ -3249,6 +3280,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_kp_u_and);
   Py_CLEAR(clear_module_state->__pyx_n_s_asyncio_coroutines);
   Py_CLEAR(clear_module_state->__pyx_n_s_base);
+  Py_CLEAR(clear_module_state->__pyx_n_s_boundaries_batch);
   Py_CLEAR(clear_module_state->__pyx_n_s_c);
   Py_CLEAR(clear_module_state->__pyx_n_u_c);
   Py_CLEAR(clear_module_state->__pyx_n_s_class);
@@ -3274,6 +3306,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_fortran);
   Py_CLEAR(clear_module_state->__pyx_n_u_fortran);
   Py_CLEAR(clear_module_state->__pyx_kp_u_gc);
+  Py_CLEAR(clear_module_state->__pyx_n_s_generate_random_intervals_batch);
   Py_CLEAR(clear_module_state->__pyx_n_s_getstate);
   Py_CLEAR(clear_module_state->__pyx_kp_u_got);
   Py_CLEAR(clear_module_state->__pyx_kp_u_got_differing_extents_in_dimensi);
@@ -3296,6 +3329,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_new);
   Py_CLEAR(clear_module_state->__pyx_kp_s_no_default___reduce___due_to_non);
   Py_CLEAR(clear_module_state->__pyx_n_s_np);
+  Py_CLEAR(clear_module_state->__pyx_n_s_num_randoms);
   Py_CLEAR(clear_module_state->__pyx_n_s_numpy);
   Py_CLEAR(clear_module_state->__pyx_n_s_obj);
   Py_CLEAR(clear_module_state->__pyx_n_s_pack);
@@ -3312,6 +3346,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_reduce_cython);
   Py_CLEAR(clear_module_state->__pyx_n_s_reduce_ex);
   Py_CLEAR(clear_module_state->__pyx_n_s_register);
+  Py_CLEAR(clear_module_state->__pyx_n_s_result_batch);
   Py_CLEAR(clear_module_state->__pyx_n_s_robo_utils_core);
   Py_CLEAR(clear_module_state->__pyx_n_s_setstate);
   Py_CLEAR(clear_module_state->__pyx_n_s_setstate_cython);
@@ -3354,8 +3389,10 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_tuple__17);
   Py_CLEAR(clear_module_state->__pyx_tuple__18);
   Py_CLEAR(clear_module_state->__pyx_tuple__20);
+  Py_CLEAR(clear_module_state->__pyx_tuple__22);
   Py_CLEAR(clear_module_state->__pyx_codeobj__19);
   Py_CLEAR(clear_module_state->__pyx_codeobj__21);
+  Py_CLEAR(clear_module_state->__pyx_codeobj__23);
   return 0;
 }
 #endif
@@ -3417,7 +3454,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_ValueError);
   Py_VISIT(traverse_module_state->__pyx_n_s_View_MemoryView);
   Py_VISIT(traverse_module_state->__pyx_kp_u__2);
-  Py_VISIT(traverse_module_state->__pyx_n_s__22);
+  Py_VISIT(traverse_module_state->__pyx_n_s__24);
   Py_VISIT(traverse_module_state->__pyx_n_s__3);
   Py_VISIT(traverse_module_state->__pyx_kp_u__6);
   Py_VISIT(traverse_module_state->__pyx_kp_u__7);
@@ -3426,6 +3463,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_kp_u_and);
   Py_VISIT(traverse_module_state->__pyx_n_s_asyncio_coroutines);
   Py_VISIT(traverse_module_state->__pyx_n_s_base);
+  Py_VISIT(traverse_module_state->__pyx_n_s_boundaries_batch);
   Py_VISIT(traverse_module_state->__pyx_n_s_c);
   Py_VISIT(traverse_module_state->__pyx_n_u_c);
   Py_VISIT(traverse_module_state->__pyx_n_s_class);
@@ -3451,6 +3489,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_fortran);
   Py_VISIT(traverse_module_state->__pyx_n_u_fortran);
   Py_VISIT(traverse_module_state->__pyx_kp_u_gc);
+  Py_VISIT(traverse_module_state->__pyx_n_s_generate_random_intervals_batch);
   Py_VISIT(traverse_module_state->__pyx_n_s_getstate);
   Py_VISIT(traverse_module_state->__pyx_kp_u_got);
   Py_VISIT(traverse_module_state->__pyx_kp_u_got_differing_extents_in_dimensi);
@@ -3473,6 +3512,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_new);
   Py_VISIT(traverse_module_state->__pyx_kp_s_no_default___reduce___due_to_non);
   Py_VISIT(traverse_module_state->__pyx_n_s_np);
+  Py_VISIT(traverse_module_state->__pyx_n_s_num_randoms);
   Py_VISIT(traverse_module_state->__pyx_n_s_numpy);
   Py_VISIT(traverse_module_state->__pyx_n_s_obj);
   Py_VISIT(traverse_module_state->__pyx_n_s_pack);
@@ -3489,6 +3529,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_reduce_cython);
   Py_VISIT(traverse_module_state->__pyx_n_s_reduce_ex);
   Py_VISIT(traverse_module_state->__pyx_n_s_register);
+  Py_VISIT(traverse_module_state->__pyx_n_s_result_batch);
   Py_VISIT(traverse_module_state->__pyx_n_s_robo_utils_core);
   Py_VISIT(traverse_module_state->__pyx_n_s_setstate);
   Py_VISIT(traverse_module_state->__pyx_n_s_setstate_cython);
@@ -3531,8 +3572,10 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_tuple__17);
   Py_VISIT(traverse_module_state->__pyx_tuple__18);
   Py_VISIT(traverse_module_state->__pyx_tuple__20);
+  Py_VISIT(traverse_module_state->__pyx_tuple__22);
   Py_VISIT(traverse_module_state->__pyx_codeobj__19);
   Py_VISIT(traverse_module_state->__pyx_codeobj__21);
+  Py_VISIT(traverse_module_state->__pyx_codeobj__23);
   return 0;
 }
 #endif
@@ -3560,6 +3603,12 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #endif
 #ifdef __Pyx_Coroutine_USED
 #define __pyx_CoroutineType __pyx_mstate_global->__pyx_CoroutineType
+#endif
+#if CYTHON_USE_MODULE_STATE
+#endif
+#if CYTHON_USE_MODULE_STATE
+#endif
+#if CYTHON_USE_MODULE_STATE
 #endif
 #if CYTHON_USE_MODULE_STATE
 #endif
@@ -3610,7 +3659,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_ValueError __pyx_mstate_global->__pyx_n_s_ValueError
 #define __pyx_n_s_View_MemoryView __pyx_mstate_global->__pyx_n_s_View_MemoryView
 #define __pyx_kp_u__2 __pyx_mstate_global->__pyx_kp_u__2
-#define __pyx_n_s__22 __pyx_mstate_global->__pyx_n_s__22
+#define __pyx_n_s__24 __pyx_mstate_global->__pyx_n_s__24
 #define __pyx_n_s__3 __pyx_mstate_global->__pyx_n_s__3
 #define __pyx_kp_u__6 __pyx_mstate_global->__pyx_kp_u__6
 #define __pyx_kp_u__7 __pyx_mstate_global->__pyx_kp_u__7
@@ -3619,6 +3668,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_kp_u_and __pyx_mstate_global->__pyx_kp_u_and
 #define __pyx_n_s_asyncio_coroutines __pyx_mstate_global->__pyx_n_s_asyncio_coroutines
 #define __pyx_n_s_base __pyx_mstate_global->__pyx_n_s_base
+#define __pyx_n_s_boundaries_batch __pyx_mstate_global->__pyx_n_s_boundaries_batch
 #define __pyx_n_s_c __pyx_mstate_global->__pyx_n_s_c
 #define __pyx_n_u_c __pyx_mstate_global->__pyx_n_u_c
 #define __pyx_n_s_class __pyx_mstate_global->__pyx_n_s_class
@@ -3644,6 +3694,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_fortran __pyx_mstate_global->__pyx_n_s_fortran
 #define __pyx_n_u_fortran __pyx_mstate_global->__pyx_n_u_fortran
 #define __pyx_kp_u_gc __pyx_mstate_global->__pyx_kp_u_gc
+#define __pyx_n_s_generate_random_intervals_batch __pyx_mstate_global->__pyx_n_s_generate_random_intervals_batch
 #define __pyx_n_s_getstate __pyx_mstate_global->__pyx_n_s_getstate
 #define __pyx_kp_u_got __pyx_mstate_global->__pyx_kp_u_got
 #define __pyx_kp_u_got_differing_extents_in_dimensi __pyx_mstate_global->__pyx_kp_u_got_differing_extents_in_dimensi
@@ -3666,6 +3717,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_new __pyx_mstate_global->__pyx_n_s_new
 #define __pyx_kp_s_no_default___reduce___due_to_non __pyx_mstate_global->__pyx_kp_s_no_default___reduce___due_to_non
 #define __pyx_n_s_np __pyx_mstate_global->__pyx_n_s_np
+#define __pyx_n_s_num_randoms __pyx_mstate_global->__pyx_n_s_num_randoms
 #define __pyx_n_s_numpy __pyx_mstate_global->__pyx_n_s_numpy
 #define __pyx_n_s_obj __pyx_mstate_global->__pyx_n_s_obj
 #define __pyx_n_s_pack __pyx_mstate_global->__pyx_n_s_pack
@@ -3682,6 +3734,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_reduce_cython __pyx_mstate_global->__pyx_n_s_reduce_cython
 #define __pyx_n_s_reduce_ex __pyx_mstate_global->__pyx_n_s_reduce_ex
 #define __pyx_n_s_register __pyx_mstate_global->__pyx_n_s_register
+#define __pyx_n_s_result_batch __pyx_mstate_global->__pyx_n_s_result_batch
 #define __pyx_n_s_robo_utils_core __pyx_mstate_global->__pyx_n_s_robo_utils_core
 #define __pyx_n_s_setstate __pyx_mstate_global->__pyx_n_s_setstate
 #define __pyx_n_s_setstate_cython __pyx_mstate_global->__pyx_n_s_setstate_cython
@@ -3724,8 +3777,10 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_tuple__17 __pyx_mstate_global->__pyx_tuple__17
 #define __pyx_tuple__18 __pyx_mstate_global->__pyx_tuple__18
 #define __pyx_tuple__20 __pyx_mstate_global->__pyx_tuple__20
+#define __pyx_tuple__22 __pyx_mstate_global->__pyx_tuple__22
 #define __pyx_codeobj__19 __pyx_mstate_global->__pyx_codeobj__19
 #define __pyx_codeobj__21 __pyx_mstate_global->__pyx_codeobj__21
+#define __pyx_codeobj__23 __pyx_mstate_global->__pyx_codeobj__23
 /* #### Code section: module_code ### */
 
 /* "View.MemoryView":131
@@ -17354,8 +17409,8 @@ static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *__
   return __pyx_r;
 }
 
-/* "robo_utils/core.pyx":5
- * import numpy as np
+/* "robo_utils/core.pyx":7
+ * from libc.math cimport floor
  * 
  * cdef int round_to_int(float x) nogil:             # <<<<<<<<<<<<<<
  *     return <int>(x + 0.5)
@@ -17365,7 +17420,7 @@ static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *__
 static int __pyx_f_10robo_utils_4core_round_to_int(float __pyx_v_x) {
   int __pyx_r;
 
-  /* "robo_utils/core.pyx":6
+  /* "robo_utils/core.pyx":8
  * 
  * cdef int round_to_int(float x) nogil:
  *     return <int>(x + 0.5)             # <<<<<<<<<<<<<<
@@ -17375,8 +17430,8 @@ static int __pyx_f_10robo_utils_4core_round_to_int(float __pyx_v_x) {
   __pyx_r = ((int)(__pyx_v_x + 0.5));
   goto __pyx_L0;
 
-  /* "robo_utils/core.pyx":5
- * import numpy as np
+  /* "robo_utils/core.pyx":7
+ * from libc.math cimport floor
  * 
  * cdef int round_to_int(float x) nogil:             # <<<<<<<<<<<<<<
  *     return <int>(x + 0.5)
@@ -17388,7 +17443,7 @@ static int __pyx_f_10robo_utils_4core_round_to_int(float __pyx_v_x) {
   return __pyx_r;
 }
 
-/* "robo_utils/core.pyx":11
+/* "robo_utils/core.pyx":13
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:] mask) nogil:             # <<<<<<<<<<<<<<
@@ -17416,7 +17471,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   PyGILState_STATE __pyx_gilstate_save;
   #endif
 
-  /* "robo_utils/core.pyx":21
+  /* "robo_utils/core.pyx":23
  *         mask (int[:]): mask, shape (I,)
  *     """
  *     cdef int I = dur.shape[0]             # <<<<<<<<<<<<<<
@@ -17425,7 +17480,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  */
   __pyx_v_I = (__pyx_v_dur.shape[0]);
 
-  /* "robo_utils/core.pyx":22
+  /* "robo_utils/core.pyx":24
  *     """
  *     cdef int I = dur.shape[0]
  *     cdef float float_sum = 0             # <<<<<<<<<<<<<<
@@ -17434,7 +17489,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  */
   __pyx_v_float_sum = 0.0;
 
-  /* "robo_utils/core.pyx":23
+  /* "robo_utils/core.pyx":25
  *     cdef int I = dur.shape[0]
  *     cdef float float_sum = 0
  *     cdef int int_sum = 0, i, rounded_dur, valid_count             # <<<<<<<<<<<<<<
@@ -17443,7 +17498,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  */
   __pyx_v_int_sum = 0;
 
-  /* "robo_utils/core.pyx":25
+  /* "robo_utils/core.pyx":27
  *     cdef int int_sum = 0, i, rounded_dur, valid_count
  * 
  *     valid_count = 0             # <<<<<<<<<<<<<<
@@ -17452,7 +17507,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  */
   __pyx_v_valid_count = 0;
 
-  /* "robo_utils/core.pyx":26
+  /* "robo_utils/core.pyx":28
  * 
  *     valid_count = 0
  *     for i in range(I):             # <<<<<<<<<<<<<<
@@ -17464,7 +17519,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_i = __pyx_t_3;
 
-    /* "robo_utils/core.pyx":27
+    /* "robo_utils/core.pyx":29
  *     valid_count = 0
  *     for i in range(I):
  *         if mask[i] == 1:             # <<<<<<<<<<<<<<
@@ -17475,7 +17530,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
     __pyx_t_5 = ((*((int *) ( /* dim=0 */ (__pyx_v_mask.data + __pyx_t_4 * __pyx_v_mask.strides[0]) ))) == 1);
     if (__pyx_t_5) {
 
-      /* "robo_utils/core.pyx":28
+      /* "robo_utils/core.pyx":30
  *     for i in range(I):
  *         if mask[i] == 1:
  *             valid_count += 1             # <<<<<<<<<<<<<<
@@ -17484,7 +17539,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  */
       __pyx_v_valid_count = (__pyx_v_valid_count + 1);
 
-      /* "robo_utils/core.pyx":29
+      /* "robo_utils/core.pyx":31
  *         if mask[i] == 1:
  *             valid_count += 1
  *             float_sum += dur[i]             # <<<<<<<<<<<<<<
@@ -17494,17 +17549,17 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
       __pyx_t_4 = __pyx_v_i;
       __pyx_v_float_sum = (__pyx_v_float_sum + (*((float *) ( /* dim=0 */ (__pyx_v_dur.data + __pyx_t_4 * __pyx_v_dur.strides[0]) ))));
 
-      /* "robo_utils/core.pyx":30
+      /* "robo_utils/core.pyx":32
  *             valid_count += 1
  *             float_sum += dur[i]
  *             rounded_dur = round_to_int(float_sum - int_sum)             # <<<<<<<<<<<<<<
  * 
  *             if rounded_dur <= 0:
  */
-      __pyx_t_6 = __pyx_f_10robo_utils_4core_round_to_int((__pyx_v_float_sum - __pyx_v_int_sum)); if (unlikely(__pyx_t_6 == ((int)-1) && __Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 30, __pyx_L1_error)
+      __pyx_t_6 = __pyx_f_10robo_utils_4core_round_to_int((__pyx_v_float_sum - __pyx_v_int_sum)); if (unlikely(__pyx_t_6 == ((int)-1) && __Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 32, __pyx_L1_error)
       __pyx_v_rounded_dur = __pyx_t_6;
 
-      /* "robo_utils/core.pyx":32
+      /* "robo_utils/core.pyx":34
  *             rounded_dur = round_to_int(float_sum - int_sum)
  * 
  *             if rounded_dur <= 0:             # <<<<<<<<<<<<<<
@@ -17514,7 +17569,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
       __pyx_t_5 = (__pyx_v_rounded_dur <= 0);
       if (__pyx_t_5) {
 
-        /* "robo_utils/core.pyx":33
+        /* "robo_utils/core.pyx":35
  * 
  *             if rounded_dur <= 0:
  *                 rounded_dur = 1  # Ensure each duration is greater than 0             # <<<<<<<<<<<<<<
@@ -17523,7 +17578,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  */
         __pyx_v_rounded_dur = 1;
 
-        /* "robo_utils/core.pyx":32
+        /* "robo_utils/core.pyx":34
  *             rounded_dur = round_to_int(float_sum - int_sum)
  * 
  *             if rounded_dur <= 0:             # <<<<<<<<<<<<<<
@@ -17532,7 +17587,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  */
       }
 
-      /* "robo_utils/core.pyx":35
+      /* "robo_utils/core.pyx":37
  *                 rounded_dur = 1  # Ensure each duration is greater than 0
  * 
  *             int_dur[i] = rounded_dur             # <<<<<<<<<<<<<<
@@ -17542,7 +17597,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
       __pyx_t_4 = __pyx_v_i;
       *((int *) ( /* dim=0 */ (__pyx_v_int_dur.data + __pyx_t_4 * __pyx_v_int_dur.strides[0]) )) = __pyx_v_rounded_dur;
 
-      /* "robo_utils/core.pyx":36
+      /* "robo_utils/core.pyx":38
  * 
  *             int_dur[i] = rounded_dur
  *             int_sum += rounded_dur             # <<<<<<<<<<<<<<
@@ -17551,7 +17606,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  */
       __pyx_v_int_sum = (__pyx_v_int_sum + __pyx_v_rounded_dur);
 
-      /* "robo_utils/core.pyx":27
+      /* "robo_utils/core.pyx":29
  *     valid_count = 0
  *     for i in range(I):
  *         if mask[i] == 1:             # <<<<<<<<<<<<<<
@@ -17561,7 +17616,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
       goto __pyx_L5;
     }
 
-    /* "robo_utils/core.pyx":38
+    /* "robo_utils/core.pyx":40
  *             int_sum += rounded_dur
  *         else:
  *             break             # <<<<<<<<<<<<<<
@@ -17575,7 +17630,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   }
   __pyx_L4_break:;
 
-  /* "robo_utils/core.pyx":41
+  /* "robo_utils/core.pyx":43
  * 
  *     # Adjust the last valid element, so int_dur matches the total duration
  *     if valid_count > 0:             # <<<<<<<<<<<<<<
@@ -17585,7 +17640,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   __pyx_t_5 = (__pyx_v_valid_count > 0);
   if (__pyx_t_5) {
 
-    /* "robo_utils/core.pyx":42
+    /* "robo_utils/core.pyx":44
  *     # Adjust the last valid element, so int_dur matches the total duration
  *     if valid_count > 0:
  *         int_dur[valid_count - 1] += T - int_sum             # <<<<<<<<<<<<<<
@@ -17595,7 +17650,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
     __pyx_t_4 = (__pyx_v_valid_count - 1);
     *((int *) ( /* dim=0 */ (__pyx_v_int_dur.data + __pyx_t_4 * __pyx_v_int_dur.strides[0]) )) += (__pyx_v_T - __pyx_v_int_sum);
 
-    /* "robo_utils/core.pyx":41
+    /* "robo_utils/core.pyx":43
  * 
  *     # Adjust the last valid element, so int_dur matches the total duration
  *     if valid_count > 0:             # <<<<<<<<<<<<<<
@@ -17604,7 +17659,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
  */
   }
 
-  /* "robo_utils/core.pyx":11
+  /* "robo_utils/core.pyx":13
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:] mask) nogil:             # <<<<<<<<<<<<<<
@@ -17625,7 +17680,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviews
   __pyx_L0:;
 }
 
-/* "robo_utils/core.pyx":46
+/* "robo_utils/core.pyx":48
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
@@ -17659,7 +17714,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__Pyx_memvi
   #endif
   __Pyx_RefNannySetupContext("float_to_int_duration_batch_c", 1);
 
-  /* "robo_utils/core.pyx":54
+  /* "robo_utils/core.pyx":56
  *         int_dur (int[:, :]): int duration, shape (B, I)
  *     """
  *     cdef int B = dur.shape[0]             # <<<<<<<<<<<<<<
@@ -17668,11 +17723,12 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__Pyx_memvi
  */
   __pyx_v_B = (__pyx_v_dur.shape[0]);
 
-  /* "robo_utils/core.pyx":57
+  /* "robo_utils/core.pyx":59
  * 
  *     cdef int i
  *     for i in prange(B, nogil=True):             # <<<<<<<<<<<<<<
  *         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])
+ * 
  */
   {
       #ifdef WITH_THREAD
@@ -17718,10 +17774,12 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__Pyx_memvi
                         {
                             __pyx_v_i = (int)(0 + 1 * __pyx_t_2);
 
-                            /* "robo_utils/core.pyx":58
+                            /* "robo_utils/core.pyx":60
  *     cdef int i
  *     for i in prange(B, nogil=True):
  *         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])             # <<<<<<<<<<<<<<
+ * 
+ * cdef float generate_random(float start, float end) nogil:
  */
                             __pyx_t_4.data = __pyx_v_dur.data;
                             __pyx_t_4.memview = __pyx_v_dur.memview;
@@ -17763,7 +17821,7 @@ __pyx_t_7.shape[0] = __pyx_v_mask.shape[1];
 __pyx_t_7.strides[0] = __pyx_v_mask.strides[1];
     __pyx_t_7.suboffsets[0] = -1;
 
-__pyx_f_10robo_utils_4core_float_to_int_duration_each(__pyx_t_4, __pyx_t_5, (*((int *) ( /* dim=0 */ (__pyx_v_T.data + __pyx_t_6 * __pyx_v_T.strides[0]) ))), __pyx_t_7); if (unlikely(__Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 58, __pyx_L8_error)
+__pyx_f_10robo_utils_4core_float_to_int_duration_each(__pyx_t_4, __pyx_t_5, (*((int *) ( /* dim=0 */ (__pyx_v_T.data + __pyx_t_6 * __pyx_v_T.strides[0]) ))), __pyx_t_7); if (unlikely(__Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 60, __pyx_L8_error)
                             __PYX_XCLEAR_MEMVIEW(&__pyx_t_4, 0);
                             __pyx_t_4.memview = NULL; __pyx_t_4.data = NULL;
                             __PYX_XCLEAR_MEMVIEW(&__pyx_t_5, 0);
@@ -17857,11 +17915,12 @@ __pyx_f_10robo_utils_4core_float_to_int_duration_each(__pyx_t_4, __pyx_t_5, (*((
         #endif
       }
 
-      /* "robo_utils/core.pyx":57
+      /* "robo_utils/core.pyx":59
  * 
  *     cdef int i
  *     for i in prange(B, nogil=True):             # <<<<<<<<<<<<<<
  *         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])
+ * 
  */
       /*finally:*/ {
         /*normal exit:*/{
@@ -17886,7 +17945,7 @@ __pyx_f_10robo_utils_4core_float_to_int_duration_each(__pyx_t_4, __pyx_t_5, (*((
       }
   }
 
-  /* "robo_utils/core.pyx":46
+  /* "robo_utils/core.pyx":48
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
@@ -17974,7 +18033,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 48, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
@@ -17982,9 +18041,9 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 48, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 1); __PYX_ERR(0, 46, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 1); __PYX_ERR(0, 48, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
@@ -17992,9 +18051,9 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[2]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 48, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 2); __PYX_ERR(0, 46, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 2); __PYX_ERR(0, 48, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
@@ -18002,14 +18061,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[3]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 48, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 3); __PYX_ERR(0, 46, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, 3); __PYX_ERR(0, 48, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "float_to_int_duration_batch_c") < 0)) __PYX_ERR(0, 46, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "float_to_int_duration_batch_c") < 0)) __PYX_ERR(0, 48, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 4)) {
       goto __pyx_L5_argtuple_error;
@@ -18019,14 +18078,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
       values[3] = __Pyx_Arg_FASTCALL(__pyx_args, 3);
     }
-    __pyx_v_dur = __Pyx_PyObject_to_MemoryviewSlice_dsds_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_dur.memview)) __PYX_ERR(0, 46, __pyx_L3_error)
-    __pyx_v_T = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_T.memview)) __PYX_ERR(0, 46, __pyx_L3_error)
-    __pyx_v_mask = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_mask.memview)) __PYX_ERR(0, 46, __pyx_L3_error)
-    __pyx_v_int_dur = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[3], PyBUF_WRITABLE); if (unlikely(!__pyx_v_int_dur.memview)) __PYX_ERR(0, 46, __pyx_L3_error)
+    __pyx_v_dur = __Pyx_PyObject_to_MemoryviewSlice_dsds_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_dur.memview)) __PYX_ERR(0, 48, __pyx_L3_error)
+    __pyx_v_T = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_T.memview)) __PYX_ERR(0, 48, __pyx_L3_error)
+    __pyx_v_mask = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_mask.memview)) __PYX_ERR(0, 48, __pyx_L3_error)
+    __pyx_v_int_dur = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[3], PyBUF_WRITABLE); if (unlikely(!__pyx_v_int_dur.memview)) __PYX_ERR(0, 48, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, __pyx_nargs); __PYX_ERR(0, 46, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("float_to_int_duration_batch_c", 1, 4, 4, __pyx_nargs); __PYX_ERR(0, 48, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -18070,12 +18129,12 @@ static PyObject *__pyx_pf_10robo_utils_4core_float_to_int_duration_batch_c(CYTHO
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("float_to_int_duration_batch_c", 1);
   __Pyx_XDECREF(__pyx_r);
-  if (unlikely(!__pyx_v_dur.memview)) { __Pyx_RaiseUnboundLocalError("dur"); __PYX_ERR(0, 46, __pyx_L1_error) }
-  if (unlikely(!__pyx_v_T.memview)) { __Pyx_RaiseUnboundLocalError("T"); __PYX_ERR(0, 46, __pyx_L1_error) }
-  if (unlikely(!__pyx_v_mask.memview)) { __Pyx_RaiseUnboundLocalError("mask"); __PYX_ERR(0, 46, __pyx_L1_error) }
-  if (unlikely(!__pyx_v_int_dur.memview)) { __Pyx_RaiseUnboundLocalError("int_dur"); __PYX_ERR(0, 46, __pyx_L1_error) }
-  __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__pyx_v_dur, __pyx_v_T, __pyx_v_mask, __pyx_v_int_dur, 0); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L1_error)
-  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 46, __pyx_L1_error)
+  if (unlikely(!__pyx_v_dur.memview)) { __Pyx_RaiseUnboundLocalError("dur"); __PYX_ERR(0, 48, __pyx_L1_error) }
+  if (unlikely(!__pyx_v_T.memview)) { __Pyx_RaiseUnboundLocalError("T"); __PYX_ERR(0, 48, __pyx_L1_error) }
+  if (unlikely(!__pyx_v_mask.memview)) { __Pyx_RaiseUnboundLocalError("mask"); __PYX_ERR(0, 48, __pyx_L1_error) }
+  if (unlikely(!__pyx_v_int_dur.memview)) { __Pyx_RaiseUnboundLocalError("int_dur"); __PYX_ERR(0, 48, __pyx_L1_error) }
+  __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__pyx_v_dur, __pyx_v_T, __pyx_v_mask, __pyx_v_int_dur, 0); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 48, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -18085,6 +18144,627 @@ static PyObject *__pyx_pf_10robo_utils_4core_float_to_int_duration_batch_c(CYTHO
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_AddTraceback("robo_utils.core.float_to_int_duration_batch_c", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "robo_utils/core.pyx":62
+ *         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])
+ * 
+ * cdef float generate_random(float start, float end) nogil:             # <<<<<<<<<<<<<<
+ *     return start + (end - start) * (rand() / float(RAND_MAX))
+ * 
+ */
+
+static float __pyx_f_10robo_utils_4core_generate_random(float __pyx_v_start, float __pyx_v_end) {
+  float __pyx_r;
+  int __pyx_t_1;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  #ifdef WITH_THREAD
+  PyGILState_STATE __pyx_gilstate_save;
+  #endif
+
+  /* "robo_utils/core.pyx":63
+ * 
+ * cdef float generate_random(float start, float end) nogil:
+ *     return start + (end - start) * (rand() / float(RAND_MAX))             # <<<<<<<<<<<<<<
+ * 
+ * @cython.cdivision(True)
+ */
+  __pyx_t_1 = rand();
+  if (unlikely(((double)RAND_MAX) == 0)) {
+    #ifdef WITH_THREAD
+    PyGILState_STATE __pyx_gilstate_save = __Pyx_PyGILState_Ensure();
+    #endif
+    PyErr_SetString(PyExc_ZeroDivisionError, "float division");
+    #ifdef WITH_THREAD
+    __Pyx_PyGILState_Release(__pyx_gilstate_save);
+    #endif
+    __PYX_ERR(0, 63, __pyx_L1_error)
+  }
+  __pyx_r = (__pyx_v_start + ((__pyx_v_end - __pyx_v_start) * (((double)__pyx_t_1) / ((double)RAND_MAX))));
+  goto __pyx_L0;
+
+  /* "robo_utils/core.pyx":62
+ *         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])
+ * 
+ * cdef float generate_random(float start, float end) nogil:             # <<<<<<<<<<<<<<
+ *     return start + (end - start) * (rand() / float(RAND_MAX))
+ * 
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  #ifdef WITH_THREAD
+  __pyx_gilstate_save = __Pyx_PyGILState_Ensure();
+  #endif
+  __Pyx_AddTraceback("robo_utils.core.generate_random", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  #ifdef WITH_THREAD
+  __Pyx_PyGILState_Release(__pyx_gilstate_save);
+  #endif
+  __pyx_L0:;
+  return __pyx_r;
+}
+
+/* "robo_utils/core.pyx":68
+ * @cython.boundscheck(False)
+ * @cython.wraparound(False)
+ * cdef void generate_random_intervals_each(float[:] boundaries, float[:] result, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ *     """
+ *     Generate random intervals for a single batch
+ */
+
+static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memviewslice __pyx_v_boundaries, __Pyx_memviewslice __pyx_v_result, int __pyx_v_num_randoms) {
+  int __pyx_v_N;
+  int __pyx_v_idx;
+  int __pyx_v_i;
+  int __pyx_v_j;
+  float __pyx_v_start;
+  float __pyx_v_end;
+  long __pyx_t_1;
+  long __pyx_t_2;
+  int __pyx_t_3;
+  Py_ssize_t __pyx_t_4;
+  int __pyx_t_5;
+  int __pyx_t_6;
+  int __pyx_t_7;
+  float __pyx_t_8;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  #ifdef WITH_THREAD
+  PyGILState_STATE __pyx_gilstate_save;
+  #endif
+
+  /* "robo_utils/core.pyx":77
+ *         num_randoms (int): number of random values to generate per interval
+ *     """
+ *     cdef int N = boundaries.shape[0]             # <<<<<<<<<<<<<<
+ *     cdef int idx = 0
+ *     cdef int i, j
+ */
+  __pyx_v_N = (__pyx_v_boundaries.shape[0]);
+
+  /* "robo_utils/core.pyx":78
+ *     """
+ *     cdef int N = boundaries.shape[0]
+ *     cdef int idx = 0             # <<<<<<<<<<<<<<
+ *     cdef int i, j
+ * 
+ */
+  __pyx_v_idx = 0;
+
+  /* "robo_utils/core.pyx":81
+ *     cdef int i, j
+ * 
+ *     for i in range(N - 1):             # <<<<<<<<<<<<<<
+ *         start = boundaries[i]
+ *         end = boundaries[i + 1]
+ */
+  __pyx_t_1 = (__pyx_v_N - 1);
+  __pyx_t_2 = __pyx_t_1;
+  for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
+    __pyx_v_i = __pyx_t_3;
+
+    /* "robo_utils/core.pyx":82
+ * 
+ *     for i in range(N - 1):
+ *         start = boundaries[i]             # <<<<<<<<<<<<<<
+ *         end = boundaries[i + 1]
+ *         for j in range(num_randoms):
+ */
+    __pyx_t_4 = __pyx_v_i;
+    __pyx_v_start = (*((float *) ( /* dim=0 */ (__pyx_v_boundaries.data + __pyx_t_4 * __pyx_v_boundaries.strides[0]) )));
+
+    /* "robo_utils/core.pyx":83
+ *     for i in range(N - 1):
+ *         start = boundaries[i]
+ *         end = boundaries[i + 1]             # <<<<<<<<<<<<<<
+ *         for j in range(num_randoms):
+ *             result[idx + j] = generate_random(start, end)
+ */
+    __pyx_t_4 = (__pyx_v_i + 1);
+    __pyx_v_end = (*((float *) ( /* dim=0 */ (__pyx_v_boundaries.data + __pyx_t_4 * __pyx_v_boundaries.strides[0]) )));
+
+    /* "robo_utils/core.pyx":84
+ *         start = boundaries[i]
+ *         end = boundaries[i + 1]
+ *         for j in range(num_randoms):             # <<<<<<<<<<<<<<
+ *             result[idx + j] = generate_random(start, end)
+ *         idx += num_randoms
+ */
+    __pyx_t_5 = __pyx_v_num_randoms;
+    __pyx_t_6 = __pyx_t_5;
+    for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
+      __pyx_v_j = __pyx_t_7;
+
+      /* "robo_utils/core.pyx":85
+ *         end = boundaries[i + 1]
+ *         for j in range(num_randoms):
+ *             result[idx + j] = generate_random(start, end)             # <<<<<<<<<<<<<<
+ *         idx += num_randoms
+ * 
+ */
+      __pyx_t_8 = __pyx_f_10robo_utils_4core_generate_random(__pyx_v_start, __pyx_v_end); if (unlikely(__pyx_t_8 == ((float)-1) && __Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 85, __pyx_L1_error)
+      __pyx_t_4 = (__pyx_v_idx + __pyx_v_j);
+      *((float *) ( /* dim=0 */ (__pyx_v_result.data + __pyx_t_4 * __pyx_v_result.strides[0]) )) = __pyx_t_8;
+    }
+
+    /* "robo_utils/core.pyx":86
+ *         for j in range(num_randoms):
+ *             result[idx + j] = generate_random(start, end)
+ *         idx += num_randoms             # <<<<<<<<<<<<<<
+ * 
+ * @cython.boundscheck(False)
+ */
+    __pyx_v_idx = (__pyx_v_idx + __pyx_v_num_randoms);
+  }
+
+  /* "robo_utils/core.pyx":68
+ * @cython.boundscheck(False)
+ * @cython.wraparound(False)
+ * cdef void generate_random_intervals_each(float[:] boundaries, float[:] result, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ *     """
+ *     Generate random intervals for a single batch
+ */
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  #ifdef WITH_THREAD
+  __pyx_gilstate_save = __Pyx_PyGILState_Ensure();
+  #endif
+  __Pyx_AddTraceback("robo_utils.core.generate_random_intervals_each", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  #ifdef WITH_THREAD
+  __Pyx_PyGILState_Release(__pyx_gilstate_save);
+  #endif
+  __pyx_L0:;
+}
+
+/* "robo_utils/core.pyx":90
+ * @cython.boundscheck(False)
+ * @cython.wraparound(False)
+ * cpdef void generate_random_intervals_batch_c(float[:, :] boundaries_batch, float[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ *     """
+ *     Generate random intervals for a batch of boundaries
+ */
+
+static PyObject *__pyx_pw_10robo_utils_4core_3generate_random_intervals_batch_c(PyObject *__pyx_self, 
+#if CYTHON_METH_FASTCALL
+PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
+#else
+PyObject *__pyx_args, PyObject *__pyx_kwds
+#endif
+); /*proto*/
+static void __pyx_f_10robo_utils_4core_generate_random_intervals_batch_c(__Pyx_memviewslice __pyx_v_boundaries_batch, __Pyx_memviewslice __pyx_v_result_batch, int __pyx_v_num_randoms, CYTHON_UNUSED int __pyx_skip_dispatch) {
+  CYTHON_UNUSED int __pyx_v_B;
+  int __pyx_v_i;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  int __pyx_t_2;
+  int __pyx_t_3;
+  __Pyx_memviewslice __pyx_t_4 = { 0, 0, { 0 }, { 0 }, { 0 } };
+  __Pyx_memviewslice __pyx_t_5 = { 0, 0, { 0 }, { 0 }, { 0 } };
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  #ifdef WITH_THREAD
+  PyGILState_STATE __pyx_gilstate_save;
+  #endif
+  __Pyx_RefNannySetupContext("generate_random_intervals_batch_c", 1);
+
+  /* "robo_utils/core.pyx":99
+ *         num_randoms (int): number of random values to generate per interval
+ *     """
+ *     cdef int B = boundaries_batch.shape[0]             # <<<<<<<<<<<<<<
+ * 
+ *     cdef int i
+ */
+  __pyx_v_B = (__pyx_v_boundaries_batch.shape[0]);
+
+  /* "robo_utils/core.pyx":102
+ * 
+ *     cdef int i
+ *     for i in prange(B, nogil=True):             # <<<<<<<<<<<<<<
+ *         generate_random_intervals_each(boundaries_batch[i], result_batch[i], num_randoms)
+ */
+  {
+      #ifdef WITH_THREAD
+      PyThreadState *_save;
+      _save = NULL;
+      if (PyGILState_Check()) {
+        Py_UNBLOCK_THREADS
+      }
+      __Pyx_FastGIL_Remember();
+      #endif
+      /*try:*/ {
+        __pyx_t_1 = __pyx_v_B;
+        {
+            int __pyx_parallel_temp0 = ((int)0xbad0bad0);
+            const char *__pyx_parallel_filename = NULL; int __pyx_parallel_lineno = 0, __pyx_parallel_clineno = 0;
+            PyObject *__pyx_parallel_exc_type = NULL, *__pyx_parallel_exc_value = NULL, *__pyx_parallel_exc_tb = NULL;
+            int __pyx_parallel_why;
+            __pyx_parallel_why = 0;
+            #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
+                #undef likely
+                #undef unlikely
+                #define likely(x)   (x)
+                #define unlikely(x) (x)
+            #endif
+            __pyx_t_3 = (__pyx_t_1 - 0 + 1 - 1/abs(1)) / 1;
+            if (__pyx_t_3 > 0)
+            {
+                #ifdef _OPENMP
+                #pragma omp parallel firstprivate(__pyx_t_4, __pyx_t_5) private(__pyx_filename, __pyx_lineno, __pyx_clineno) shared(__pyx_parallel_why, __pyx_parallel_exc_type, __pyx_parallel_exc_value, __pyx_parallel_exc_tb)
+                #endif /* _OPENMP */
+                {
+                    #ifdef _OPENMP
+                    #ifdef WITH_THREAD
+                    PyGILState_STATE __pyx_gilstate_save = __Pyx_PyGILState_Ensure();
+                    #endif
+                    Py_BEGIN_ALLOW_THREADS
+                    #endif /* _OPENMP */
+                    #ifdef _OPENMP
+                    #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+                    #endif /* _OPENMP */
+                    for (__pyx_t_2 = 0; __pyx_t_2 < __pyx_t_3; __pyx_t_2++){
+                        if (__pyx_parallel_why < 2)
+                        {
+                            __pyx_v_i = (int)(0 + 1 * __pyx_t_2);
+
+                            /* "robo_utils/core.pyx":103
+ *     cdef int i
+ *     for i in prange(B, nogil=True):
+ *         generate_random_intervals_each(boundaries_batch[i], result_batch[i], num_randoms)             # <<<<<<<<<<<<<<
+ */
+                            __pyx_t_4.data = __pyx_v_boundaries_batch.data;
+                            __pyx_t_4.memview = __pyx_v_boundaries_batch.memview;
+                            __PYX_INC_MEMVIEW(&__pyx_t_4, 0);
+                            {
+    Py_ssize_t __pyx_tmp_idx = __pyx_v_i;
+    Py_ssize_t __pyx_tmp_stride = __pyx_v_boundaries_batch.strides[0];
+        __pyx_t_4.data += __pyx_tmp_idx * __pyx_tmp_stride;
+}
+
+__pyx_t_4.shape[0] = __pyx_v_boundaries_batch.shape[1];
+__pyx_t_4.strides[0] = __pyx_v_boundaries_batch.strides[1];
+    __pyx_t_4.suboffsets[0] = -1;
+
+__pyx_t_5.data = __pyx_v_result_batch.data;
+                            __pyx_t_5.memview = __pyx_v_result_batch.memview;
+                            __PYX_INC_MEMVIEW(&__pyx_t_5, 0);
+                            {
+    Py_ssize_t __pyx_tmp_idx = __pyx_v_i;
+    Py_ssize_t __pyx_tmp_stride = __pyx_v_result_batch.strides[0];
+        __pyx_t_5.data += __pyx_tmp_idx * __pyx_tmp_stride;
+}
+
+__pyx_t_5.shape[0] = __pyx_v_result_batch.shape[1];
+__pyx_t_5.strides[0] = __pyx_v_result_batch.strides[1];
+    __pyx_t_5.suboffsets[0] = -1;
+
+__pyx_f_10robo_utils_4core_generate_random_intervals_each(__pyx_t_4, __pyx_t_5, __pyx_v_num_randoms); if (unlikely(__Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 103, __pyx_L8_error)
+                            __PYX_XCLEAR_MEMVIEW(&__pyx_t_4, 0);
+                            __pyx_t_4.memview = NULL; __pyx_t_4.data = NULL;
+                            __PYX_XCLEAR_MEMVIEW(&__pyx_t_5, 0);
+                            __pyx_t_5.memview = NULL; __pyx_t_5.data = NULL;
+                            goto __pyx_L11;
+                            __pyx_L8_error:;
+                            {
+                                #ifdef WITH_THREAD
+                                PyGILState_STATE __pyx_gilstate_save = __Pyx_PyGILState_Ensure();
+                                #endif
+                                #ifdef _OPENMP
+                                #pragma omp flush(__pyx_parallel_exc_type)
+                                #endif /* _OPENMP */
+                                if (!__pyx_parallel_exc_type) {
+                                  __Pyx_ErrFetchWithState(&__pyx_parallel_exc_type, &__pyx_parallel_exc_value, &__pyx_parallel_exc_tb);
+                                  __pyx_parallel_filename = __pyx_filename; __pyx_parallel_lineno = __pyx_lineno; __pyx_parallel_clineno = __pyx_clineno;
+                                  __Pyx_GOTREF(__pyx_parallel_exc_type);
+                                }
+                                #ifdef WITH_THREAD
+                                __Pyx_PyGILState_Release(__pyx_gilstate_save);
+                                #endif
+                            }
+                            __pyx_parallel_why = 4;
+                            goto __pyx_L10;
+                            __pyx_L10:;
+                            #ifdef _OPENMP
+                            #pragma omp critical(__pyx_parallel_lastprivates1)
+                            #endif /* _OPENMP */
+                            {
+                                __pyx_parallel_temp0 = __pyx_v_i;
+                            }
+                            __pyx_L11:;
+                            #ifdef _OPENMP
+                            #pragma omp flush(__pyx_parallel_why)
+                            #endif /* _OPENMP */
+                        }
+                    }
+                    #ifdef _OPENMP
+                    Py_END_ALLOW_THREADS
+                    #else
+{
+#ifdef WITH_THREAD
+                    PyGILState_STATE __pyx_gilstate_save = __Pyx_PyGILState_Ensure();
+                    #endif
+                    #endif /* _OPENMP */
+                    /* Clean up any temporaries */
+                    __PYX_XCLEAR_MEMVIEW(&__pyx_t_4, 0);
+                    __pyx_t_4.memview = NULL; __pyx_t_4.data = NULL;
+                    __PYX_XCLEAR_MEMVIEW(&__pyx_t_5, 0);
+                    __pyx_t_5.memview = NULL; __pyx_t_5.data = NULL;
+                    #ifdef WITH_THREAD
+                    __Pyx_PyGILState_Release(__pyx_gilstate_save);
+                    #endif
+                    #ifndef _OPENMP
+}
+#endif /* _OPENMP */
+                }
+            }
+            if (__pyx_parallel_exc_type) {
+              /* This may have been overridden by a continue, break or return in another thread. Prefer the error. */
+              __pyx_parallel_why = 4;
+            }
+            if (__pyx_parallel_why) {
+              __pyx_v_i = __pyx_parallel_temp0;
+              switch (__pyx_parallel_why) {
+                    case 4:
+                {
+                    #ifdef WITH_THREAD
+                    PyGILState_STATE __pyx_gilstate_save = __Pyx_PyGILState_Ensure();
+                    #endif
+                    __Pyx_GIVEREF(__pyx_parallel_exc_type);
+                    __Pyx_ErrRestoreWithState(__pyx_parallel_exc_type, __pyx_parallel_exc_value, __pyx_parallel_exc_tb);
+                    __pyx_filename = __pyx_parallel_filename; __pyx_lineno = __pyx_parallel_lineno; __pyx_clineno = __pyx_parallel_clineno;
+                    #ifdef WITH_THREAD
+                    __Pyx_PyGILState_Release(__pyx_gilstate_save);
+                    #endif
+                }
+                goto __pyx_L4_error;
+              }
+            }
+        }
+        #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
+            #undef likely
+            #undef unlikely
+            #define likely(x)   __builtin_expect(!!(x), 1)
+            #define unlikely(x) __builtin_expect(!!(x), 0)
+        #endif
+      }
+
+      /* "robo_utils/core.pyx":102
+ * 
+ *     cdef int i
+ *     for i in prange(B, nogil=True):             # <<<<<<<<<<<<<<
+ *         generate_random_intervals_each(boundaries_batch[i], result_batch[i], num_randoms)
+ */
+      /*finally:*/ {
+        /*normal exit:*/{
+          #ifdef WITH_THREAD
+          __Pyx_FastGIL_Forget();
+          if (_save) {
+            Py_BLOCK_THREADS
+          }
+          #endif
+          goto __pyx_L5;
+        }
+        __pyx_L4_error: {
+          #ifdef WITH_THREAD
+          __Pyx_FastGIL_Forget();
+          if (_save) {
+            Py_BLOCK_THREADS
+          }
+          #endif
+          goto __pyx_L1_error;
+        }
+        __pyx_L5:;
+      }
+  }
+
+  /* "robo_utils/core.pyx":90
+ * @cython.boundscheck(False)
+ * @cython.wraparound(False)
+ * cpdef void generate_random_intervals_batch_c(float[:, :] boundaries_batch, float[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ *     """
+ *     Generate random intervals for a batch of boundaries
+ */
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  #ifdef WITH_THREAD
+  __pyx_gilstate_save = __Pyx_PyGILState_Ensure();
+  #endif
+  __PYX_XCLEAR_MEMVIEW(&__pyx_t_4, 1);
+  __PYX_XCLEAR_MEMVIEW(&__pyx_t_5, 1);
+  __Pyx_AddTraceback("robo_utils.core.generate_random_intervals_batch_c", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  #ifdef WITH_THREAD
+  __Pyx_PyGILState_Release(__pyx_gilstate_save);
+  #endif
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContextNogil()
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_10robo_utils_4core_3generate_random_intervals_batch_c(PyObject *__pyx_self, 
+#if CYTHON_METH_FASTCALL
+PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
+#else
+PyObject *__pyx_args, PyObject *__pyx_kwds
+#endif
+); /*proto*/
+PyDoc_STRVAR(__pyx_doc_10robo_utils_4core_2generate_random_intervals_batch_c, "\n    Generate random intervals for a batch of boundaries\n\n    Args:\n        boundaries_batch (float[:, :]): input boundaries, shape (B, N)\n        result_batch (float[:, :]): output random values, shape (B, (N-1) * num_randoms)\n        num_randoms (int): number of random values to generate per interval\n    ");
+static PyMethodDef __pyx_mdef_10robo_utils_4core_3generate_random_intervals_batch_c = {"generate_random_intervals_batch_c", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_10robo_utils_4core_3generate_random_intervals_batch_c, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_10robo_utils_4core_2generate_random_intervals_batch_c};
+static PyObject *__pyx_pw_10robo_utils_4core_3generate_random_intervals_batch_c(PyObject *__pyx_self, 
+#if CYTHON_METH_FASTCALL
+PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
+#else
+PyObject *__pyx_args, PyObject *__pyx_kwds
+#endif
+) {
+  __Pyx_memviewslice __pyx_v_boundaries_batch = { 0, 0, { 0 }, { 0 }, { 0 } };
+  __Pyx_memviewslice __pyx_v_result_batch = { 0, 0, { 0 }, { 0 }, { 0 } };
+  int __pyx_v_num_randoms;
+  #if !CYTHON_METH_FASTCALL
+  CYTHON_UNUSED Py_ssize_t __pyx_nargs;
+  #endif
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  PyObject* values[3] = {0,0,0};
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("generate_random_intervals_batch_c (wrapper)", 0);
+  #if !CYTHON_METH_FASTCALL
+  #if CYTHON_ASSUME_SAFE_MACROS
+  __pyx_nargs = PyTuple_GET_SIZE(__pyx_args);
+  #else
+  __pyx_nargs = PyTuple_Size(__pyx_args); if (unlikely(__pyx_nargs < 0)) return NULL;
+  #endif
+  #endif
+  __pyx_kwvalues = __Pyx_KwValues_FASTCALL(__pyx_args, __pyx_nargs);
+  {
+    PyObject **__pyx_pyargnames[] = {&__pyx_n_s_boundaries_batch,&__pyx_n_s_result_batch,&__pyx_n_s_num_randoms,0};
+    if (__pyx_kwds) {
+      Py_ssize_t kw_args;
+      switch (__pyx_nargs) {
+        case  3: values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
+        CYTHON_FALLTHROUGH;
+        case  2: values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
+        CYTHON_FALLTHROUGH;
+        case  1: values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
+        CYTHON_FALLTHROUGH;
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = __Pyx_NumKwargs_FASTCALL(__pyx_kwds);
+      switch (__pyx_nargs) {
+        case  0:
+        if (likely((values[0] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_boundaries_batch)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 90, __pyx_L3_error)
+        else goto __pyx_L5_argtuple_error;
+        CYTHON_FALLTHROUGH;
+        case  1:
+        if (likely((values[1] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_result_batch)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 90, __pyx_L3_error)
+        else {
+          __Pyx_RaiseArgtupleInvalid("generate_random_intervals_batch_c", 1, 3, 3, 1); __PYX_ERR(0, 90, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  2:
+        if (likely((values[2] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_num_randoms)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[2]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 90, __pyx_L3_error)
+        else {
+          __Pyx_RaiseArgtupleInvalid("generate_random_intervals_batch_c", 1, 3, 3, 2); __PYX_ERR(0, 90, __pyx_L3_error)
+        }
+      }
+      if (unlikely(kw_args > 0)) {
+        const Py_ssize_t kwd_pos_args = __pyx_nargs;
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "generate_random_intervals_batch_c") < 0)) __PYX_ERR(0, 90, __pyx_L3_error)
+      }
+    } else if (unlikely(__pyx_nargs != 3)) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
+      values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
+      values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
+    }
+    __pyx_v_boundaries_batch = __Pyx_PyObject_to_MemoryviewSlice_dsds_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_boundaries_batch.memview)) __PYX_ERR(0, 90, __pyx_L3_error)
+    __pyx_v_result_batch = __Pyx_PyObject_to_MemoryviewSlice_dsds_float(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_result_batch.memview)) __PYX_ERR(0, 90, __pyx_L3_error)
+    __pyx_v_num_randoms = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_num_randoms == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 90, __pyx_L3_error)
+  }
+  goto __pyx_L6_skip;
+  __pyx_L5_argtuple_error:;
+  __Pyx_RaiseArgtupleInvalid("generate_random_intervals_batch_c", 1, 3, 3, __pyx_nargs); __PYX_ERR(0, 90, __pyx_L3_error)
+  __pyx_L6_skip:;
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L3_error:;
+  {
+    Py_ssize_t __pyx_temp;
+    for (__pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
+      __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
+    }
+  }
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_boundaries_batch, 1);
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_result_batch, 1);
+  __Pyx_AddTraceback("robo_utils.core.generate_random_intervals_batch_c", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return NULL;
+  __pyx_L4_argument_unpacking_done:;
+  __pyx_r = __pyx_pf_10robo_utils_4core_2generate_random_intervals_batch_c(__pyx_self, __pyx_v_boundaries_batch, __pyx_v_result_batch, __pyx_v_num_randoms);
+
+  /* function exit code */
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_boundaries_batch, 1);
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_result_batch, 1);
+  {
+    Py_ssize_t __pyx_temp;
+    for (__pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
+      __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
+    }
+  }
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_10robo_utils_4core_2generate_random_intervals_batch_c(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_boundaries_batch, __Pyx_memviewslice __pyx_v_result_batch, int __pyx_v_num_randoms) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("generate_random_intervals_batch_c", 1);
+  __Pyx_XDECREF(__pyx_r);
+  if (unlikely(!__pyx_v_boundaries_batch.memview)) { __Pyx_RaiseUnboundLocalError("boundaries_batch"); __PYX_ERR(0, 90, __pyx_L1_error) }
+  if (unlikely(!__pyx_v_result_batch.memview)) { __Pyx_RaiseUnboundLocalError("result_batch"); __PYX_ERR(0, 90, __pyx_L1_error) }
+  __pyx_f_10robo_utils_4core_generate_random_intervals_batch_c(__pyx_v_boundaries_batch, __pyx_v_result_batch, __pyx_v_num_randoms, 0); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 90, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 90, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("robo_utils.core.generate_random_intervals_batch_c", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -19087,7 +19767,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_ValueError, __pyx_k_ValueError, sizeof(__pyx_k_ValueError), 0, 0, 1, 1},
     {&__pyx_n_s_View_MemoryView, __pyx_k_View_MemoryView, sizeof(__pyx_k_View_MemoryView), 0, 0, 1, 1},
     {&__pyx_kp_u__2, __pyx_k__2, sizeof(__pyx_k__2), 0, 1, 0, 0},
-    {&__pyx_n_s__22, __pyx_k__22, sizeof(__pyx_k__22), 0, 0, 1, 1},
+    {&__pyx_n_s__24, __pyx_k__24, sizeof(__pyx_k__24), 0, 0, 1, 1},
     {&__pyx_n_s__3, __pyx_k__3, sizeof(__pyx_k__3), 0, 0, 1, 1},
     {&__pyx_kp_u__6, __pyx_k__6, sizeof(__pyx_k__6), 0, 1, 0, 0},
     {&__pyx_kp_u__7, __pyx_k__7, sizeof(__pyx_k__7), 0, 1, 0, 0},
@@ -19096,6 +19776,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_kp_u_and, __pyx_k_and, sizeof(__pyx_k_and), 0, 1, 0, 0},
     {&__pyx_n_s_asyncio_coroutines, __pyx_k_asyncio_coroutines, sizeof(__pyx_k_asyncio_coroutines), 0, 0, 1, 1},
     {&__pyx_n_s_base, __pyx_k_base, sizeof(__pyx_k_base), 0, 0, 1, 1},
+    {&__pyx_n_s_boundaries_batch, __pyx_k_boundaries_batch, sizeof(__pyx_k_boundaries_batch), 0, 0, 1, 1},
     {&__pyx_n_s_c, __pyx_k_c, sizeof(__pyx_k_c), 0, 0, 1, 1},
     {&__pyx_n_u_c, __pyx_k_c, sizeof(__pyx_k_c), 0, 1, 0, 1},
     {&__pyx_n_s_class, __pyx_k_class, sizeof(__pyx_k_class), 0, 0, 1, 1},
@@ -19121,6 +19802,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 0, 1, 1},
     {&__pyx_n_u_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 1, 0, 1},
     {&__pyx_kp_u_gc, __pyx_k_gc, sizeof(__pyx_k_gc), 0, 1, 0, 0},
+    {&__pyx_n_s_generate_random_intervals_batch, __pyx_k_generate_random_intervals_batch, sizeof(__pyx_k_generate_random_intervals_batch), 0, 0, 1, 1},
     {&__pyx_n_s_getstate, __pyx_k_getstate, sizeof(__pyx_k_getstate), 0, 0, 1, 1},
     {&__pyx_kp_u_got, __pyx_k_got, sizeof(__pyx_k_got), 0, 1, 0, 0},
     {&__pyx_kp_u_got_differing_extents_in_dimensi, __pyx_k_got_differing_extents_in_dimensi, sizeof(__pyx_k_got_differing_extents_in_dimensi), 0, 1, 0, 0},
@@ -19143,6 +19825,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_new, __pyx_k_new, sizeof(__pyx_k_new), 0, 0, 1, 1},
     {&__pyx_kp_s_no_default___reduce___due_to_non, __pyx_k_no_default___reduce___due_to_non, sizeof(__pyx_k_no_default___reduce___due_to_non), 0, 0, 1, 0},
     {&__pyx_n_s_np, __pyx_k_np, sizeof(__pyx_k_np), 0, 0, 1, 1},
+    {&__pyx_n_s_num_randoms, __pyx_k_num_randoms, sizeof(__pyx_k_num_randoms), 0, 0, 1, 1},
     {&__pyx_n_s_numpy, __pyx_k_numpy, sizeof(__pyx_k_numpy), 0, 0, 1, 1},
     {&__pyx_n_s_obj, __pyx_k_obj, sizeof(__pyx_k_obj), 0, 0, 1, 1},
     {&__pyx_n_s_pack, __pyx_k_pack, sizeof(__pyx_k_pack), 0, 0, 1, 1},
@@ -19159,6 +19842,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_reduce_cython, __pyx_k_reduce_cython, sizeof(__pyx_k_reduce_cython), 0, 0, 1, 1},
     {&__pyx_n_s_reduce_ex, __pyx_k_reduce_ex, sizeof(__pyx_k_reduce_ex), 0, 0, 1, 1},
     {&__pyx_n_s_register, __pyx_k_register, sizeof(__pyx_k_register), 0, 0, 1, 1},
+    {&__pyx_n_s_result_batch, __pyx_k_result_batch, sizeof(__pyx_k_result_batch), 0, 0, 1, 1},
     {&__pyx_n_s_robo_utils_core, __pyx_k_robo_utils_core, sizeof(__pyx_k_robo_utils_core), 0, 0, 1, 1},
     {&__pyx_n_s_setstate, __pyx_k_setstate, sizeof(__pyx_k_setstate), 0, 0, 1, 1},
     {&__pyx_n_s_setstate_cython, __pyx_k_setstate_cython, sizeof(__pyx_k_setstate_cython), 0, 0, 1, 1},
@@ -19186,7 +19870,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
 }
 /* #### Code section: cached_builtins ### */
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 26, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 28, __pyx_L1_error)
   __pyx_builtin___import__ = __Pyx_GetBuiltinName(__pyx_n_s_import); if (!__pyx_builtin___import__) __PYX_ERR(1, 100, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(1, 141, __pyx_L1_error)
   __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(1, 156, __pyx_L1_error)
@@ -19343,17 +20027,29 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GIVEREF(__pyx_tuple__18);
   __pyx_codeobj__19 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__18, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_stringsource, __pyx_n_s_pyx_unpickle_Enum, 1, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__19)) __PYX_ERR(1, 1, __pyx_L1_error)
 
-  /* "robo_utils/core.pyx":46
+  /* "robo_utils/core.pyx":48
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Args:
  */
-  __pyx_tuple__20 = PyTuple_Pack(4, __pyx_n_s_dur, __pyx_n_s_T, __pyx_n_s_mask, __pyx_n_s_int_dur); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_tuple__20 = PyTuple_Pack(4, __pyx_n_s_dur, __pyx_n_s_T, __pyx_n_s_mask, __pyx_n_s_int_dur); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__20);
   __Pyx_GIVEREF(__pyx_tuple__20);
-  __pyx_codeobj__21 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_core_pyx, __pyx_n_s_float_to_int_duration_batch_c, 46, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_codeobj__21 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_core_pyx, __pyx_n_s_float_to_int_duration_batch_c, 48, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 48, __pyx_L1_error)
+
+  /* "robo_utils/core.pyx":90
+ * @cython.boundscheck(False)
+ * @cython.wraparound(False)
+ * cpdef void generate_random_intervals_batch_c(float[:, :] boundaries_batch, float[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ *     """
+ *     Generate random intervals for a batch of boundaries
+ */
+  __pyx_tuple__22 = PyTuple_Pack(3, __pyx_n_s_boundaries_batch, __pyx_n_s_result_batch, __pyx_n_s_num_randoms); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 90, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__22);
+  __Pyx_GIVEREF(__pyx_tuple__22);
+  __pyx_codeobj__23 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__22, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_core_pyx, __pyx_n_s_generate_random_intervals_batch, 90, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__23)) __PYX_ERR(0, 90, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -20415,24 +21111,36 @@ if (!__Pyx_RefNanny) {
  * cimport cython
  * from cython.parallel import prange
  * import numpy as np             # <<<<<<<<<<<<<<
- * 
- * cdef int round_to_int(float x) nogil:
+ * from libc.stdlib cimport rand, RAND_MAX
+ * from libc.math cimport floor
  */
   __pyx_t_7 = __Pyx_ImportDottedModule(__pyx_n_s_numpy, NULL); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 3, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_7) < 0) __PYX_ERR(0, 3, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-  /* "robo_utils/core.pyx":46
+  /* "robo_utils/core.pyx":48
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] mask, int[:, :] int_dur) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Args:
  */
-  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_10robo_utils_4core_1float_to_int_duration_batch_c, 0, __pyx_n_s_float_to_int_duration_batch_c, NULL, __pyx_n_s_robo_utils_core, __pyx_d, ((PyObject *)__pyx_codeobj__21)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_10robo_utils_4core_1float_to_int_duration_batch_c, 0, __pyx_n_s_float_to_int_duration_batch_c, NULL, __pyx_n_s_robo_utils_core, __pyx_d, ((PyObject *)__pyx_codeobj__21)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_float_to_int_duration_batch_c, __pyx_t_7) < 0) __PYX_ERR(0, 46, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_float_to_int_duration_batch_c, __pyx_t_7) < 0) __PYX_ERR(0, 48, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+
+  /* "robo_utils/core.pyx":90
+ * @cython.boundscheck(False)
+ * @cython.wraparound(False)
+ * cpdef void generate_random_intervals_batch_c(float[:, :] boundaries_batch, float[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ *     """
+ *     Generate random intervals for a batch of boundaries
+ */
+  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_10robo_utils_4core_3generate_random_intervals_batch_c, 0, __pyx_n_s_generate_random_intervals_batch, NULL, __pyx_n_s_robo_utils_core, __pyx_d, ((PyObject *)__pyx_codeobj__23)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 90, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_7);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_generate_random_intervals_batch, __pyx_t_7) < 0) __PYX_ERR(0, 90, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
   /* "robo_utils/core.pyx":1
@@ -26177,70 +26885,6 @@ static CYTHON_INLINE void __Pyx_XCLEAR_MEMVIEW(__Pyx_memviewslice *memslice,
     }
 }
 
-/* CIntToPy */
-  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value) {
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-    const int neg_one = (int) -1, const_zero = (int) 0;
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic pop
-#endif
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(int) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(int) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(int) <= sizeof(unsigned PY_LONG_LONG)) {
-            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
-#endif
-        }
-    } else {
-        if (sizeof(int) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(int) <= sizeof(PY_LONG_LONG)) {
-            return PyLong_FromLongLong((PY_LONG_LONG) value);
-#endif
-        }
-    }
-    {
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        unsigned char *bytes = (unsigned char *)&value;
-#if !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030d0000
-        return _PyLong_FromByteArray(bytes, sizeof(int),
-                                     little, !is_unsigned);
-#else
-        PyObject *from_bytes, *result = NULL;
-        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
-        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
-        if (!from_bytes) return NULL;
-        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof(int));
-        if (!py_bytes) goto limited_bad;
-        order_str = PyUnicode_FromString(little ? "little" : "big");
-        if (!order_str) goto limited_bad;
-        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
-        if (!arg_tuple) goto limited_bad;
-        if (!is_unsigned) {
-            kwds = PyDict_New();
-            if (!kwds) goto limited_bad;
-            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
-        }
-        result = PyObject_Call(from_bytes, arg_tuple, kwds);
-        limited_bad:
-        Py_XDECREF(kwds);
-        Py_XDECREF(arg_tuple);
-        Py_XDECREF(order_str);
-        Py_XDECREF(py_bytes);
-        Py_XDECREF(from_bytes);
-        return result;
-#endif
-    }
-}
-
 /* CIntFromPy */
   static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *x) {
 #ifdef __Pyx_HAS_GCC_DIAGNOSTIC
@@ -26514,6 +27158,198 @@ raise_neg_overflow:
     return (int) -1;
 }
 
+/* CIntToPy */
+  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value) {
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+    const int neg_one = (int) -1, const_zero = (int) 0;
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(int) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(int) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(int) <= sizeof(unsigned PY_LONG_LONG)) {
+            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
+#endif
+        }
+    } else {
+        if (sizeof(int) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(int) <= sizeof(PY_LONG_LONG)) {
+            return PyLong_FromLongLong((PY_LONG_LONG) value);
+#endif
+        }
+    }
+    {
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        unsigned char *bytes = (unsigned char *)&value;
+#if !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030d0000
+        return _PyLong_FromByteArray(bytes, sizeof(int),
+                                     little, !is_unsigned);
+#else
+        PyObject *from_bytes, *result = NULL;
+        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
+        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
+        if (!from_bytes) return NULL;
+        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof(int));
+        if (!py_bytes) goto limited_bad;
+        order_str = PyUnicode_FromString(little ? "little" : "big");
+        if (!order_str) goto limited_bad;
+        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
+        if (!arg_tuple) goto limited_bad;
+        if (!is_unsigned) {
+            kwds = PyDict_New();
+            if (!kwds) goto limited_bad;
+            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
+        }
+        result = PyObject_Call(from_bytes, arg_tuple, kwds);
+        limited_bad:
+        Py_XDECREF(kwds);
+        Py_XDECREF(arg_tuple);
+        Py_XDECREF(order_str);
+        Py_XDECREF(py_bytes);
+        Py_XDECREF(from_bytes);
+        return result;
+#endif
+    }
+}
+
+/* CIntToPy */
+  static CYTHON_INLINE PyObject* __Pyx_PyInt_From___pyx_anon_enum(int value) {
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+    const int neg_one = (int) -1, const_zero = (int) 0;
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(int) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(int) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(int) <= sizeof(unsigned PY_LONG_LONG)) {
+            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
+#endif
+        }
+    } else {
+        if (sizeof(int) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(int) <= sizeof(PY_LONG_LONG)) {
+            return PyLong_FromLongLong((PY_LONG_LONG) value);
+#endif
+        }
+    }
+    {
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        unsigned char *bytes = (unsigned char *)&value;
+#if !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030d0000
+        return _PyLong_FromByteArray(bytes, sizeof(int),
+                                     little, !is_unsigned);
+#else
+        PyObject *from_bytes, *result = NULL;
+        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
+        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
+        if (!from_bytes) return NULL;
+        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof(int));
+        if (!py_bytes) goto limited_bad;
+        order_str = PyUnicode_FromString(little ? "little" : "big");
+        if (!order_str) goto limited_bad;
+        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
+        if (!arg_tuple) goto limited_bad;
+        if (!is_unsigned) {
+            kwds = PyDict_New();
+            if (!kwds) goto limited_bad;
+            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
+        }
+        result = PyObject_Call(from_bytes, arg_tuple, kwds);
+        limited_bad:
+        Py_XDECREF(kwds);
+        Py_XDECREF(arg_tuple);
+        Py_XDECREF(order_str);
+        Py_XDECREF(py_bytes);
+        Py_XDECREF(from_bytes);
+        return result;
+#endif
+    }
+}
+
+/* CIntToPy */
+  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+    const long neg_one = (long) -1, const_zero = (long) 0;
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(long) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(long) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
+            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
+#endif
+        }
+    } else {
+        if (sizeof(long) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
+            return PyLong_FromLongLong((PY_LONG_LONG) value);
+#endif
+        }
+    }
+    {
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        unsigned char *bytes = (unsigned char *)&value;
+#if !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030d0000
+        return _PyLong_FromByteArray(bytes, sizeof(long),
+                                     little, !is_unsigned);
+#else
+        PyObject *from_bytes, *result = NULL;
+        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
+        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
+        if (!from_bytes) return NULL;
+        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof(long));
+        if (!py_bytes) goto limited_bad;
+        order_str = PyUnicode_FromString(little ? "little" : "big");
+        if (!order_str) goto limited_bad;
+        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
+        if (!arg_tuple) goto limited_bad;
+        if (!is_unsigned) {
+            kwds = PyDict_New();
+            if (!kwds) goto limited_bad;
+            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
+        }
+        result = PyObject_Call(from_bytes, arg_tuple, kwds);
+        limited_bad:
+        Py_XDECREF(kwds);
+        Py_XDECREF(arg_tuple);
+        Py_XDECREF(order_str);
+        Py_XDECREF(py_bytes);
+        Py_XDECREF(from_bytes);
+        return result;
+#endif
+    }
+}
+
 /* CIntFromPy */
   static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *x) {
 #ifdef __Pyx_HAS_GCC_DIAGNOSTIC
@@ -26785,70 +27621,6 @@ raise_neg_overflow:
     PyErr_SetString(PyExc_OverflowError,
         "can't convert negative value to long");
     return (long) -1;
-}
-
-/* CIntToPy */
-  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-    const long neg_one = (long) -1, const_zero = (long) 0;
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic pop
-#endif
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(long) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(long) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
-            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
-#endif
-        }
-    } else {
-        if (sizeof(long) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
-            return PyLong_FromLongLong((PY_LONG_LONG) value);
-#endif
-        }
-    }
-    {
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        unsigned char *bytes = (unsigned char *)&value;
-#if !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030d0000
-        return _PyLong_FromByteArray(bytes, sizeof(long),
-                                     little, !is_unsigned);
-#else
-        PyObject *from_bytes, *result = NULL;
-        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
-        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
-        if (!from_bytes) return NULL;
-        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof(long));
-        if (!py_bytes) goto limited_bad;
-        order_str = PyUnicode_FromString(little ? "little" : "big");
-        if (!order_str) goto limited_bad;
-        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
-        if (!arg_tuple) goto limited_bad;
-        if (!is_unsigned) {
-            kwds = PyDict_New();
-            if (!kwds) goto limited_bad;
-            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
-        }
-        result = PyObject_Call(from_bytes, arg_tuple, kwds);
-        limited_bad:
-        Py_XDECREF(kwds);
-        Py_XDECREF(arg_tuple);
-        Py_XDECREF(order_str);
-        Py_XDECREF(py_bytes);
-        Py_XDECREF(from_bytes);
-        return result;
-#endif
-    }
 }
 
 /* CIntFromPy */
@@ -27134,7 +27906,7 @@ __Pyx_PyType_GetName(PyTypeObject* tp)
     if (unlikely(name == NULL) || unlikely(!PyUnicode_Check(name))) {
         PyErr_Clear();
         Py_XDECREF(name);
-        name = __Pyx_NewRef(__pyx_n_s__22);
+        name = __Pyx_NewRef(__pyx_n_s__24);
     }
     return name;
 }

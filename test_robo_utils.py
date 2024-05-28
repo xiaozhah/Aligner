@@ -29,5 +29,16 @@ def test_float_to_int_duration_batch():
     
     print("All tests passed!")
 
+def test_generate_random_intervals_batch():
+
+    # 定义一个包含多个批次边界值的数组
+    boundaries_batch = torch.tensor([
+        [1, 10, 20, 50, 70],
+    ]).float()
+
+    result_batch = robo_utils.generate_random_intervals(boundaries_batch, 1)
+    print(result_batch)
+
 if __name__ == "__main__":
     test_float_to_int_duration_batch()
+    test_generate_random_intervals_batch()
