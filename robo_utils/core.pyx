@@ -71,7 +71,7 @@ cdef void generate_random_intervals_each(int[:] boundaries, int[:] result, int n
 
     Args:
         boundaries (int[:]): input boundaries, shape (N,)
-        result (int[:]): output random values, shape ((N-1) * num_randoms,)
+        result (int[:]): output random values, shape ((N-1) * (num_randoms + 1),)
         num_randoms (int): number of random values to generate per interval
     """
     cdef int N = boundaries.shape[0]
