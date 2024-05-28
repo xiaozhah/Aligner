@@ -24,8 +24,8 @@ def float_to_int_duration(dur, T, mask):
 
 def generate_random_intervals(boundaries_batch, num_randoms):
     device = boundaries_batch.device
-    boundaries_batch = boundaries_batch.data.cpu().numpy().astype(np.float32)
+    boundaries_batch = boundaries_batch.data.cpu().numpy().astype(np.int32)
 
-    result_batch = np.empty((boundaries_batch.shape[0], (boundaries_batch.shape[1] - 1) * (num_randoms + 1)), dtype=np.float32)
+    result_batch = np.empty((boundaries_batch.shape[0], (boundaries_batch.shape[1] - 1) * (num_randoms + 1)), dtype=np.int32)
     generate_random_intervals_batch_c(boundaries_batch, result_batch, num_randoms)
-    return torch.from_numpy(result_batch).to(device=device, dtype=torch.float)
+    return torch.from_numpy(result_batch).to(device=device, dtype=torch.long)

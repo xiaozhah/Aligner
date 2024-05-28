@@ -59,19 +59,19 @@ cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] ma
     for i in prange(B, nogil=True):
         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])
 
-cdef float generate_random(float start, float end) nogil:
-    return start + (end - start) * (rand() / float(RAND_MAX))
+cdef int generate_random(int start, int end) nogil:
+    return start + <int>(<float>(end - start) * (rand() / float(RAND_MAX)))
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void generate_random_intervals_each(float[:] boundaries, float[:] result, int num_randoms) nogil:
+cdef void generate_random_intervals_each(int[:] boundaries, int[:] result, int num_randoms) nogil:
     """
     Generate random intervals for a single batch
 
     Args:
-        boundaries (float[:]): input boundaries, shape (N,)
-        result (float[:]): output random values, shape ((N-1) * num_randoms,)
+        boundaries (int[:]): input boundaries, shape (N,)
+        result (int[:]): output random values, shape ((N-1) * num_randoms,)
         num_randoms (int): number of random values to generate per interval
     """
     cdef int N = boundaries.shape[0]
@@ -88,13 +88,13 @@ cdef void generate_random_intervals_each(float[:] boundaries, float[:] result, i
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef void generate_random_intervals_batch_c(float[:, :] boundaries_batch, float[:, :] result_batch, int num_randoms) nogil:
+cpdef void generate_random_intervals_batch_c(int[:, :] boundaries_batch, int[:, :] result_batch, int num_randoms) nogil:
     """
     Generate random intervals for a batch of boundaries
 
     Args:
-        boundaries_batch (float[:, :]): input boundaries, shape (B, N)
-        result_batch (float[:, :]): output random values, shape (B, (N-1) * num_randoms)
+        boundaries_batch (int[:, :]): input boundaries, shape (B, N)
+        result_batch (int[:, :]): output random values, shape (B, (N-1) * num_randoms)
         num_randoms (int): number of random values to generate per interval
     """
     cdef int B = boundaries_batch.shape[0]

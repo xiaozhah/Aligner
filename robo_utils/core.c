@@ -2750,7 +2750,7 @@ static PyThread_type_lock __pyx_memoryview_thread_locks[8];
 static int __pyx_f_10robo_utils_4core_round_to_int(float); /*proto*/
 static void __pyx_f_10robo_utils_4core_float_to_int_duration_each(__Pyx_memviewslice, __Pyx_memviewslice, int, __Pyx_memviewslice); /*proto*/
 static void __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, int __pyx_skip_dispatch); /*proto*/
-static float __pyx_f_10robo_utils_4core_generate_random(float, float); /*proto*/
+static int __pyx_f_10robo_utils_4core_generate_random(int, int); /*proto*/
 static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memviewslice, __Pyx_memviewslice, int); /*proto*/
 static void __pyx_f_10robo_utils_4core_generate_random_intervals_batch_c(__Pyx_memviewslice, __Pyx_memviewslice, int, int __pyx_skip_dispatch); /*proto*/
 static int __pyx_array_allocate_buffer(struct __pyx_array_obj *); /*proto*/
@@ -17779,7 +17779,7 @@ static void __pyx_f_10robo_utils_4core_float_to_int_duration_batch_c(__Pyx_memvi
  *     for i in prange(B, nogil=True):
  *         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])             # <<<<<<<<<<<<<<
  * 
- * cdef float generate_random(float start, float end) nogil:
+ * cdef int generate_random(int start, int end) nogil:
  */
                             __pyx_t_4.data = __pyx_v_dur.data;
                             __pyx_t_4.memview = __pyx_v_dur.memview;
@@ -18154,13 +18154,13 @@ static PyObject *__pyx_pf_10robo_utils_4core_float_to_int_duration_batch_c(CYTHO
 /* "robo_utils/core.pyx":62
  *         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])
  * 
- * cdef float generate_random(float start, float end) nogil:             # <<<<<<<<<<<<<<
- *     return start + (end - start) * (rand() / float(RAND_MAX))
+ * cdef int generate_random(int start, int end) nogil:             # <<<<<<<<<<<<<<
+ *     return start + <int>(<float>(end - start) * (rand() / float(RAND_MAX)))
  * 
  */
 
-static float __pyx_f_10robo_utils_4core_generate_random(float __pyx_v_start, float __pyx_v_end) {
-  float __pyx_r;
+static int __pyx_f_10robo_utils_4core_generate_random(int __pyx_v_start, int __pyx_v_end) {
+  int __pyx_r;
   int __pyx_t_1;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -18171,8 +18171,8 @@ static float __pyx_f_10robo_utils_4core_generate_random(float __pyx_v_start, flo
 
   /* "robo_utils/core.pyx":63
  * 
- * cdef float generate_random(float start, float end) nogil:
- *     return start + (end - start) * (rand() / float(RAND_MAX))             # <<<<<<<<<<<<<<
+ * cdef int generate_random(int start, int end) nogil:
+ *     return start + <int>(<float>(end - start) * (rand() / float(RAND_MAX)))             # <<<<<<<<<<<<<<
  * 
  * @cython.cdivision(True)
  */
@@ -18187,14 +18187,14 @@ static float __pyx_f_10robo_utils_4core_generate_random(float __pyx_v_start, flo
     #endif
     __PYX_ERR(0, 63, __pyx_L1_error)
   }
-  __pyx_r = (__pyx_v_start + ((__pyx_v_end - __pyx_v_start) * (((double)__pyx_t_1) / ((double)RAND_MAX))));
+  __pyx_r = (__pyx_v_start + ((int)(((float)(__pyx_v_end - __pyx_v_start)) * (((double)__pyx_t_1) / ((double)RAND_MAX)))));
   goto __pyx_L0;
 
   /* "robo_utils/core.pyx":62
  *         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])
  * 
- * cdef float generate_random(float start, float end) nogil:             # <<<<<<<<<<<<<<
- *     return start + (end - start) * (rand() / float(RAND_MAX))
+ * cdef int generate_random(int start, int end) nogil:             # <<<<<<<<<<<<<<
+ *     return start + <int>(<float>(end - start) * (rand() / float(RAND_MAX)))
  * 
  */
 
@@ -18215,7 +18215,7 @@ static float __pyx_f_10robo_utils_4core_generate_random(float __pyx_v_start, flo
 /* "robo_utils/core.pyx":68
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cdef void generate_random_intervals_each(float[:] boundaries, float[:] result, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ * cdef void generate_random_intervals_each(int[:] boundaries, int[:] result, int num_randoms) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Generate random intervals for a single batch
  */
@@ -18225,8 +18225,8 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
   int __pyx_v_idx;
   int __pyx_v_i;
   int __pyx_v_j;
-  float __pyx_v_start;
-  float __pyx_v_end;
+  int __pyx_v_start;
+  int __pyx_v_end;
   long __pyx_t_1;
   long __pyx_t_2;
   int __pyx_t_3;
@@ -18234,7 +18234,7 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
   int __pyx_t_5;
   int __pyx_t_6;
   int __pyx_t_7;
-  float __pyx_t_8;
+  int __pyx_t_8;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -18280,7 +18280,7 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
  *         for j in range(num_randoms):
  */
     __pyx_t_4 = __pyx_v_i;
-    __pyx_v_start = (*((float *) ( /* dim=0 */ (__pyx_v_boundaries.data + __pyx_t_4 * __pyx_v_boundaries.strides[0]) )));
+    __pyx_v_start = (*((int *) ( /* dim=0 */ (__pyx_v_boundaries.data + __pyx_t_4 * __pyx_v_boundaries.strides[0]) )));
 
     /* "robo_utils/core.pyx":83
  *     for i in range(N - 1):
@@ -18290,7 +18290,7 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
  *             result[idx + j] = generate_random(start, end)
  */
     __pyx_t_4 = (__pyx_v_i + 1);
-    __pyx_v_end = (*((float *) ( /* dim=0 */ (__pyx_v_boundaries.data + __pyx_t_4 * __pyx_v_boundaries.strides[0]) )));
+    __pyx_v_end = (*((int *) ( /* dim=0 */ (__pyx_v_boundaries.data + __pyx_t_4 * __pyx_v_boundaries.strides[0]) )));
 
     /* "robo_utils/core.pyx":84
  *         start = boundaries[i]
@@ -18311,9 +18311,9 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
  *         result[idx + num_randoms] = end
  *         idx += (num_randoms + 1)
  */
-      __pyx_t_8 = __pyx_f_10robo_utils_4core_generate_random(__pyx_v_start, __pyx_v_end); if (unlikely(__pyx_t_8 == ((float)-1) && __Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 85, __pyx_L1_error)
+      __pyx_t_8 = __pyx_f_10robo_utils_4core_generate_random(__pyx_v_start, __pyx_v_end); if (unlikely(__pyx_t_8 == ((int)-1) && __Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 85, __pyx_L1_error)
       __pyx_t_4 = (__pyx_v_idx + __pyx_v_j);
-      *((float *) ( /* dim=0 */ (__pyx_v_result.data + __pyx_t_4 * __pyx_v_result.strides[0]) )) = __pyx_t_8;
+      *((int *) ( /* dim=0 */ (__pyx_v_result.data + __pyx_t_4 * __pyx_v_result.strides[0]) )) = __pyx_t_8;
     }
 
     /* "robo_utils/core.pyx":86
@@ -18324,7 +18324,7 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
  * 
  */
     __pyx_t_4 = (__pyx_v_idx + __pyx_v_num_randoms);
-    *((float *) ( /* dim=0 */ (__pyx_v_result.data + __pyx_t_4 * __pyx_v_result.strides[0]) )) = __pyx_v_end;
+    *((int *) ( /* dim=0 */ (__pyx_v_result.data + __pyx_t_4 * __pyx_v_result.strides[0]) )) = __pyx_v_end;
 
     /* "robo_utils/core.pyx":87
  *             result[idx + j] = generate_random(start, end)
@@ -18339,7 +18339,7 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
   /* "robo_utils/core.pyx":68
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cdef void generate_random_intervals_each(float[:] boundaries, float[:] result, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ * cdef void generate_random_intervals_each(int[:] boundaries, int[:] result, int num_randoms) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Generate random intervals for a single batch
  */
@@ -18360,7 +18360,7 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
 /* "robo_utils/core.pyx":91
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef void generate_random_intervals_batch_c(float[:, :] boundaries_batch, float[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ * cpdef void generate_random_intervals_batch_c(int[:, :] boundaries_batch, int[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Generate random intervals for a batch of boundaries
  */
@@ -18601,7 +18601,7 @@ __pyx_f_10robo_utils_4core_generate_random_intervals_each(__pyx_t_4, __pyx_t_5, 
   /* "robo_utils/core.pyx":91
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef void generate_random_intervals_batch_c(float[:, :] boundaries_batch, float[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ * cpdef void generate_random_intervals_batch_c(int[:, :] boundaries_batch, int[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Generate random intervals for a batch of boundaries
  */
@@ -18630,7 +18630,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-PyDoc_STRVAR(__pyx_doc_10robo_utils_4core_2generate_random_intervals_batch_c, "\n    Generate random intervals for a batch of boundaries\n\n    Args:\n        boundaries_batch (float[:, :]): input boundaries, shape (B, N)\n        result_batch (float[:, :]): output random values, shape (B, (N-1) * num_randoms)\n        num_randoms (int): number of random values to generate per interval\n    ");
+PyDoc_STRVAR(__pyx_doc_10robo_utils_4core_2generate_random_intervals_batch_c, "\n    Generate random intervals for a batch of boundaries\n\n    Args:\n        boundaries_batch (int[:, :]): input boundaries, shape (B, N)\n        result_batch (int[:, :]): output random values, shape (B, (N-1) * num_randoms)\n        num_randoms (int): number of random values to generate per interval\n    ");
 static PyMethodDef __pyx_mdef_10robo_utils_4core_3generate_random_intervals_batch_c = {"generate_random_intervals_batch_c", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_10robo_utils_4core_3generate_random_intervals_batch_c, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_10robo_utils_4core_2generate_random_intervals_batch_c};
 static PyObject *__pyx_pw_10robo_utils_4core_3generate_random_intervals_batch_c(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
@@ -18716,8 +18716,8 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
       values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
     }
-    __pyx_v_boundaries_batch = __Pyx_PyObject_to_MemoryviewSlice_dsds_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_boundaries_batch.memview)) __PYX_ERR(0, 91, __pyx_L3_error)
-    __pyx_v_result_batch = __Pyx_PyObject_to_MemoryviewSlice_dsds_float(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_result_batch.memview)) __PYX_ERR(0, 91, __pyx_L3_error)
+    __pyx_v_boundaries_batch = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_boundaries_batch.memview)) __PYX_ERR(0, 91, __pyx_L3_error)
+    __pyx_v_result_batch = __Pyx_PyObject_to_MemoryviewSlice_dsds_int(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_result_batch.memview)) __PYX_ERR(0, 91, __pyx_L3_error)
     __pyx_v_num_randoms = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_num_randoms == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 91, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
@@ -20052,7 +20052,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "robo_utils/core.pyx":91
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef void generate_random_intervals_batch_c(float[:, :] boundaries_batch, float[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ * cpdef void generate_random_intervals_batch_c(int[:, :] boundaries_batch, int[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Generate random intervals for a batch of boundaries
  */
@@ -21144,7 +21144,7 @@ if (!__Pyx_RefNanny) {
   /* "robo_utils/core.pyx":91
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef void generate_random_intervals_batch_c(float[:, :] boundaries_batch, float[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
+ * cpdef void generate_random_intervals_batch_c(int[:, :] boundaries_batch, int[:, :] result_batch, int num_randoms) nogil:             # <<<<<<<<<<<<<<
  *     """
  *     Generate random intervals for a batch of boundaries
  */
