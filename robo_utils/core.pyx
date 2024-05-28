@@ -83,8 +83,8 @@ cdef void generate_random_intervals_each(float[:] boundaries, float[:] result, i
         end = boundaries[i + 1]
         for j in range(num_randoms):
             result[idx + j] = generate_random(start, end)
-        
-        idx += num_randoms
+        result[idx + num_randoms] = end
+        idx += (num_randoms + 1)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
