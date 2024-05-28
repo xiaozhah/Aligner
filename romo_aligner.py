@@ -284,7 +284,7 @@ class RoMoAligner(nn.Module):
             mat_p_f (torch.FloatTensor): The soft alignment matrix, with a shape of (B, I, J).
             hard_mat_p_f (torch.FloatTensor): The hard alignment matrix, with a shape of (B, I, J).
             expanded_text_embeddings (torch.FloatTensor): The expanded text embeddings, with a shape of (B, J, C1).
-            dur_by_rough (torch.FloatTensor): The duration predicted by the rough aligner, with a shape of (B, I).
+            log_dur_by_rough (torch.FloatTensor): The log duration predicted by the rough aligner, with a shape of (B, I).
             dur_by_mobo (torch.FloatTensor): The duration searched by the MoBo aligner (hard alignment mode), with a shape of (B, I).
         """
         text_hiddens, mel_hiddens = self.encoder(
@@ -292,7 +292,7 @@ class RoMoAligner(nn.Module):
         )
 
         if not self.skip_rough_aligner:
-            dur_by_rough, int_dur_by_rough = self.rough_aligner(
+            log_dur_by_rough, int_dur_by_rough = self.rough_aligner(
                 text_hiddens, mel_hiddens, text_mask, mel_mask
             )
 
@@ -308,7 +308,7 @@ class RoMoAligner(nn.Module):
         else:
             selected_mel_hiddens = mel_hiddens
             selected_boundary_indices_mask = mel_mask
-            dur_by_rough = None
+            log_dur_by_rough = None
 
         # Run a fine-grained MoBoAligner
         mat_p_d, hard_mat_p_d = self.mobo_aligner(
@@ -340,7 +340,7 @@ class RoMoAligner(nn.Module):
             mat_p_f,  # has grad
             hard_mat_p_f,  # no grad
             expanded_text_embeddings,  # has grad
-            dur_by_rough,  # has grad
+            log_dur_by_rough,  # has grad
             dur_by_mobo,  # no grad
         )
 
@@ -392,7 +392,7 @@ if __name__ == "__main__":
         soft_alignment,
         hard_alignment,
         expanded_text_embeddings,
-        dur_by_rough,
+        log_dur_by_rough,
         dur_by_mobo,
     ) = aligner(
         text_embeddings,
@@ -408,8 +408,7 @@ if __name__ == "__main__":
 
     # Backward pass test
     dur_by_mobo = (dur_by_mobo + 1).log()  # computed by hard alignment, no gradient
-    dur_by_rough = (dur_by_rough + 1).log()
-    dur_loss = F.mse_loss(dur_by_rough, dur_by_mobo, reduction="mean")
+    dur_loss = F.mse_loss(log_dur_by_rough, dur_by_mobo, reduction="mean")
     loss = dur_loss + expanded_text_embeddings.mean()
     with torch.autograd.detect_anomaly():
         loss.backward()

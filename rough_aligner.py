@@ -27,7 +27,7 @@ class RoughAligner(nn.Module):
             mel_mask (torch.Tensor): The mel mask of shape (B, J).
 
         Returns:
-            float_dur (torch.Tensor): The float durations of each text token, with shape (B, I), which the sum of each row is equal to the corresponding mel length.
+            log_dur (torch.Tensor): The float durations of each text token, with shape (B, I), which the sum of each row may not be equal to the corresponding mel length.
             int_dur (torch.Tensor): The integer durations of each text token, with shape (B, I), which the sum of each row is equal to the corresponding mel length.
         """
 
@@ -36,14 +36,12 @@ class RoughAligner(nn.Module):
         )
         x = x * text_mask.unsqueeze(-1)
         x = self.final_layer(x).squeeze(-1)
-        x = F.sigmoid(x) * text_mask
-        norm_dur = x / x.sum(dim=1, keepdim=True)
+        log_dur = F.relu(x) * text_mask
 
         T = mel_mask.sum(dim=1)
-        float_dur = norm_dur * T.unsqueeze(1)
-        int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
+        int_dur = robo_utils.float_to_int_duration(log_dur.exp(), T, text_mask)
 
-        return float_dur, int_dur
+        return log_dur, int_dur
 
 
 if __name__ == "__main__":
