@@ -60,6 +60,7 @@ cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] ma
         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])
 
 cdef int generate_random(int start, int end) nogil:
+    # generate a random integer in [start, end)
     return start + <int>(<float>(end - start) * (rand() / float(RAND_MAX)))
 
 @cython.cdivision(True)
@@ -81,6 +82,8 @@ cdef void generate_random_intervals_each(int[:] boundaries, int[:] result, int n
     for i in range(N - 1):
         start = boundaries[i]
         end = boundaries[i + 1]
+        if end == 0:
+            break
         for j in range(num_randoms):
             result[idx + j] = generate_random(start, end)
         result[idx + num_randoms] = end
