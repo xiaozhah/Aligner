@@ -101,6 +101,7 @@ class RoMoAligner(nn.Module):
         self.mobo_aligner = MoBoAligner(
             attention_dim, attention_dim, attention_dim, noise_scale, max_dur
         )
+        self.max_dur = max_dur
 
         if skip_text_conformer or skip_mel_conformer:
             warnings.warn(
@@ -303,7 +304,7 @@ class RoMoAligner(nn.Module):
             ) = self.select_mel_hiddens(mel_hiddens, int_dur_by_rough, text_mask)
 
             if self.verbose:
-                cal_max_hidden_memory_size(selected_boundary_indices, text_mask)
+                cal_max_hidden_memory_size(selected_boundary_indices, self.max_dur, text_mask)
         else:
             selected_mel_hiddens = mel_hiddens
             selected_boundary_indices_mask = mel_mask

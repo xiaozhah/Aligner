@@ -310,10 +310,10 @@ def calculate_tensor_memory_size(shape, dtype):
     return memory_size_in_mb
 
 
-def cal_max_hidden_memory_size(selected_boundary_indices, text_mask):
+def cal_max_hidden_memory_size(selected_boundary_indices, D, text_mask):
     B, K = selected_boundary_indices.shape
     _, I = text_mask.shape
-    shape = (B, I, K, K)  # max tensor shape in MoBo aligner
+    shape = (B, I, D, K)  # max tensor shape in MoBo aligner
     dtype = torch.float32
     memory_size_mb = calculate_tensor_memory_size(shape, dtype)
     print(
