@@ -1,6 +1,9 @@
 cimport cython
+
 from cython.parallel import prange
+
 import numpy as np
+
 from libc.stdlib cimport rand, RAND_MAX
 from libc.math cimport floor
 
@@ -23,17 +26,15 @@ cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:]
     cdef int I = dur.shape[0]
     cdef float float_sum = 0
     cdef int int_sum = 0, i, rounded_dur, valid_count
-
     valid_count = 0
+
     for i in range(I):
         if mask[i] == 1:
             valid_count += 1
             float_sum += dur[i]
             rounded_dur = round_to_int(float_sum - int_sum)
-            
             if rounded_dur <= 0:
                 rounded_dur = 1  # Ensure each duration is greater than 0
-            
             int_dur[i] = rounded_dur
             int_sum += rounded_dur
         else:
@@ -51,8 +52,7 @@ cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:]
             else:
                 remaining_time += int_dur[j] - 1
                 int_dur[j] = 1
-                j -= 1
-
+            j -= 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -65,14 +65,13 @@ cpdef void float_to_int_duration_batch_c(float[:, :] dur, int[:] T, int[:, :] ma
         int_dur (int[:, :]): int duration, shape (B, I)
     """
     cdef int B = dur.shape[0]
-    
     cdef int i
     for i in prange(B, nogil=True):
         float_to_int_duration_each(dur[i], int_dur[i], T[i], mask[i])
 
 cdef int generate_random(int start, int end) nogil:
     # generate a random integer in [start, end)
-    return start + <int>(<float>(end - start) * (rand() / float(RAND_MAX)))
+    return start + <int>(<float>(end - start) * (rand() / <float>RAND_MAX))
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -112,7 +111,6 @@ cpdef void generate_random_intervals_batch_c(int[:, :] boundaries_batch, int[:, 
         num_randoms (int): number of random values to generate per interval
     """
     cdef int B = boundaries_batch.shape[0]
-
     cdef int i
     for i in prange(B, nogil=True):
         generate_random_intervals_each(boundaries_batch[i], result_batch[i], num_randoms)
