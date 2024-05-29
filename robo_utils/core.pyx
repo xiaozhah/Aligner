@@ -23,7 +23,7 @@ cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:]
     cdef int I = dur.shape[0]
     cdef float float_sum = 0
     cdef int int_sum = 0, i, rounded_dur, valid_count
-    
+
     valid_count = 0
     for i in range(I):
         if mask[i] == 1:
@@ -38,10 +38,21 @@ cdef void float_to_int_duration_each(float[:] dur, int[:] int_dur, int T, int[:]
             int_sum += rounded_dur
         else:
             break
-    
-    # Adjust the last valid element, so int_dur matches the total duration
+
+    # Adjust the durations to ensure they are valid
+    cdef int remaining_time, j
     if valid_count > 0:
-        int_dur[valid_count - 1] += T - int_sum
+        remaining_time = T - int_sum
+        j = valid_count - 1
+        while j >= 0:
+            if int_dur[j] + remaining_time >= 1:
+                int_dur[j] += remaining_time
+                break
+            else:
+                remaining_time += int_dur[j] - 1
+                int_dur[j] = 1
+                j -= 1
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
