@@ -16,6 +16,17 @@ class RoughAligner(nn.Module):
         )
         self.final_layer = LinearNorm(attention_dim, 1)
 
+    @torch.no_grad()
+    def norm_dur(self, log_dur, text_mask, T):
+        """
+        make the sum of dur exactly equal to T
+        """
+        log_dur_masked = log_dur.masked_fill(~text_mask, -float("inf"))
+        float_dur = (
+            log_dur_masked - log_dur_masked.logsumexp(1, keepdims=True)
+        ).exp() * T.unsqueeze(1)
+        return float_dur
+
     def forward(self, text_embeddings, mel_embeddings, text_mask, mel_mask):
         """
         Compute the normalized durations of each text token based on the cross-attention of the text and mel embeddings.
@@ -39,7 +50,8 @@ class RoughAligner(nn.Module):
         log_dur = F.relu(x) * text_mask
 
         T = mel_mask.sum(dim=1)
-        int_dur = robo_utils.float_to_int_duration(log_dur.exp(), T, text_mask)
+        float_dur = self.norm_dur(log_dur, text_mask, T)
+        int_dur = robo_utils.float_to_int_duration(float_dur, T, text_mask)
 
         return log_dur, int_dur
 
