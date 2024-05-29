@@ -33,11 +33,16 @@ def test_generate_random_intervals_batch():
 
     # 定义一个包含多个批次边界值的数组
     boundaries_batch = torch.tensor([
-        [1, 10, 20, 50, 70],
+        [10, 20, 50, 70],
+        [10, 20, 0, 0],
     ]).int()
 
-    result_batch = robo_utils.generate_random_intervals(boundaries_batch, 1)
+    result_batch = robo_utils.generate_random_intervals(boundaries_batch, 2)
     print(result_batch)
+    """
+    tensor([[ x,  x, 10, x, x, 20,  x,  x, 50,  x,  x, 70],
+            [ x,  x, 10, x, x, 20,  0,  0,  0,  0,  0,  0]])
+    """
 
 if __name__ == "__main__":
     test_float_to_int_duration_batch()
