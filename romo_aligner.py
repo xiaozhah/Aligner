@@ -30,20 +30,17 @@ class RoMoAligner(nn.Module):
         dropout=0.1,
         noise_scale=2.0,  # the scale of the noise used in the MoBo aligner
         max_dur=10,  # the maximum duration of the MoBo aligner
-        num_boundary_candidates=3,  # number of boundary candidates of each text token
+        num_candidate_boundaries=3,  # number of candidate boundaries inserted between every two tokens
         verbose=False,  # whether to print the memory size of the hidden state
     ):
         super(RoMoAligner, self).__init__()
 
-        if num_boundary_candidates < 3:
+        if num_candidate_boundaries < 1:
             raise ValueError(
-                "The number of boundary candidates must be greater than or equal to 3."
+                "The number of boundary candidates must be greater than or equal to 1."
             )
 
-        if num_boundary_candidates % 2 != 1:  # for Rough Aligner
-            raise ValueError("The number of boundary candidates must be an odd number.")
-
-        if num_boundary_candidates > max_dur:  # for MoBo Aligner
+        if num_candidate_boundaries + 1 > max_dur:  # for MoBo Aligner
             raise ValueError(
                 "The number of boundary candidates must be less than or equal to max_dur. Trt to decrease the number of boundary candidates or increase the max_dur."
             )
@@ -107,12 +104,10 @@ class RoMoAligner(nn.Module):
             warnings.warn(
                 "Beacause alignment need positional information, please ensure that the input to the RoMoAligner contains positional information along the time dimension."
             )
+        self.num_candidate_boundaries = num_candidate_boundaries
         self.skip_text_conformer = skip_text_conformer
         self.skip_mel_conformer = skip_mel_conformer
         self.skip_rough_aligner = skip_rough_aligner
-        self.num_boundary_candidates_one_side = (
-            num_boundary_candidates - 1
-        ) // 2  # the number of boundary candidates on each side of the current boundary
         self.verbose = verbose
 
     def encoder(self, text_embeddings, mel_embeddings, text_mask, mel_mask):
@@ -159,7 +154,7 @@ class RoMoAligner(nn.Module):
         boundary_index = (int_dur.cumsum(1) - 1) * text_mask
         min_index, max_index = get_valid_max(boundary_index, text_mask)
 
-        indices = robo_utils.generate_random_intervals(boundary_index, self.num_boundary_candidates_one_side)        
+        indices = robo_utils.generate_random_intervals(boundary_index, self.num_candidate_boundaries)        
         indices = torch.clamp(indices, min=min_index, max=max_index)
 
         unique_indices = (torch.unique(i) for i in indices)
@@ -350,7 +345,7 @@ if __name__ == "__main__":
         conformer_dec_kernel_size=31,
         skip_text_conformer=False,
         skip_mel_conformer=False,
-        num_boundary_candidates=3,  # number of boundary candidates of each text token
+        num_candidate_boundaries=3,
         verbose=True,
     )
 
