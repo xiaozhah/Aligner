@@ -82,7 +82,7 @@ cdef void generate_random_intervals_each(int[:] boundaries, int[:] result, int n
     for i in range(N - 1):
         start = boundaries[i]
         end = boundaries[i + 1]
-        if end == 0:
+        if end == 0 and i > 0:
             break
         for j in range(num_randoms):
             result[idx + j] = generate_random(start, end)

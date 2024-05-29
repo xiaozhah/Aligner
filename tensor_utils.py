@@ -237,14 +237,17 @@ def get_valid_max(tensor, mask, inf_value=1e6):
         inf_value (float): The value to use for masking invalid elements.
 
     Returns:
-        min_values (torch.FloatTensor): The minimum value of the valid elements in each sample, shape (B,)
-        max_values (torch.FloatTensor): The maximum value of the valid elements in each sample, shape (B,)
+        min_values (torch.FloatTensor): The minimum value of the valid elements in each sample, shape (B, 1)
+        max_values (torch.FloatTensor): The maximum value of the valid elements in each sample, shape (B, 1)
     """
     masked_tensor = tensor.masked_fill(~mask, inf_value)
     min_values, _ = torch.min(masked_tensor, dim=1)
 
     masked_tensor = tensor.masked_fill(~mask, -inf_value)
     max_values, _ = torch.max(masked_tensor, dim=1)
+
+    min_values = min_values.unsqueeze(1)
+    max_values = max_values.unsqueeze(1)
 
     return min_values, max_values
 

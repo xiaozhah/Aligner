@@ -11,7 +11,7 @@ from layers import LinearNorm
 from rough_aligner import RoughAligner
 from mobo_aligner import MoBoAligner
 from tensor_utils import get_mat_p_f, get_valid_max, cal_max_hidden_memory_size
-
+import robo_utils
 
 class RoMoAligner(nn.Module):
     def __init__(
@@ -156,27 +156,11 @@ class RoMoAligner(nn.Module):
             unique_indices_mask (torch.BoolTensor): The mask for the possible boundaries, with a shape of (B, I, K).
         """
 
-        B = int_dur.shape[0]
-
         boundary_index = (int_dur.cumsum(1) - 1) * text_mask
-        offsets = (
-            torch.arange(
-                -self.num_boundary_candidates_one_side,
-                self.num_boundary_candidates_one_side + 1,
-                device=boundary_index.device,
-            )
-            .unsqueeze(0)
-            .unsqueeze(-1)
-        )
-        # TODO can decrease the number of boundary candidates by selecting the offsets
-        indices = boundary_index.unsqueeze(1) + offsets
+        min_index, max_index = get_valid_max(boundary_index, text_mask)
 
-        min_indices, max_indices = get_valid_max(boundary_index, text_mask)
-        min_indices = min_indices.unsqueeze(1).unsqueeze(2)
-        max_indices = max_indices.unsqueeze(1).unsqueeze(2)
-
-        indices = torch.clamp(indices, min=min_indices, max=max_indices)
-        indices = indices.view(B, -1)
+        indices = robo_utils.generate_random_intervals(boundary_index, self.num_boundary_candidates_one_side)        
+        indices = torch.clamp(indices, min=min_index, max=max_index)
 
         unique_indices = (torch.unique(i) for i in indices)
         unique_indices = torch.nn.utils.rnn.pad_sequence(

@@ -18236,6 +18236,7 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
   int __pyx_t_7;
   int __pyx_t_8;
   int __pyx_t_9;
+  int __pyx_t_10;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -18278,7 +18279,7 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
  *     for i in range(N - 1):
  *         start = boundaries[i]             # <<<<<<<<<<<<<<
  *         end = boundaries[i + 1]
- *         if end == 0:
+ *         if end == 0 and i > 0:
  */
     __pyx_t_4 = __pyx_v_i;
     __pyx_v_start = (*((int *) ( /* dim=0 */ (__pyx_v_boundaries.data + __pyx_t_4 * __pyx_v_boundaries.strides[0]) )));
@@ -18287,7 +18288,7 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
  *     for i in range(N - 1):
  *         start = boundaries[i]
  *         end = boundaries[i + 1]             # <<<<<<<<<<<<<<
- *         if end == 0:
+ *         if end == 0 and i > 0:
  *             break
  */
     __pyx_t_4 = (__pyx_v_i + 1);
@@ -18296,16 +18297,24 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
     /* "robo_utils/core.pyx":85
  *         start = boundaries[i]
  *         end = boundaries[i + 1]
- *         if end == 0:             # <<<<<<<<<<<<<<
+ *         if end == 0 and i > 0:             # <<<<<<<<<<<<<<
  *             break
  *         for j in range(num_randoms):
  */
-    __pyx_t_5 = (__pyx_v_end == 0);
+    __pyx_t_6 = (__pyx_v_end == 0);
+    if (__pyx_t_6) {
+    } else {
+      __pyx_t_5 = __pyx_t_6;
+      goto __pyx_L6_bool_binop_done;
+    }
+    __pyx_t_6 = (__pyx_v_i > 0);
+    __pyx_t_5 = __pyx_t_6;
+    __pyx_L6_bool_binop_done:;
     if (__pyx_t_5) {
 
       /* "robo_utils/core.pyx":86
  *         end = boundaries[i + 1]
- *         if end == 0:
+ *         if end == 0 and i > 0:
  *             break             # <<<<<<<<<<<<<<
  *         for j in range(num_randoms):
  *             result[idx + j] = generate_random(start, end)
@@ -18315,23 +18324,23 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
       /* "robo_utils/core.pyx":85
  *         start = boundaries[i]
  *         end = boundaries[i + 1]
- *         if end == 0:             # <<<<<<<<<<<<<<
+ *         if end == 0 and i > 0:             # <<<<<<<<<<<<<<
  *             break
  *         for j in range(num_randoms):
  */
     }
 
     /* "robo_utils/core.pyx":87
- *         if end == 0:
+ *         if end == 0 and i > 0:
  *             break
  *         for j in range(num_randoms):             # <<<<<<<<<<<<<<
  *             result[idx + j] = generate_random(start, end)
  *         result[idx + num_randoms] = end
  */
-    __pyx_t_6 = __pyx_v_num_randoms;
-    __pyx_t_7 = __pyx_t_6;
-    for (__pyx_t_8 = 0; __pyx_t_8 < __pyx_t_7; __pyx_t_8+=1) {
-      __pyx_v_j = __pyx_t_8;
+    __pyx_t_7 = __pyx_v_num_randoms;
+    __pyx_t_8 = __pyx_t_7;
+    for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
+      __pyx_v_j = __pyx_t_9;
 
       /* "robo_utils/core.pyx":88
  *             break
@@ -18340,9 +18349,9 @@ static void __pyx_f_10robo_utils_4core_generate_random_intervals_each(__Pyx_memv
  *         result[idx + num_randoms] = end
  *         idx += (num_randoms + 1)
  */
-      __pyx_t_9 = __pyx_f_10robo_utils_4core_generate_random(__pyx_v_start, __pyx_v_end); if (unlikely(__pyx_t_9 == ((int)-1) && __Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 88, __pyx_L1_error)
+      __pyx_t_10 = __pyx_f_10robo_utils_4core_generate_random(__pyx_v_start, __pyx_v_end); if (unlikely(__pyx_t_10 == ((int)-1) && __Pyx_ErrOccurredWithGIL())) __PYX_ERR(0, 88, __pyx_L1_error)
       __pyx_t_4 = (__pyx_v_idx + __pyx_v_j);
-      *((int *) ( /* dim=0 */ (__pyx_v_result.data + __pyx_t_4 * __pyx_v_result.strides[0]) )) = __pyx_t_9;
+      *((int *) ( /* dim=0 */ (__pyx_v_result.data + __pyx_t_4 * __pyx_v_result.strides[0]) )) = __pyx_t_10;
     }
 
     /* "robo_utils/core.pyx":89

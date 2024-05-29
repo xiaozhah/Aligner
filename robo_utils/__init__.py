@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn.functional as F
 from .robo_utils.core import float_to_int_duration_batch_c, generate_random_intervals_batch_c
 
 def float_to_int_duration(dur, T, mask):  
@@ -23,6 +24,8 @@ def float_to_int_duration(dur, T, mask):
     return torch.from_numpy(int_dur).to(device=device, dtype=torch.long)
 
 def generate_random_intervals(boundaries_batch, num_randoms):
+    boundaries_batch = F.pad(boundaries_batch, (1, 0, 0, 0))
+    
     device = boundaries_batch.device
     boundaries_batch = boundaries_batch.data.cpu().numpy().astype(np.int32)
 
