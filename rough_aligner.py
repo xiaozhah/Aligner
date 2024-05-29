@@ -14,7 +14,6 @@ class RoughAligner(nn.Module):
         self.cross_attention = MultiHeadedAttention(
             attention_head, attention_dim, dropout
         )
-        self.final_layer = LinearNorm(attention_head, 1)
 
     @torch.no_grad()
     def norm_dur(self, log_dur, text_mask, T):
@@ -43,11 +42,11 @@ class RoughAligner(nn.Module):
         """
 
         self.cross_attention(
-            mel_embeddings, text_embeddings, text_embeddings, ~text_mask.unsqueeze(1)
+            mel_embeddings, text_embeddings, text_embeddings, text_mask.unsqueeze(1)
         )
         attn = self.cross_attention.attn
         x = attn.sum(2).transpose(1, 2) # (B, I, head)
-        x = self.final_layer(x).squeeze(-1)
+        x = x.mean(-1) # (B, I)
         log_dur = F.relu(x) * text_mask
 
         T = mel_mask.sum(dim=1)
