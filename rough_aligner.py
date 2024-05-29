@@ -14,7 +14,7 @@ class RoughAligner(nn.Module):
         self.cross_attention = MultiHeadedAttention(
             attention_head, attention_dim, dropout
         )
-        self.final_layer = LinearNorm(attention_dim, 1)
+        self.final_layer = LinearNorm(attention_head, 1)
 
     @torch.no_grad()
     def norm_dur(self, log_dur, text_mask, T):
@@ -42,10 +42,11 @@ class RoughAligner(nn.Module):
             int_dur (torch.Tensor): The integer durations of each text token, with shape (B, I), which the sum of each row is equal to the corresponding mel length.
         """
 
-        x = self.cross_attention(
-            text_embeddings, mel_embeddings, mel_embeddings, ~mel_mask.unsqueeze(1)
+        self.cross_attention(
+            mel_embeddings, text_embeddings, text_embeddings, ~text_mask.unsqueeze(1)
         )
-        x = x * text_mask.unsqueeze(-1)
+        attn = self.cross_attention.attn
+        x = attn.sum(2).transpose(1, 2) # (B, I, head)
         x = self.final_layer(x).squeeze(-1)
         log_dur = F.relu(x) * text_mask
 
