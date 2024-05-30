@@ -47,9 +47,9 @@ class MoBoAligner(nn.Module):
             raise ValueError(
                 f"Direction must be a subset of 'forward' or 'backward', {direction} is not allowed."
             )
-        if not torch.all(I < J):
+        if not torch.all(I <= J):
             raise ValueError(
-                f"The length of text hiddens is greater than or equal to the length of mel hiddens, which is not allowed."
+                f"The length of text hiddens is greater than the length of mel hiddens, which is not allowed."
             )
         if not torch.all(I * self.max_dur >= J):
             raise ValueError(
