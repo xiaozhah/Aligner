@@ -68,19 +68,6 @@ We welcome contributions to RoMoAligner! If you have any bug reports, feature re
 
 RoMoAligner is released under the [MIT License](LICENSE).
 
-## Citation
-
-If you use RoMoAligner in your research, please cite our paper:
-
-```bibtex
-@inproceedings{yourlastname2023romoaligner,
-  title={RoMoAligner: Robust and Monotonic Alignment for Non-Autoregressive TTS},
-  author={Your Name and Co-authors},
-  booktitle={Conference or Journal Name},
-  year={2023}
-}
-```
-
 ## Acknowledgements
 
 We would like to thank the open-source community for their valuable contributions and feedback. Special thanks to the developers of [ESPnet](https://github.com/espnet/espnet) and [PyTorch](https://pytorch.org/) for their excellent libraries.
