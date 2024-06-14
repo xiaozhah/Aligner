@@ -45,20 +45,14 @@ soft_alignment, hard_alignment, expanded_text_embeddings, dur_by_rough, dur_by_m
 )
 ```
 
-For more detailed usage and examples, please refer to the [documentation](docs/README.md).
-
 ## Model Architecture
 
 RoMoAligner consists of two main components:
 
 1. **RoughAligner**: A cross-modal attention-based module that estimates the coarse boundaries of each text token in the mel spectrogram.
-2. **MoBoAligner**: A fine-grained monotonic boundary aligner that refines the alignment within the selected boundaries.
+2. **MoBoAligner (not official)**: A fine-grained monotonic boundary aligner that refines the alignment within the selected boundaries.
 
 The rough aligner first provides an initial estimation of the text token durations, which are then used to select the most relevant mel frames for each token. MoBoAligner then performs a more precise alignment within these selected frames, ensuring the monotonicity and continuity of the alignment.
-
-## Performance
-
-RoMoAligner has been tested on various TTS datasets and has shown significant improvements in alignment accuracy and synthesis quality compared to previous methods. For detailed performance results and comparisons, please refer to our [paper](https://arxiv.org/abs/your_paper_link).
 
 ## Contributing
 
