@@ -2,6 +2,9 @@ import torch
 from torch import nn
 
 class ForwardSumLoss(nn.Module):
+    """
+    from https://github.com/coqui-ai/TTS/blob/dbf1a08a0d4e47fdad6172e433eeb34bc6b13b4e/TTS/tts/layers/losses.py#L279C1-L280C1
+    """
     def __init__(self, blank_logprob=-1):
         super().__init__()
         self.log_softmax = torch.nn.LogSoftmax(dim=3)

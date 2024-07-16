@@ -26,6 +26,7 @@ class OTAligner(nn.Module):
         torch.IntTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor
     ]:
         """Aligner forward pass.
+        from https://github.com/coqui-ai/TTS/blob/dbf1a08a0d4e47fdad6172e433eeb34bc6b13b4e/TTS/tts/models/forward_tts.py#L525
 
         1. Compute a mask to apply to the attention map.
         2. Run the alignment network.
