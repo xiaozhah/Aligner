@@ -1,67 +1,52 @@
-# RoMoAligner: Robust and Monotonic Alignment for Non-Autoregressive TTS
+# Text-to-Speech Alignment Project
 
-RoMoAligner is a novel alignment model designed for non-autoregressive Text-to-Speech (TTS) synthesis. It combines a rough aligner and a fine-grained monotonic boundary aligner (MoBoAligner) to achieve fast and accurate alignment between text and speech.
+## Project Overview
+This project explores and implements various text-to-speech (TTS) alignment techniques, aiming to improve the quality and efficiency of TTS systems. Our work spans multiple approaches, each addressing different aspects of the alignment challenge.
 
-## Features
+## Project Structure
+This repository is organized into three main branches, each representing a distinct approach to TTS alignment:
 
-- Two-stage alignment: RoMoAligner first uses a rough aligner to estimate the coarse boundaries of each text token, then applies MoBoAligner to refine the alignment within the selected boundaries.
-- Monotonic alignment: MoBoAligner ensures the monotonicity and continuity of the alignment, which is crucial for TTS.
-- Robust and efficient: By selecting the most relevant mel frames for each text token, RoMoAligner reduces the computational complexity and improves the robustness of the alignment.
-- Easy integration: RoMoAligner can be easily integrated into any non-autoregressive TTS system to provide accurate duration information.
+1. [`MoBoAligner`](https://github.com/xiaozhah/Aligner/tree/MoBoAligner)
+   - **Status**: Completed, for reference only
+   - **Description**: Unofficial implementation of the "MoBoAligner: a Neural Alignment Model for Non-autoregressive TTS with Monotonic Boundary Search" paper
+   - **Purpose**: Learning and baseline comparison
+   - **Limitation**: Not suitable for large-scale applications due to maximum duration constraints
 
-## Installation
+2. [`RoMoAligner`](https://github.com/xiaozhah/Aligner/tree/RoMoAligner)
+   - **Status**: Development halted, for reference only
+   - **Description**: Experimental improvement attempt combining Rough Alignment with MoBoAligner
+   - **Purpose**: Explore self-supervised learning techniques in TTS alignment
+   - **Limitation**: Performance improvements were limited and did not meet expectations
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/RoMoAligner.git
-   cd RoMoAligner
-   ```
+3. [`OTA`](https://github.com/xiaozhah/Aligner/tree/OTA) 👈 **Current Focus**
+   - **Status**: In active planning and early development
+   - **Description**: Adaptation of the "One TTS Alignment To Rule Them All" (OTA) method for implicit pause modeling
+   - **Goal**: Develop a solution for handling implicit pauses without relying on explicit silence tokens
+   - **Progress**: Conceptual development and planning phase
 
-2. Install the required dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+## Current Focus
+Our primary focus is on the `OTA` branch, where we're exploring ways to adapt the OTA method for improved alignment, especially in handling implicit pauses in speech.
 
-3. Compile the Cython extension:
-   ```
-   python setup.py build_ext --inplace
-   ```
-
-## Usage
-
-```python
-from romo_aligner import RoMoAligner
-
-aligner = RoMoAligner(
-    text_channels, mel_channels, attention_dim, attention_head, dropout, noise_scale
-)
-
-soft_alignment, hard_alignment, expanded_text_embeddings, dur_by_rough, dur_by_mobo = aligner(
-    text_embeddings,
-    mel_embeddings,
-    text_mask,
-    mel_mask,
-    direction=["forward", "backward"],
-)
-```
-
-## Model Architecture
-
-RoMoAligner consists of two main components:
-
-1. **RoughAligner**: A cross-modal attention-based module that estimates the coarse boundaries of each text token in the mel spectrogram.
-2. **MoBoAligner (unofficial)**: A fine-grained monotonic boundary aligner that refines the alignment within the selected boundaries.
-
-The rough aligner first provides an initial estimation of the text token durations, which are then used to select the most relevant mel frames for each token. MoBoAligner then performs a more precise alignment within these selected frames, ensuring the monotonicity and continuity of the alignment.
+## How to Use This Repository
+1. Check out each branch for specific implementation details and progress.
+2. Refer to individual branch READMEs for setup and usage instructions.
+3. For the latest developments, focus on the `OTA` branch.
 
 ## Contributing
+We welcome contributions to any of our branches. If you're interested in contributing:
+1. Check the issues in the relevant branch for tasks you can help with.
+2. Fork the repository and create a pull request with your improvements.
+3. For major changes, please open an issue first to discuss what you would like to change.
 
-We welcome contributions to RoMoAligner! If you have any bug reports, feature requests, or suggestions, please open an issue on the [GitHub repository](https://github.com/yourusername/RoMoAligner/issues). If you'd like to contribute code, please fork the repository and submit a pull request.
+## Roadmap
+- [x] Implement MoBoAligner (unofficial implementation)
+- [x] Develop and test RoMoAligner
+- [ ] Adapt and implement OTA for implicit pause modeling
+- [ ] Conduct comparative studies across all methods
+- [ ] Refine and optimize the most promising approach
 
-## License
+## Acknowledgments
+- Original [MoBoAligner paper](https://www.isca-speech.org/archive/interspeech_2020/li20h_interspeech.html)
+- [OTA paper](https://arxiv.org/pdf/2108.10447)
 
-RoMoAligner is released under the [MIT License](LICENSE).
-
-## Acknowledgements
-
-We would like to thank the open-source community for their valuable contributions and feedback. Special thanks to the developers of [ESPnet](https://github.com/espnet/espnet) and [PyTorch](https://pytorch.org/) for their excellent libraries.
+We appreciate the support and interest from the TTS and speech processing community in advancing this research.
