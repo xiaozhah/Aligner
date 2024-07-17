@@ -89,5 +89,5 @@ class AlignmentNetwork(torch.nn.Module):
         if mask is not None:
             attn_logp.data.masked_fill_(~mask.bool().unsqueeze(2), -float("inf"))
 
-        attn = self.softmax(attn_logp)
+        attn = self.softmax(attn_logp) # TODO: twice softmax?
         return attn.squeeze(1), attn_logp.squeeze(1)
