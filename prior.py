@@ -50,12 +50,20 @@ def pytorch_beta_binomial_prior_distribution(phoneme_counts, mel_counts, scaling
     
     return pmf
 
+import numpy as np
+from scipy.stats import betabinom
+import time
+import torch
+import matplotlib.pyplot as plt
+
+# [Original, Refined, and PyTorch implementations remain unchanged]
+
 # Unified interface
-def compute_attn_prior(phoneme_count, mel_count, scaling_factor=1.0, method='refined'):
+def compute_attn_prior(phoneme_count, mel_count, scaling_factor=1.0, method='refined', device='cpu'):
     methods = {
         'original': original_beta_binomial_prior_distribution,
         'refined': refined_beta_binomial_prior_distribution,
-        'pytorch': lambda p, m, s: pytorch_beta_binomial_prior_distribution([p], [m], s, device='cpu')[0].cpu().numpy()
+        'pytorch': lambda p, m, s: pytorch_beta_binomial_prior_distribution([p], [m], s, device=device)[0].cpu().numpy()
     }
     
     if method not in methods:
@@ -64,21 +72,38 @@ def compute_attn_prior(phoneme_count, mel_count, scaling_factor=1.0, method='ref
     return methods[method](phoneme_count, mel_count, scaling_factor)
 
 # Benchmark function
-def benchmark(method, phoneme_count, mel_count, scaling_factor=1.0, runs=5):
+def benchmark(method, phoneme_count, mel_count, scaling_factor=1.0, runs=5, device='cpu'):
     times = []
     for _ in range(runs):
         start = time.time()
-        result = compute_attn_prior(phoneme_count, mel_count, scaling_factor, method=method)
+        result = compute_attn_prior(phoneme_count, mel_count, scaling_factor, method=method, device=device)
         end = time.time()
         times.append(end - start)
     return np.mean(times), result
 
-# Function to compare outputs
+# Function to compare outputs with detailed error analysis
 def compare_outputs(original_output, test_output, tolerance=1e-3):
-    return np.allclose(original_output, test_output, rtol=tolerance, atol=tolerance)
+    is_close = np.allclose(original_output, test_output, rtol=tolerance, atol=tolerance)
+    max_diff = np.max(np.abs(original_output - test_output))
+    mean_diff = np.mean(np.abs(original_output - test_output))
+    return is_close, max_diff, mean_diff
+
+# Function to compare all methods
+def compare_methods(phoneme_count, mel_count, scaling_factor=1.0, device='cpu'):
+    methods = ['original', 'refined', 'pytorch']
+    results = {method: compute_attn_prior(phoneme_count, mel_count, scaling_factor, method, device) for method in methods}
+    
+    print(f"\nComparison for P={phoneme_count}, M={mel_count}:")
+    for method1 in methods:
+        for method2 in methods[methods.index(method1)+1:]:
+            is_close, max_diff, mean_diff = compare_outputs(results[method1], results[method2])
+            print(f"{method1} vs {method2}:")
+            print(f"  Outputs match: {is_close}")
+            print(f"  Max difference: {max_diff:.6e}")
+            print(f"  Mean difference: {mean_diff:.6e}")
 
 # Main benchmark script
-def run_benchmark():
+def run_benchmark(device='cpu'):
     test_cases = [
         (10, 20),    # Small input
         (50, 100),   # Medium input
@@ -92,80 +117,57 @@ def run_benchmark():
     print("---------|------|-----------|-----------|---------|---------------")
 
     for P, M in test_cases:
-        original_time, original_output = benchmark('original', P, M)
+        original_time, original_output = benchmark('original', P, M, device=device)
         
         for method in methods:
-            time_taken, output = benchmark(method, P, M)
+            time_taken, output = benchmark(method, P, M, device=device)
             speedup = original_time / time_taken if method != 'original' else 1.0
-            outputs_match = compare_outputs(original_output, output)
+            is_close, _, _ = compare_outputs(original_output, output)
             
-            print(f"{P:8d} | {M:4d} | {method:9s} | {time_taken:.6f} | {speedup:.2f}x | {outputs_match}")
+            print(f"{P:8d} | {M:4d} | {method:9s} | {time_taken:.6f} | {speedup:.2f}x | {is_close}")
         
         print("---------|------|-----------|-----------|---------|---------------")
+        
+        compare_methods(P, M, device=device)
 
-    print("\nVerifying output consistency across all methods...")
-    all_match = all(
-        compare_outputs(
-            compute_attn_prior(P, M, method='original'),
-            compute_attn_prior(P, M, method=method)
-        )
-        for P, M in test_cases
-        for method in methods
-    )
-    
-    if all_match:
-        print("All outputs match within the specified tolerance.")
-    else:
-        print("WARNING: Not all outputs match. Please review the implementations for potential discrepancies.")
-
-# Visualization function
-def plot_distribution():
+# Enhanced visualization function
+def plot_distribution(phoneme_count, mel_count, scaling_factor=1.0, device='cpu'):
     import matplotlib.pyplot as plt
-
-    # Test parameters
-    phoneme_count = 50
-    mel_count = 200
-    scaling_factor = 1.0
-
-    # Compute attention prior
-    attn_prior = compute_attn_prior(phoneme_count, mel_count, scaling_factor)
-
-    # Visualize the attention prior
-    plt.figure(figsize=(10, 8))
-    plt.imshow(attn_prior, aspect='auto', origin='lower', cmap='viridis')
-    plt.colorbar(label='Probability')
-    plt.title(f'Attention Prior (Phonemes: {phoneme_count}, Mel frames: {mel_count})')
-    plt.xlabel('Phoneme index')
-    plt.ylabel('Mel frame index')
+    methods = ['original', 'pytorch']
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    
+    for i, method in enumerate(methods):
+        attn_prior = compute_attn_prior(phoneme_count, mel_count, scaling_factor, method=method, device=device)
+        im = axes[i].imshow(attn_prior, aspect='auto', origin='lower', cmap='viridis')
+        axes[i].set_title(f'{method.capitalize()} Method')
+        axes[i].set_xlabel('Phoneme index')
+        axes[i].set_ylabel('Mel frame index')
+        fig.colorbar(im, ax=axes[i])
+    
+    # Plot differences
+    diff = compute_attn_prior(phoneme_count, mel_count, scaling_factor, 'pytorch', device) - \
+           compute_attn_prior(phoneme_count, mel_count, scaling_factor, 'original', device)
+    im = axes[2].imshow(diff, aspect='auto', origin='lower', cmap='coolwarm', norm=plt.Normalize(vmin=-1e-3, vmax=1e-3))
+    axes[2].set_title('Difference (PyTorch - Original)')
+    axes[2].set_xlabel('Phoneme index')
+    axes[2].set_ylabel('Mel frame index')
+    fig.colorbar(im, ax=axes[2])
+    
     plt.tight_layout()
     plt.show()
 
-    # Print some statistics
-    print(f"Shape of attention prior: {attn_prior.shape}")
+    print(f"\nStatistics for PyTorch method:")
+    attn_prior = compute_attn_prior(phoneme_count, mel_count, scaling_factor, 'pytorch', device)
+    print(f"Shape: {attn_prior.shape}")
     print(f"Min value: {attn_prior.min():.6f}")
     print(f"Max value: {attn_prior.max():.6f}")
     print(f"Mean value: {attn_prior.mean():.6f}")
 
-    # Test with different scaling factor
-    scaling_factor = 0.5
-    attn_prior_scaled = compute_attn_prior(phoneme_count, mel_count, scaling_factor)
-
-    # Visualize the scaled attention prior
-    plt.figure(figsize=(10, 8))
-    plt.imshow(attn_prior_scaled, aspect='auto', origin='lower', cmap='viridis')
-    plt.colorbar(label='Probability')
-    plt.title(f'Scaled Attention Prior (SF: {scaling_factor})')
-    plt.xlabel('Phoneme index')
-    plt.ylabel('Mel frame index')
-    plt.tight_layout()
-    plt.show()
-
-    # Compare statistics
-    print(f"\nWith scaling factor {scaling_factor}:")
-    print(f"Min value: {attn_prior_scaled.min():.6f}")
-    print(f"Max value: {attn_prior_scaled.max():.6f}")
-    print(f"Mean value: {attn_prior_scaled.mean():.6f}")
+    # Print max difference
+    print(f"\nMax absolute difference between PyTorch and Original: {np.abs(diff).max():.6e}")
 
 if __name__ == "__main__":
-    run_benchmark()
-    plot_distribution()
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"Using device: {device}")
+    run_benchmark(device)
+    plot_distribution(50, 100, scaling_factor=1.0, device=device)
