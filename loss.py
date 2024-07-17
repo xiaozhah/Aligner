@@ -14,7 +14,7 @@ class ForwardSumLoss(nn.Module):
     def forward(self, attn_logprob, in_lens, out_lens):
         key_lens = in_lens
         query_lens = out_lens
-        attn_logprob_padded = torch.nn.functional.pad(input=attn_logprob, pad=(1, 0), value=self.blank_logprob)
+        attn_logprob_padded = torch.nn.functional.pad(input=attn_logprob.unsqueeze(1), pad=(1, 0), value=self.blank_logprob)
 
         total_loss = 0.0
         for bid in range(attn_logprob.shape[0]):

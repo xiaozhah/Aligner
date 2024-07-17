@@ -15,6 +15,19 @@ class OTAligner(nn.Module):
             in_key_channels=text_channels,
         )
         self.aligner_loss = ForwardSumLoss(blank_logprob=blank_logprob)
+        self.blank_logprob = blank_logprob
+
+    def interleave_with_blank(self, aligner_soft):
+        bsz, J, _ = aligner_soft.shape
+        x = (
+            torch.stack(
+                (aligner_soft, torch.full_like(aligner_soft, self.blank_logprob)), dim=2
+            )
+            .transpose(-2, -1)
+            .reshape(bsz, J, -1)
+        ) # interleave with blank
+        x = torch.cat((torch.full((2, 30, 1), fill_value=-1), x), dim=-1) # pad blank at the beginning
+        return x
 
     def _forward_aligner(
         self,
@@ -55,7 +68,7 @@ class OTAligner(nn.Module):
 
             - aligner_durations: :math:`[B, I]`
             - aligner_soft: :math:`[B, J, I]`
-            - aligner_logprob: :math:`[B, 1, J, I]`
+            - aligner_logprob: :math:`[B, J, I]`
             - aligner_mas: :math:`[B, J, I]`
         """
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(
@@ -65,11 +78,10 @@ class OTAligner(nn.Module):
             y.transpose(1, 2), x.transpose(1, 2), x_mask, attn_priors
         )
         aligner_mas = maximum_path(
-            aligner_soft.squeeze(1).transpose(1, 2).contiguous(),
+            aligner_soft.transpose(1, 2).contiguous(),
             attn_mask.squeeze(1).contiguous(),
         )
         aligner_durations = torch.sum(aligner_mas, -1).int()
-        aligner_soft = aligner_soft.squeeze(1)  # [B, T_max2, T_max]
         aligner_mas = aligner_mas.transpose(
             1, 2
         )  # [B, T_max, T_max2] -> [B, T_max2, T_max]
