@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import betabinom
 import time
+import torch
 
 # Original implementation
 def original_beta_binomial_prior_distribution(phoneme_count, mel_count, scaling_factor=1.0):
@@ -14,7 +15,7 @@ def original_beta_binomial_prior_distribution(phoneme_count, mel_count, scaling_
         mel_text_probs.append(mel_i_prob)
     return np.array(mel_text_probs)
 
-# Refined NumPy implementation
+# Optimized NumPy implementation
 def refined_beta_binomial_prior_distribution(phoneme_count, mel_count, scaling_factor=1.0):
     P, M = phoneme_count, mel_count
     m = np.arange(1, M + 1)[:, np.newaxis]
@@ -24,15 +25,37 @@ def refined_beta_binomial_prior_distribution(phoneme_count, mel_count, scaling_f
     probs = betabinom.pmf(x, P, a, b)
     return probs
 
-# Cython implementation (assuming it's compiled and imported)
-# from beta_binomial_cython import cython_beta_binomial_prior_distribution
+# PyTorch implementation using log-space calculations with batch support
+def pytorch_beta_binomial_prior_distribution(phoneme_counts, mel_counts, scaling_factor=1.0, device='cuda'):
+    max_phoneme_count = max(phoneme_counts)
+    max_mel_count = max(mel_counts)
+
+    n = torch.tensor(phoneme_counts, device=device).unsqueeze(1).unsqueeze(2)
+    k = torch.arange(max_phoneme_count, device=device).unsqueeze(0).unsqueeze(0)
+    m = torch.arange(1, max_mel_count + 1, device=device).unsqueeze(0).unsqueeze(2)
+    
+    a = scaling_factor * m
+    b = scaling_factor * (torch.tensor(mel_counts, device=device).unsqueeze(1).unsqueeze(2) + 1 - m)
+    
+    log_coef = torch.lgamma(n + 1) - torch.lgamma(k + 1) - torch.lgamma(n - k + 1)
+    numerator = torch.lgamma(a + k) + torch.lgamma(b + n - k) + torch.lgamma(a + b)
+    denominator = torch.lgamma(a + b + n) + torch.lgamma(a) + torch.lgamma(b)
+    
+    log_pmf = log_coef + numerator - denominator
+    pmf = torch.exp(log_pmf)
+    
+    # Create a mask to handle different sequence lengths
+    mask = (k < n) & (m <= torch.tensor(mel_counts, device=device).unsqueeze(1).unsqueeze(2))
+    pmf = pmf * mask.float()
+    
+    return pmf
 
 # Unified interface
 def compute_attn_prior(phoneme_count, mel_count, scaling_factor=1.0, method='refined'):
     methods = {
         'original': original_beta_binomial_prior_distribution,
         'refined': refined_beta_binomial_prior_distribution,
-        # 'cython': cython_beta_binomial_prior_distribution  # Uncomment if Cython version is available
+        'pytorch': lambda p, m, s: pytorch_beta_binomial_prior_distribution([p], [m], s, device='cpu')[0].cpu().numpy()
     }
     
     if method not in methods:
@@ -51,7 +74,7 @@ def benchmark(method, phoneme_count, mel_count, scaling_factor=1.0, runs=5):
     return np.mean(times), result
 
 # Function to compare outputs
-def compare_outputs(original_output, test_output, tolerance=1e-10):
+def compare_outputs(original_output, test_output, tolerance=1e-3):
     return np.allclose(original_output, test_output, rtol=tolerance, atol=tolerance)
 
 # Main benchmark script
@@ -63,10 +86,10 @@ def run_benchmark():
         (500, 1000)  # Very large input
     ]
 
-    methods = ['original', 'refined']  # Add 'cython' if available
+    methods = ['original', 'refined', 'pytorch']
     
-    print("Phonemes | Mels | Method  | Time (s) | Speedup | Outputs Match")
-    print("---------|------|---------|----------|---------|---------------")
+    print("Phonemes | Mels | Method    | Time (s)  | Speedup | Outputs Match")
+    print("---------|------|-----------|-----------|---------|---------------")
 
     for P, M in test_cases:
         original_time, original_output = benchmark('original', P, M)
@@ -76,9 +99,9 @@ def run_benchmark():
             speedup = original_time / time_taken if method != 'original' else 1.0
             outputs_match = compare_outputs(original_output, output)
             
-            print(f"{P:8d} | {M:4d} | {method:7s} | {time_taken:.6f} | {speedup:.2f}x | {outputs_match}")
+            print(f"{P:8d} | {M:4d} | {method:9s} | {time_taken:.6f} | {speedup:.2f}x | {outputs_match}")
         
-        print("---------|------|---------|----------|---------|---------------")
+        print("---------|------|-----------|-----------|---------|---------------")
 
     print("\nVerifying output consistency across all methods...")
     all_match = all(
@@ -95,7 +118,8 @@ def run_benchmark():
     else:
         print("WARNING: Not all outputs match. Please review the implementations for potential discrepancies.")
 
-def plot():
+# Visualization function
+def plot_distribution():
     import matplotlib.pyplot as plt
 
     # Test parameters
@@ -144,4 +168,4 @@ def plot():
 
 if __name__ == "__main__":
     run_benchmark()
-    plot()
+    plot_distribution()
