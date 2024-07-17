@@ -154,7 +154,7 @@ if __name__ == "__main__":
 
     aligner = OTAligner(mel_channels=mel_dim, text_channels=text_dim)
 
-    durations_normalized = aligner(
+    aligner_out = aligner(
         text_embeddings, audio_embeddings, text_mask, audio_mask, None
     )
-    print(durations_normalized)
+    print(aligner_out)
