@@ -48,7 +48,7 @@ def pytorch_beta_binomial_prior_distribution(phoneme_counts, mel_counts, scaling
     # Create a mask to handle different sequence lengths
     mask = (k < n) & (m <= torch.tensor(mel_counts, device=device).unsqueeze(1).unsqueeze(2))
     pmf.masked_fill_(~mask, 0)
-    
+    assert((pmf.min() >= 0).all() & (pmf.max() <= 1).all())
     return pmf
 
 import numpy as np
