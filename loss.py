@@ -40,7 +40,7 @@ class ForwardSumLoss(nn.Module):
         return total_loss
 
 
-def _binary_alignment_loss(alignment_hard, alignment_soft):
+def binary_alignment_loss(alignment_hard, alignment_soft):
     """Binary loss that forces soft alignments to match the hard alignments as
     explained in `https://arxiv.org/pdf/2108.10447.pdf`.
     """

@@ -4,7 +4,7 @@ from torch import nn
 from aligner import AlignmentNetwork
 from typing import Tuple
 from monotonic_align import maximum_path
-from loss import ForwardSumLoss, _binary_alignment_loss
+from loss import ForwardSumLoss, binary_alignment_loss
 
 
 class OTAligner(nn.Module):
@@ -91,7 +91,13 @@ class OTAligner(nn.Module):
         return aligner_durations, aligner_soft, aligner_logprob, aligner_mas
 
     def forward(
-        self, text_embeddings, mel_embeddings, text_mask, mel_mask, attn_priors
+        self,
+        text_embeddings,
+        mel_embeddings,
+        text_mask,
+        mel_mask,
+        attn_priors,
+        return_kl_loss=False,
     ):
         """
         Compute the alignments.
@@ -113,18 +119,21 @@ class OTAligner(nn.Module):
             )
         )
 
-        aligner_loss = self.aligner_loss(
+        ctc_loss = self.aligner_loss(
             aligner_logprob, text_mask.sum(1), mel_mask.sum(1)
-        )  # CTC loss
-        binary_alignment_loss = _binary_alignment_loss(aligner_mas, aligner_soft)
+        )
+
+        kl_loss = None
+        if return_kl_loss:
+            kl_loss = binary_alignment_loss(aligner_mas, aligner_soft)
 
         return {
             "aligner_durations": aligner_durations,
             "aligner_soft": aligner_soft,
             "aligner_logprob": aligner_logprob,
             "aligner_mas": aligner_mas,
-            "aligner_loss": aligner_loss,
-            "binary_alignment_loss": binary_alignment_loss,
+            "ctc_loss": ctc_loss,
+            "kl_loss": kl_loss,
         }
 
 
