@@ -7,14 +7,14 @@ from monotonic_align import maximum_path
 from loss import ForwardSumLoss
 
 class OTAligner(nn.Module):
-    def __init__(self, mel_channels, text_channels):
+    def __init__(self, mel_channels, text_channels, blank_logprob=-1):
         super(OTAligner, self).__init__()
 
         self.aligner = AlignmentNetwork(
             in_query_channels=mel_channels,
             in_key_channels=text_channels,
         )
-        self.aligner_loss = ForwardSumLoss()
+        self.aligner_loss = ForwardSumLoss(blank_logprob=blank_logprob)
 
     def _forward_aligner(
         self,
