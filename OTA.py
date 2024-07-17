@@ -6,6 +6,7 @@ from typing import Tuple
 from monotonic_align import maximum_path
 from loss import ForwardSumLoss, _binary_alignment_loss
 
+
 class OTAligner(nn.Module):
     def __init__(self, mel_channels, text_channels, blank_logprob=-1):
         super(OTAligner, self).__init__()
@@ -25,8 +26,10 @@ class OTAligner(nn.Module):
             )
             .transpose(-2, -1)
             .reshape(bsz, J, -1)
-        ) # interleave with blank
-        x = torch.cat((torch.full((2, 30, 1), fill_value=-1), x), dim=-1) # pad blank at the beginning
+        )  # interleave with blank
+        x = torch.cat(
+            (torch.full((2, 30, 1), fill_value=-1), x), dim=-1
+        )  # pad blank at the beginning
         return x
 
     def _forward_aligner(
@@ -87,7 +90,9 @@ class OTAligner(nn.Module):
         )  # [B, T_max, T_max2] -> [B, T_max2, T_max]
         return aligner_durations, aligner_soft, aligner_logprob, aligner_mas
 
-    def forward(self, text_embeddings, mel_embeddings, text_mask, mel_mask, attn_priors):
+    def forward(
+        self, text_embeddings, mel_embeddings, text_mask, mel_mask, attn_priors
+    ):
         """
         Compute the alignments.
 
@@ -108,7 +113,9 @@ class OTAligner(nn.Module):
             )
         )
 
-        aligner_loss = self.aligner_loss(aligner_logprob, text_mask.sum(1), mel_mask.sum(1)) # CTC loss
+        aligner_loss = self.aligner_loss(
+            aligner_logprob, text_mask.sum(1), mel_mask.sum(1)
+        )  # CTC loss
         binary_alignment_loss = _binary_alignment_loss(aligner_mas, aligner_soft)
 
         return {
@@ -117,8 +124,9 @@ class OTAligner(nn.Module):
             "aligner_logprob": aligner_logprob,
             "aligner_mas": aligner_mas,
             "aligner_loss": aligner_loss,
-            "binary_alignment_loss": binary_alignment_loss
+            "binary_alignment_loss": binary_alignment_loss,
         }
+
 
 if __name__ == "__main__":
     batch_size = 2

@@ -7,7 +7,7 @@ from torch import nn
 class AlignmentNetwork(torch.nn.Module):
     """Aligner Network for learning alignment between the input text and the model output with Gaussian Attention.
     from https://github.com/coqui-ai/TTS/blob/dbf1a08a0d4e47fdad6172e433eeb34bc6b13b4e/TTS/tts/layers/generic/aligner.py
-    
+
     ::
 
         query -> conv1d -> relu -> conv1d -> relu -> conv1d -> L2_dist -> softmax -> alignment
@@ -41,7 +41,9 @@ class AlignmentNetwork(torch.nn.Module):
                 bias=True,
             ),
             torch.nn.ReLU(),
-            nn.Conv1d(in_key_channels * 2, attn_channels, kernel_size=1, padding=0, bias=True),
+            nn.Conv1d(
+                in_key_channels * 2, attn_channels, kernel_size=1, padding=0, bias=True
+            ),
         )
 
         self.query_layer = nn.Sequential(
@@ -53,22 +55,44 @@ class AlignmentNetwork(torch.nn.Module):
                 bias=True,
             ),
             torch.nn.ReLU(),
-            nn.Conv1d(in_query_channels * 2, in_query_channels, kernel_size=1, padding=0, bias=True),
+            nn.Conv1d(
+                in_query_channels * 2,
+                in_query_channels,
+                kernel_size=1,
+                padding=0,
+                bias=True,
+            ),
             torch.nn.ReLU(),
-            nn.Conv1d(in_query_channels, attn_channels, kernel_size=1, padding=0, bias=True),
+            nn.Conv1d(
+                in_query_channels, attn_channels, kernel_size=1, padding=0, bias=True
+            ),
         )
 
         self.init_layers()
 
     def init_layers(self):
-        torch.nn.init.xavier_uniform_(self.key_layer[0].weight, gain=torch.nn.init.calculate_gain("relu"))
-        torch.nn.init.xavier_uniform_(self.key_layer[2].weight, gain=torch.nn.init.calculate_gain("linear"))
-        torch.nn.init.xavier_uniform_(self.query_layer[0].weight, gain=torch.nn.init.calculate_gain("relu"))
-        torch.nn.init.xavier_uniform_(self.query_layer[2].weight, gain=torch.nn.init.calculate_gain("linear"))
-        torch.nn.init.xavier_uniform_(self.query_layer[4].weight, gain=torch.nn.init.calculate_gain("linear"))
+        torch.nn.init.xavier_uniform_(
+            self.key_layer[0].weight, gain=torch.nn.init.calculate_gain("relu")
+        )
+        torch.nn.init.xavier_uniform_(
+            self.key_layer[2].weight, gain=torch.nn.init.calculate_gain("linear")
+        )
+        torch.nn.init.xavier_uniform_(
+            self.query_layer[0].weight, gain=torch.nn.init.calculate_gain("relu")
+        )
+        torch.nn.init.xavier_uniform_(
+            self.query_layer[2].weight, gain=torch.nn.init.calculate_gain("linear")
+        )
+        torch.nn.init.xavier_uniform_(
+            self.query_layer[4].weight, gain=torch.nn.init.calculate_gain("linear")
+        )
 
     def forward(
-        self, queries: torch.tensor, keys: torch.tensor, mask: torch.tensor = None, attn_prior: torch.tensor = None
+        self,
+        queries: torch.tensor,
+        keys: torch.tensor,
+        mask: torch.tensor = None,
+        attn_prior: torch.tensor = None,
     ) -> Tuple[torch.tensor, torch.tensor]:
         """Forward pass of the aligner encoder.
         Shapes:
@@ -84,10 +108,12 @@ class AlignmentNetwork(torch.nn.Module):
         attn_factor = (query_out[:, :, :, None] - key_out[:, :, None]) ** 2
         attn_logp = -self.temperature * attn_factor.sum(1, keepdim=True)
         if attn_prior is not None:
-            attn_logp = self.log_softmax(attn_logp) + torch.log(attn_prior[:, None] + 1e-8)
+            attn_logp = self.log_softmax(attn_logp) + torch.log(
+                attn_prior[:, None] + 1e-8
+            )
 
         if mask is not None:
             attn_logp.data.masked_fill_(~mask.bool().unsqueeze(2), -float("inf"))
 
-        attn = self.softmax(attn_logp) # TODO: twice softmax?
+        attn = self.softmax(attn_logp)  # TODO: twice softmax?
         return attn.squeeze(1), attn_logp.squeeze(1)
