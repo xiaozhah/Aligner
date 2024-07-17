@@ -26,6 +26,7 @@ def refined_beta_binomial_prior_distribution(phoneme_count, mel_count, scaling_f
     return probs
 
 # PyTorch implementation using log-space calculations with batch support
+@torch.no_grad()
 def pytorch_beta_binomial_prior_distribution(phoneme_counts, mel_counts, scaling_factor=1.0, device='cuda'):
     max_phoneme_count = max(phoneme_counts)
     max_mel_count = max(mel_counts)
@@ -46,7 +47,7 @@ def pytorch_beta_binomial_prior_distribution(phoneme_counts, mel_counts, scaling
     
     # Create a mask to handle different sequence lengths
     mask = (k < n) & (m <= torch.tensor(mel_counts, device=device).unsqueeze(1).unsqueeze(2))
-    pmf = pmf * mask.float()
+    pmf.masked_fill_(~mask, 0)
     
     return pmf
 
@@ -166,8 +167,27 @@ def plot_distribution(phoneme_count, mel_count, scaling_factor=1.0, device='cpu'
     # Print max difference
     print(f"\nMax absolute difference between PyTorch and Original: {np.abs(diff).max():.6e}")
 
+def batch_example():
+    phoneme_counts = [10, 50, 200, 500]
+    mel_counts = [20, 100, 400, 1000]
+    scaling_factor = 1.0
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    batch_result = pytorch_beta_binomial_prior_distribution(phoneme_counts, mel_counts, scaling_factor, device)
+
+    print(f"Batch result shape: {batch_result.shape}")
+    
+    for i, (p, m) in enumerate(zip(phoneme_counts, mel_counts)):
+        sample = batch_result[i]
+        print(f"\nSample {i+1} (Phonemes: {p}, Mels: {m}):")
+        print(f"  Shape: {sample.shape}")
+        print(f"  Min: {sample.min().item():.6f}")
+        print(f"  Max: {sample.max().item():.6f}")
+        print(f"  Mean: {sample.mean().item():.6f}")
+
 if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Using device: {device}")
     run_benchmark(device)
     plot_distribution(50, 100, scaling_factor=1.0, device=device)
+    batch_example()
