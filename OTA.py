@@ -1,10 +1,12 @@
+from typing import Tuple
+
 import torch
 from torch import nn
 
 from aligner import AlignmentNetwork
-from typing import Tuple
-from monotonic_align import maximum_path
+import monotonic_align
 from loss import ForwardSumLoss, binary_alignment_loss
+from prior import pytorch_beta_binomial_prior_distribution
 
 
 class OTAligner(nn.Module):
@@ -80,7 +82,7 @@ class OTAligner(nn.Module):
         aligner_soft, aligner_logprob = self.aligner(
             y.transpose(1, 2), x.transpose(1, 2), x_mask, attn_priors
         )
-        aligner_mas = maximum_path(
+        aligner_mas = monotonic_align.maximum_path(
             aligner_soft.transpose(1, 2).contiguous(),
             attn_mask.squeeze(1).contiguous(),
         )
@@ -96,7 +98,8 @@ class OTAligner(nn.Module):
         mel_embeddings,
         text_mask,
         mel_mask,
-        attn_priors,
+        use_attn_priors=True,
+        scaling_factor=1.0,
         return_kl_loss=False,
     ):
         """
@@ -108,6 +111,13 @@ class OTAligner(nn.Module):
             text_mask (torch.Tensor): The text mask of shape (B, I).
             mel_mask (torch.Tensor): The mel mask of shape (B, J).
         """
+
+        attn_priors = None
+        if use_attn_priors:
+            attn_priors = pytorch_beta_binomial_prior_distribution(
+                text_mask.sum(1), mel_mask.sum(1), scaling_factor=scaling_factor
+            )
+
         # Alignment network and durations
         aligner_durations, aligner_soft, aligner_logprob, aligner_mas = (
             self._forward_aligner(
@@ -119,9 +129,7 @@ class OTAligner(nn.Module):
             )
         )
 
-        ctc_loss = self.aligner_loss(
-            aligner_logprob, text_mask.sum(1), mel_mask.sum(1)
-        )
+        ctc_loss = self.aligner_loss(aligner_logprob, text_mask.sum(1), mel_mask.sum(1))
 
         kl_loss = None
         if return_kl_loss:
@@ -132,8 +140,8 @@ class OTAligner(nn.Module):
             "aligner_soft": aligner_soft,
             "aligner_logprob": aligner_logprob,
             "aligner_mas": aligner_mas,
-            "ctc_loss": ctc_loss,
-            "kl_loss": kl_loss,
+            "ctc_loss": ctc_loss,  # sum loss is ctc_loss, mean loss is ctc_loss / text_mask.sum()
+            "kl_loss": kl_loss,  # sum loss is kl_loss, mean loss is kl_loss / aligner_mas.sum()
         }
 
 
@@ -155,6 +163,12 @@ if __name__ == "__main__":
     aligner = OTAligner(mel_channels=mel_dim, text_channels=text_dim)
 
     aligner_out = aligner(
-        text_embeddings, audio_embeddings, text_mask, audio_mask, None
+        text_embeddings,
+        audio_embeddings,
+        text_mask,
+        audio_mask,
+        use_attn_priors=True,
+        scaling_factor=1.0,
+        return_kl_loss=True,
     )
     print(aligner_out)

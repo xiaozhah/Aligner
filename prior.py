@@ -27,16 +27,17 @@ def refined_beta_binomial_prior_distribution(phoneme_count, mel_count, scaling_f
 
 # PyTorch implementation using log-space calculations with batch support
 @torch.no_grad()
-def pytorch_beta_binomial_prior_distribution(phoneme_counts, mel_counts, scaling_factor=1.0, device='cuda'):
-    max_phoneme_count = max(phoneme_counts)
-    max_mel_count = max(mel_counts)
+def pytorch_beta_binomial_prior_distribution(phoneme_counts, mel_counts, scaling_factor=1.0):
+    device = phoneme_counts.device
+    max_phoneme_count = phoneme_counts.max().item()
+    max_mel_count = mel_counts.max().item()
 
-    n = torch.tensor(phoneme_counts, device=device).unsqueeze(1).unsqueeze(2)
+    n = phoneme_counts.unsqueeze(1).unsqueeze(2)
     k = torch.arange(max_phoneme_count, device=device).unsqueeze(0).unsqueeze(0)
     m = torch.arange(1, max_mel_count + 1, device=device).unsqueeze(0).unsqueeze(2)
     
     a = scaling_factor * m
-    b = scaling_factor * (torch.tensor(mel_counts, device=device).unsqueeze(1).unsqueeze(2) + 1 - m)
+    b = scaling_factor * (mel_counts.unsqueeze(1).unsqueeze(2) + 1 - m)
     
     log_coef = torch.lgamma(n + 1) - torch.lgamma(k + 1) - torch.lgamma(n - k + 1)
     numerator = torch.lgamma(a + k) + torch.lgamma(b + n - k) + torch.lgamma(a + b)
@@ -46,25 +47,21 @@ def pytorch_beta_binomial_prior_distribution(phoneme_counts, mel_counts, scaling
     pmf = torch.exp(log_pmf)
     
     # Create a mask to handle different sequence lengths
-    mask = (k < n) & (m <= torch.tensor(mel_counts, device=device).unsqueeze(1).unsqueeze(2))
+    mask = (k < n) & (m <= mel_counts.unsqueeze(1).unsqueeze(2))
     pmf.masked_fill_(~mask, 0)
     assert((pmf.min() >= 0).all() & (pmf.max() <= 1).all())
     return pmf
-
-import numpy as np
-from scipy.stats import betabinom
-import time
-import torch
-import matplotlib.pyplot as plt
-
-# [Original, Refined, and PyTorch implementations remain unchanged]
 
 # Unified interface
 def compute_attn_prior(phoneme_count, mel_count, scaling_factor=1.0, method='refined', device='cpu'):
     methods = {
         'original': original_beta_binomial_prior_distribution,
         'refined': refined_beta_binomial_prior_distribution,
-        'pytorch': lambda p, m, s: pytorch_beta_binomial_prior_distribution([p], [m], s, device=device)[0].cpu().numpy()
+        'pytorch': lambda p, m, s: pytorch_beta_binomial_prior_distribution(
+            torch.tensor([p], dtype=torch.long, device=device),
+            torch.tensor([m], dtype=torch.long, device=device),
+            s
+        )[0].cpu().numpy()
     }
     
     if method not in methods:
@@ -167,13 +164,16 @@ def plot_distribution(phoneme_count, mel_count, scaling_factor=1.0, device='cpu'
     # Print max difference
     print(f"\nMax absolute difference between PyTorch and Original: {np.abs(diff).max():.6e}")
 
-def batch_example():
+def batch_example(device='cpu'):
     phoneme_counts = [10, 50, 200, 500]
     mel_counts = [20, 100, 400, 1000]
     scaling_factor = 1.0
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    batch_result = pytorch_beta_binomial_prior_distribution(phoneme_counts, mel_counts, scaling_factor, device)
+    # Convert to PyTorch tensors
+    phoneme_counts_tensor = torch.tensor(phoneme_counts, dtype=torch.long, device=device)
+    mel_counts_tensor = torch.tensor(mel_counts, dtype=torch.long, device=device)
+
+    batch_result = pytorch_beta_binomial_prior_distribution(phoneme_counts_tensor, mel_counts_tensor, scaling_factor)
 
     print(f"Batch result shape: {batch_result.shape}")
     
@@ -185,9 +185,14 @@ def batch_example():
         print(f"  Max: {sample.max().item():.6f}")
         print(f"  Mean: {sample.mean().item():.6f}")
 
+    # Optional: Move result back to CPU for further processing if needed
+    batch_result_cpu = batch_result.cpu()
+    
+    return batch_result_cpu
+
 if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Using device: {device}")
     run_benchmark(device)
     plot_distribution(50, 100, scaling_factor=1.0, device=device)
-    batch_example()
+    batch_example(device)
